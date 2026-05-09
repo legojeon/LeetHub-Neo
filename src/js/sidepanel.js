@@ -18,6 +18,16 @@ function updateDisplayedStats(stats) {
   $('#p_solved_hard').text(stats.hard ?? 0);
 }
 
+function initializeStatsRefresh() {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'local' || !changes.stats?.newValue) {
+      return;
+    }
+
+    updateDisplayedStats(changes.stats.newValue);
+  });
+}
+
 function sendSyncPreviousMessage(tabId, syncButton, syncStatus) {
   chrome.tabs.sendMessage(tabId, { action: 'syncPreviousAcceptedSubmissions' }, response => {
     syncButton.prop('disabled', false);
@@ -409,3 +419,4 @@ function initializeTranslationPanel() {
 initializeLeetHubControls();
 initializeLeetHubMode();
 initializeTranslationPanel();
+initializeStatsRefresh();
