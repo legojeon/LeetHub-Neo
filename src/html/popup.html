@@ -14,7 +14,7 @@
   <body>
     <div class="ui grid container">
       <div class="sixteen wide center aligned column">
-        <h1 id="title">Leet<span style="color: #ff6c0a">Hub</span>-3.0</h1>
+        <h1 id="title">Leet<span style="color: #ff6c0a">Hub</span>-KR</h1>
         <p id="caption">Sync your code from LeetCode to GitHub</p>
         <br />
         <!-- Authentication mode -->
@@ -22,7 +22,7 @@
           <p class="onboarding">
             <br />
             Authenticate with GitHub to use
-            <strong>Leet<span style="color: #ff6c0a">Hub</span></strong>
+            <strong>Leet<span style="color: #ff6c0a">Hub</span>-KR</strong>
           </p>
           <button id="authenticate" class="ui secondary button">
             <i class="icon github"></i>
@@ -35,7 +35,7 @@
           <p class="onboarding">
             <br />
             Set up repository hook to use
-            <strong>Leet<span style="color: #ff6c0a">Hub</span></strong>
+            <strong>Leet<span style="color: #ff6c0a">Hub</span>-KR</strong>
           </p>
           <a id="hook_URL" href="" target="blank" class="ui secondary button">
             <i class="icon github"></i>
@@ -55,6 +55,12 @@
             <span style="color: #d9534f">&ensp; &ensp; Hard:</span>
             <span id="p_solved_hard" style="color: #000000; opacity: 0.75">0 </span>
           </p>
+
+          <button id="sync-previous-btn" class="ui secondary button">
+            <i class="icon sync"></i>
+            Sync Previous
+          </button>
+          <p id="sync-previous-status" class="ui tiny header"></p>
 
           <!-- Toggle custom commit menu -->
           <span id="collapsible-commit-message-icon" class="collapsible-icon">&#9654;</span>
@@ -78,7 +84,7 @@
             <textarea
               rows="4"
               id="custom-commit-msg"
-              placeholder="Time: {time}, Space: {space} - LeetHub"
+              placeholder="Time: {time}, Space: {space} - LeetHub-KR"
             ></textarea>
             <div id="setting-btns">
               <button class="setting-btns" id="msg-reset-btn">Reset</button>
@@ -121,7 +127,7 @@
             >
               <p>
                 Organize files into folders like
-                <code>LeetCode/JavaScript/Easy/0001-two-sum/0001-two-sum.js</code>
+                <code>LeetCode/Easy/0001-two-sum/JavaScript/0001-two-sum.js</code>
               </p>
               <div class="centered-toggle">
                 <div class="ui toggle checkbox">
@@ -179,7 +185,7 @@
             <a
               style="color: cadetblue !important"
               target="_blank"
-              href="https://github.com/raphaelheinz/LeetHub-3.0/labels/feature"
+              href="https://github.com/legojeon/LeetHub-KR/labels/feature"
               >Request a feature!</a
             >
           </div>
@@ -188,11 +194,8 @@
 
       <!-- Generate Socials -->
       <div id="socials" class="sixteen wide column">
-        <a href="https://github.com/raphaelheinz/LeetHub-3.0" target="_blank">
+        <a href="https://github.com/legojeon/LeetHub-KR" target="_blank">
           <i class="ui black github icon"></i>
-        </a>
-        <a href="mailto:raphael.heinz.hof.university@gmail.com" target="_blank">
-          <i class="ui red envelope icon"></i>
         </a>
         <a id="welcome_URL" href="" target="_blank"><i class="ui grey globe icon"></i></a>
       </div>

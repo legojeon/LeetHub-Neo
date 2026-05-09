@@ -74,7 +74,7 @@ const createRepo = (token, name) => {
     private: true,
     auto_init: true,
     description:
-      'Collection of LeetCode questions to ace the coding interview! - Created using [LeetHub-3.0](https://github.com/raphaelheinz/LeetHub-3.0)',
+      'Collection of LeetCode questions to ace the coding interview! - Created using [LeetHub-KR](https://github.com/legojeon/LeetHub-KR)',
   };
   data = JSON.stringify(data);
 
@@ -98,7 +98,7 @@ const linkStatusCode = (status, name) => {
     case 301:
       $('#success').hide();
       $('#error').html(
-        `Error linking <a target="blank" href="${`https://github.com/${name}`}">${name}</a> to LeetHub. <br> This repository has been moved permenantly. Try creating a new one.`,
+        `Error linking <a target="blank" href="${`https://github.com/${name}`}">${name}</a> to LeetHub-KR. <br> This repository has been moved permenantly. Try creating a new one.`,
       );
       $('#error').show();
       break;
@@ -106,7 +106,7 @@ const linkStatusCode = (status, name) => {
     case 403:
       $('#success').hide();
       $('#error').html(
-        `Error linking <a target="blank" href="${`https://github.com/${name}`}">${name}</a> to LeetHub. <br> Forbidden action. Please make sure you have the right access to this repository.`,
+        `Error linking <a target="blank" href="${`https://github.com/${name}`}">${name}</a> to LeetHub-KR. <br> Forbidden action. Please make sure you have the right access to this repository.`,
       );
       $('#error').show();
       break;
@@ -114,7 +114,7 @@ const linkStatusCode = (status, name) => {
     case 404:
       $('#success').hide();
       $('#error').html(
-        `Error linking <a target="blank" href="${`https://github.com/${name}`}">${name}</a> to LeetHub. <br> Resource not found. Make sure you enter the right repository name.`,
+        `Error linking <a target="blank" href="${`https://github.com/${name}`}">${name}</a> to LeetHub-KR. <br> Resource not found. Make sure you enter the right repository name.`,
       );
       $('#error').show();
       break;
@@ -212,7 +212,7 @@ const linkRepo = (token, name) => {
           // unable to gain access to repo in commit mode. Must switch to hook mode.
           /* Set mode type to hook */
           chrome.storage.local.set({ mode_type: 'hook' }, () => {
-            console.log(`Error linking ${name} to LeetHub`);
+            console.log(`Error linking ${name} to LeetHub-KR`);
           });
           /* Set Repo Hook to NONE */
           chrome.storage.local.set({ leethub_hook: null }, () => {
@@ -228,7 +228,7 @@ const linkRepo = (token, name) => {
           chrome.storage.local.set({ mode_type: 'commit', repo: res.html_url }, () => {
             $('#error').hide();
             $('#success').html(
-              `Successfully linked <a target="blank" href="${res.html_url}">${name}</a> to LeetHub. Start <a href="http://leetcode.com">LeetCoding</a> now!`,
+              `Successfully linked <a target="blank" href="${res.html_url}">${name}</a> to LeetHub-KR. Start <a href="http://leetcode.com">LeetCoding</a> now!`,
             );
             $('#success').show();
             $('#unlink').show();
@@ -319,7 +319,7 @@ $('#hook_button').on('click', () => {
       if (token === null || token === undefined) {
         /* Not authorized yet. */
         $('#error').text(
-          'Authorization error - Grant LeetHub access to your GitHub account to continue (launch extension to proceed)',
+          'Authorization error - Grant LeetHub-KR access to your GitHub account to continue (launch extension to proceed)',
         );
         $('#error').show();
         $('#success').hide();
@@ -331,7 +331,7 @@ $('#hook_button').on('click', () => {
           if (!username) {
             /* Improper authorization. */
             $('#error').text(
-              'Improper Authorization error - Grant LeetHub access to your GitHub account to continue (launch extension to proceed)',
+              'Improper Authorization error - Grant LeetHub-KR access to your GitHub account to continue (launch extension to proceed)',
             );
             $('#error').show();
             $('#success').hide();
@@ -387,7 +387,9 @@ $('#sync_counts').on('click', async () => {
   //Get token from storage
   const token = await chrome.storage.local.get('leethub_token').then(({ leethub_token }) => {
     if (leethub_token == null) {
-      $('#error').text('No token found - Please authorize LeetHub to access your GitHub account!');
+      $('#error').text(
+        'No token found - Please authorize LeetHub-KR to access your GitHub account!',
+      );
       $('#error').show();
       return;
     } else {
@@ -506,7 +508,7 @@ chrome.storage.local.get('mode_type', data => {
       if (token === null || token === undefined) {
         /* Not authorized yet. */
         $('#error').text(
-          'Authorization error - Grant LeetHub access to your GitHub account to continue (click LeetHub extension on the top right to proceed)',
+          'Authorization error - Grant LeetHub-KR access to your GitHub account to continue (click the LeetHub-KR extension on the top right to proceed)',
         );
         $('#error').show();
         $('#success').hide();
@@ -520,7 +522,7 @@ chrome.storage.local.get('mode_type', data => {
           if (!hook) {
             /* Not authorized yet. */
             $('#error').text(
-              'Improper Authorization error - Grant LeetHub access to your GitHub account to continue (click LeetHub extension on the top right to proceed)',
+              'Improper Authorization error - Grant LeetHub-KR access to your GitHub account to continue (click the LeetHub-KR extension on the top right to proceed)',
             );
             $('#error').show();
             $('#success').hide();
