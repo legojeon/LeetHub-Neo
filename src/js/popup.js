@@ -21,7 +21,7 @@ $('#collapsible-commit-message-icon').click(() => {
 
     // if null, undefined, or an empty string, set default placeholder
     if (!commitMessage) {
-      $('#custom-commit-msg').attr('placeholder', 'Time: {time}, Space: {space} - LeetHub');
+      $('#custom-commit-msg').attr('placeholder', 'Time: {time}, Space: {space} - LeetHub-KR');
     } else {
       $('#custom-commit-msg').attr('placeholder', commitMessage);
       $('#custom-commit-msg').val(commitMessage);
@@ -113,8 +113,89 @@ $('#msg-save-btn').click(() => {
 
 $('#msg-reset-btn').click(() => {
   $('#custom-commit-msg').val('');
-  $('#custom-commit-msg').attr('placeholder', 'Time: {time}, Space: {space} - LeetHub'); // reset to default
+  $('#custom-commit-msg').attr('placeholder', 'Time: {time}, Space: {space} - LeetHub-KR'); // reset to default
   chrome.runtime.sendMessage({ action: 'customCommitMessageUpdated', message: null });
+});
+
+function updateDisplayedStats(stats) {
+  if (!stats) {
+    return;
+  }
+
+  $('#p_solved').text(stats.solved ?? 0);
+  $('#p_solved_easy').text(stats.easy ?? 0);
+  $('#p_solved_medium').text(stats.medium ?? 0);
+  $('#p_solved_hard').text(stats.hard ?? 0);
+}
+
+function sendSyncPreviousMessage(tabId, syncButton, syncStatus) {
+  chrome.tabs.sendMessage(
+    tabId,
+    { action: 'syncPreviousAcceptedSubmissions' },
+    response => {
+      syncButton.prop('disabled', false);
+
+      if (chrome.runtime.lastError) {
+        syncStatus.text('Could not connect to the LeetCode page. Refresh it, then try again.');
+        return;
+      }
+
+      if (!response?.ok) {
+        syncStatus.text(response?.error || 'Sync failed.');
+        return;
+      }
+
+      const { counts, totalProblems } = response.result;
+      syncStatus.text(`Solved problems: ${counts?.solved ?? totalProblems}.`);
+      updateDisplayedStats(counts);
+    },
+  );
+}
+
+$('#sync-previous-btn').click(() => {
+  const syncButton = $('#sync-previous-btn');
+  const syncStatus = $('#sync-previous-status');
+
+  syncButton.prop('disabled', true);
+  syncStatus.text('Open a LeetCode tab and keep it active while syncing...');
+
+  chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+    const activeTab = tabs?.[0];
+
+    if (!activeTab?.id || !activeTab.url?.includes('leetcode.')) {
+      syncStatus.text('Please open a LeetCode problem page, then click Sync Previous again.');
+      syncButton.prop('disabled', false);
+      return;
+    }
+
+    chrome.tabs.sendMessage(
+      activeTab.id,
+      { action: 'pingLeetHubKRContentScript' },
+      response => {
+        if (!chrome.runtime.lastError && response?.ok) {
+          sendSyncPreviousMessage(activeTab.id, syncButton, syncStatus);
+          return;
+        }
+
+        syncStatus.text('Preparing LeetHub-KR on this LeetCode tab...');
+        chrome.scripting.executeScript(
+          {
+            target: { tabId: activeTab.id },
+            files: ['src/js/leetcode.js'],
+          },
+          () => {
+            if (chrome.runtime.lastError) {
+              syncStatus.text('Refresh the LeetCode page, then try again.');
+              syncButton.prop('disabled', false);
+              return;
+            }
+
+            sendSyncPreviousMessage(activeTab.id, syncButton, syncStatus);
+          },
+        );
+      },
+    );
+  });
 });
 
 /* when variable is clicked, add to custom commit message text area*/
@@ -145,12 +226,7 @@ chrome.storage.local.get('leethub_token', data => {
               /* Get problem stats and repo link */
               chrome.storage.local.get(['stats', 'leethub_hook'], data3 => {
                 const { stats } = data3;
-                if (stats && stats.solved) {
-                  $('#p_solved').text(stats.solved);
-                  $('#p_solved_easy').text(stats.easy);
-                  $('#p_solved_medium').text(stats.medium);
-                  $('#p_solved_hard').text(stats.hard);
-                }
+                updateDisplayedStats(stats);
                 const leethubHook = data3.leethub_hook;
                 if (leethubHook) {
                   $('#repo_url').html(

@@ -1,9 +1,9 @@
 {
-  "name": "leethub-3",
+  "name": "leethub-kr",
   "version": "0.0.2",
   "type": "module",
   "private": true,
-  "description": "Automatically integrate your code with LeetCode and GitHub",
+  "description": "Automatically sync your LeetCode submissions to GitHub",
   "scripts": {
     "setup": "npm i",
     "format": "prettier --write **/*.{js,jsx,ts,tsx,css,html}",

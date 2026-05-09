@@ -9,7 +9,7 @@ window.fetch = async function (...args) {
   const url = typeof resource === 'string' ? resource : resource?.url;
   const method = options?.method || 'GET';
 
-  console.log('[LeetHub Fetch Intercept]', url, method);
+  console.log('[LeetHub-KR Fetch Intercept]', url, method);
 
   const response = await originalFetch.apply(this, args);
   if (url?.includes('/problems/') && url?.includes('/submit/')) {
@@ -18,7 +18,7 @@ window.fetch = async function (...args) {
       const data = await clonedResponse.json();
 
       if (data?.submission_id) {
-        console.log('LeetHub: Submission ID detected', data.submission_id);
+        console.log('LeetHub-KR: Submission ID detected', data.submission_id);
         window.dispatchEvent(
           new CustomEvent('leetHubSubmissionId', {
             detail: { submissionId: data.submission_id }
@@ -26,21 +26,21 @@ window.fetch = async function (...args) {
         );
       }
     } catch (e) {
-      console.log('LeetHub: Error parsing submission response', e);
+      console.log('LeetHub-KR: Error parsing submission response', e);
     }
   }
 
   if (url?.includes('/graphql/') && method === 'POST') {
-    console.log('LeetHub: GraphQL POST detected via fetch');
+    console.log('LeetHub-KR: GraphQL POST detected via fetch');
     try {
       const body = JSON.parse(options?.body || '{}');
-      console.log('LeetHub: GraphQL operation:', body.operationName);
+      console.log('LeetHub-KR: GraphQL operation:', body.operationName);
       if (body.operationName === 'ugcArticlePublishSolution') {
-        console.log('LeetHub: Solution post operation detected!');
+        console.log('LeetHub-KR: Solution post operation detected!');
         const solutionData = body.variables?.data;
-        console.log('LeetHub: Solution data:', solutionData);
+        console.log('LeetHub-KR: Solution data:', solutionData);
         if (solutionData?.questionSlug && solutionData?.content) {
-          console.log('LeetHub: Valid solution data found, storing for processing...');
+          console.log('LeetHub-KR: Valid solution data found, storing for processing...');
           // Store the solution data for the content script to process
           window.leetHubSolutionPosts.push({
             questionSlug: solutionData.questionSlug,
@@ -59,11 +59,11 @@ window.fetch = async function (...args) {
             }),
           );
         } else {
-          console.log('LeetHub: Missing questionSlug or content in solution data');
+          console.log('LeetHub-KR: Missing questionSlug or content in solution data');
         }
       }
     } catch (error) {
-      console.log('LeetHub: Error parsing GraphQL body:', error);
+      console.log('LeetHub-KR: Error parsing GraphQL body:', error);
     }
   }
 
@@ -77,7 +77,7 @@ const originalXHRSend = XMLHttpRequest.prototype.send;
 XMLHttpRequest.prototype.open = function (method, url, ...args) {
   this._leethub_url = url;
   this._leethub_method = method;
-  console.log('LeetHub: XHR open intercepted', method, url);
+  console.log('LeetHub-KR: XHR open intercepted', method, url);
   return originalXHROpen.apply(this, [method, url, ...args]);
 };
 
@@ -86,17 +86,17 @@ XMLHttpRequest.prototype.send = function (data) {
     this._leethub_url?.includes('/graphql/') &&
     this._leethub_method === 'POST'
   ) {
-    console.log('LeetHub: GraphQL POST detected via XHR');
+    console.log('LeetHub-KR: GraphQL POST detected via XHR');
 
     try {
       const body = JSON.parse(data || '{}');
-      console.log('LeetHub: XHR GraphQL operation:', body.operationName);
+      console.log('LeetHub-KR: XHR GraphQL operation:', body.operationName);
       if (body.operationName === 'ugcArticlePublishSolution') {
-        console.log('LeetHub: Solution post operation detected via XHR!');
+        console.log('LeetHub-KR: Solution post operation detected via XHR!');
         const solutionData = body.variables?.data;
-        console.log('LeetHub: XHR Solution data:', solutionData);
+        console.log('LeetHub-KR: XHR Solution data:', solutionData);
         if (solutionData?.questionSlug && solutionData?.content) {
-          console.log('LeetHub: Valid solution data found via XHR, storing for processing...');
+          console.log('LeetHub-KR: Valid solution data found via XHR, storing for processing...');
           // Store the solution data for the content script to process
           window.leetHubSolutionPosts.push({
             questionSlug: solutionData.questionSlug,
@@ -115,15 +115,81 @@ XMLHttpRequest.prototype.send = function (data) {
             }),
           );
         } else {
-          console.log('LeetHub: Missing questionSlug or content in XHR solution data');
+          console.log('LeetHub-KR: Missing questionSlug or content in XHR solution data');
         }
       }
     } catch (error) {
-      console.log('LeetHub: Error parsing XHR GraphQL body:', error);
+      console.log('LeetHub-KR: Error parsing XHR GraphQL body:', error);
     }
   }
 
   return originalXHRSend.apply(this, [data]);
 };
 
-console.log('LeetHub: Request interceptors installed in page context');
+console.log('LeetHub-KR: Request interceptors installed in page context');
+
+window.leetHubFetchAcceptedSubmissions = function (options = {}) {
+  const requestId =
+    Date.now().toString(36) + Math.random().toString(36).slice(2);
+
+  return leetHubDispatchRequest(
+    'leetHubFetchAcceptedSubmissionsRequest',
+    'leetHubFetchAcceptedSubmissionsResponse',
+    requestId,
+    { options },
+  );
+};
+
+window.leetHubFetchSubmissionDetails = function (submissionId) {
+  const requestId =
+    Date.now().toString(36) + Math.random().toString(36).slice(2);
+
+  return leetHubDispatchRequest(
+    'leetHubFetchSubmissionDetailsRequest',
+    'leetHubFetchSubmissionDetailsResponse',
+    requestId,
+    { submissionId },
+  );
+};
+
+window.leetHubSyncPreviousAcceptedSubmissions = function (options = {}) {
+  const requestId =
+    Date.now().toString(36) + Math.random().toString(36).slice(2);
+
+  return leetHubDispatchRequest(
+    'leetHubSyncPreviousAcceptedSubmissionsRequest',
+    'leetHubSyncPreviousAcceptedSubmissionsResponse',
+    requestId,
+    { options },
+  );
+};
+
+function leetHubDispatchRequest(requestEventName, responseEventName, requestId, detail) {
+  return new Promise((resolve, reject) => {
+    const handleResponse = event => {
+      if (event.detail?.requestId !== requestId) {
+        return;
+      }
+
+      window.removeEventListener(responseEventName, handleResponse);
+
+      if (event.detail.error) {
+        reject(new Error(event.detail.error));
+        return;
+      }
+
+      resolve(event.detail.submissions);
+    };
+
+    window.addEventListener(responseEventName, handleResponse);
+
+    window.dispatchEvent(
+      new CustomEvent(requestEventName, {
+        detail: {
+          requestId,
+          ...detail,
+        },
+      }),
+    );
+  });
+}

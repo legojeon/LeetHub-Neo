@@ -79,6 +79,462 @@ function getTime() {
 
   return `${formattedHours}-${formattedMinutes}-${formattedSeconds}`;
 }
+
+const SUBMISSION_LIST_QUERY = `
+query Submissions($offset: Int!, $limit: Int!, $lastKey: String, $questionSlug: String) {
+  submissionList(
+    offset: $offset
+    limit: $limit
+    lastKey: $lastKey
+    questionSlug: $questionSlug
+  ) {
+    lastKey
+    hasNext
+    submissions {
+      id
+      title
+      titleSlug
+      statusDisplay
+      lang
+      runtime
+      memory
+      timestamp
+      url
+    }
+  }
+}`;
+
+async function fetchLeetCodeGraphQL(query, variables, operationName) {
+  const response = await fetch(`${getLeetCodeBaseUrl()}/graphql/`, {
+    method: 'POST',
+    headers: {
+      cookie: document.cookie,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      query,
+      variables,
+      operationName,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`LeetCode GraphQL request failed: ${response.status}`);
+  }
+
+  const payload = await response.json();
+  if (payload.errors?.length) {
+    throw new Error(payload.errors.map(error => error.message).join('; '));
+  }
+
+  return payload.data;
+}
+
+async function fetchAcceptedSubmissions({
+  limit = 20,
+  offset = 0,
+  maxPages = 1,
+  questionSlug = undefined,
+} = {}) {
+  const acceptedSubmissions = [];
+  let currentOffset = offset;
+  let lastKey = null;
+  let hasNext = true;
+  let pagesFetched = 0;
+
+  while (hasNext && pagesFetched < maxPages) {
+    const data = await fetchLeetCodeGraphQL(
+      SUBMISSION_LIST_QUERY,
+      {
+        offset: currentOffset,
+        limit,
+        lastKey,
+        questionSlug,
+      },
+      'Submissions',
+    );
+    const submissionList = data?.submissionList;
+
+    if (!submissionList) {
+      throw new Error('LeetCode response did not include submissionList');
+    }
+
+    acceptedSubmissions.push(
+      ...submissionList.submissions.filter(
+        submission => submission.statusDisplay === 'Accepted',
+      ),
+    );
+
+    hasNext = Boolean(submissionList.hasNext);
+    lastKey = submissionList.lastKey;
+    currentOffset += limit;
+    pagesFetched += 1;
+  }
+
+  console.table(
+    acceptedSubmissions.map(submission => ({
+      id: submission.id,
+      title: submission.title,
+      titleSlug: submission.titleSlug,
+      lang: submission.lang,
+      timestamp: submission.timestamp,
+    })),
+  );
+  console.info('[LeetHub-KR] Accepted submissions fetched:', acceptedSubmissions);
+
+  return acceptedSubmissions;
+}
+
+async function fetchSubmissionDetailsById(submissionId) {
+  const isCN = getLeetCodeBaseUrl() === 'https://leetcode.cn';
+  const submissionDetailsQuery = {
+    query: isCN
+      ? `
+query submissionDetails($submissionId: ID!) {
+  submissionDetail(submissionId: $submissionId) {
+    code
+    timestamp
+    statusDisplay
+    isMine
+    lang
+    langVerboseName
+    runtimeDisplay: runtime
+    memoryDisplay: memory
+    memory: rawMemory
+    runtimePercentile
+    memoryPercentile
+    question {
+      questionId
+      titleSlug
+      hasFrontendPreview
+    }
+    user {
+      realName
+      userAvatar
+      userSlug
+    }
+    passedTestCaseCnt
+    totalTestCaseCnt
+    ... on GeneralSubmissionNode {
+      outputDetail {
+        codeOutput
+        expectedOutput
+        input
+        compileError
+        runtimeError
+        lastTestcase
+      }
+    }
+  }
+}`
+      : '\n    query submissionDetails($submissionId: Int!) {\n  submissionDetails(submissionId: $submissionId) {\n    runtime\n    runtimeDisplay\n    runtimePercentile\n    runtimeDistribution\n    memory\n    memoryDisplay\n    memoryPercentile\n    memoryDistribution\n    code\n    timestamp\n    statusCode\n    lang {\n      name\n      verboseName\n    }\n    question {\n      questionId\n    questionFrontendId\n    title\n    titleSlug\n    content\n    difficulty\n    }\n    notes\n    topicTags {\n      tagId\n      slug\n      name\n    }\n    runtimeError\n  }\n}\n    ',
+    variables: { submissionId },
+    operationName: 'submissionDetails',
+  };
+  const data = await fetchLeetCodeGraphQL(
+    submissionDetailsQuery.query,
+    submissionDetailsQuery.variables,
+    submissionDetailsQuery.operationName,
+  );
+  const submissionDetails = isCN ? data.submissionDetail : data.submissionDetails;
+
+  console.info('[LeetHub-KR] Submission details fetched:', submissionDetails);
+  if (submissionDetails?.code) {
+    console.info('[LeetHub-KR] Submission code preview:\n', submissionDetails.code);
+  }
+
+  return submissionDetails;
+}
+
+function getLatestAcceptedSubmissionByProblem(submissions) {
+  const latestByProblem = new Map();
+
+  for (const submission of submissions) {
+    const current = latestByProblem.get(submission.titleSlug);
+
+    if (!current || Number(submission.timestamp) > Number(current.timestamp)) {
+      latestByProblem.set(submission.titleSlug, submission);
+    }
+  }
+
+  return [...latestByProblem.values()];
+}
+
+function createLeetCodeV2FromSubmission(submissionDetails) {
+  const leetCode = Object.create(LeetCodeV2.prototype);
+  leetCode.submissionData = submissionDetails;
+  leetCode.questionDetails = {
+    topicTags: submissionDetails.topicTags ?? [],
+  };
+  return leetCode;
+}
+
+async function uploadLeetCodeV2Submission(leetCode, suffix) {
+  const probStats = leetCode.parseStats();
+  if (!probStats) {
+    throw new Error('Could not get submission stats');
+  }
+
+  const probStatement = leetCode.parseQuestion();
+  if (!probStatement) {
+    throw new Error('Could not find problem statement');
+  }
+
+  const problemName = leetCode.getProblemNameSlug();
+  const alreadyCompleted = await checkAlreadyCompleted(problemName);
+  if (alreadyCompleted) {
+    return {
+      status: 'skipped',
+      problemName,
+      difficulty,
+    };
+  }
+
+  const language = leetCode.getLanguageExtension();
+  if (!language) {
+    throw new Error('Could not find language');
+  }
+  last_language = leetCode.getLanguage();
+
+  const updateReadMe = await chrome.storage.local.get('stats').then(({ stats }) => {
+    const shaExists = stats?.shas?.[problemName]?.['README.md'] !== undefined;
+
+    if (!shaExists) {
+      return uploadGit(
+        btoa(unescape(encodeURIComponent(probStatement))),
+        problemName,
+        'README.md',
+        `Create readme : ${problemName}`,
+        'upload',
+        false,
+      );
+    }
+  });
+
+  const notes = leetCode.getNotesIfAny();
+  let updateNotes;
+  if (notes != undefined && notes.length > 0) {
+    updateNotes = uploadGit(
+      btoa(unescape(encodeURIComponent(notes))),
+      problemName,
+      'NOTES.md',
+      `Attach Notes : ${problemName}`,
+      'upload',
+      false,
+    );
+  }
+
+  const problemContext = {
+    time: `${probStats.time} (${probStats.timePercentile}%)`,
+    space: `${probStats.space} (${probStats.spacePercentile}%)`,
+    language,
+    problemName,
+    difficulty,
+    date: getTodaysDate(),
+    problemTopic: probStats.problemTopic,
+  };
+  const probStatsCommitMsg = `Time: ${probStats.time} (${probStats.timePercentile}%), Space: ${probStats.space} (${probStats.spacePercentile}%) - LeetHub-KR`;
+  const commitMsg = (await getCustomCommitMessage(problemContext)) || probStatsCommitMsg;
+
+  const { useTimestampFilename = false } =
+    await chrome.storage.local.get('useTimestampFilename');
+
+  let fileName;
+  if (useTimestampFilename) {
+    const timestamp = `${getTodaysDate()}-${getTime()}`.replace(/[:\s]/g, '--');
+    fileName = suffix
+      ? `${problemName}${suffix}-${timestamp}${language}`
+      : `${problemName}-${timestamp}${language}`;
+  } else {
+    fileName = suffix ? `${problemName}${suffix}${language}` : `${problemName}${language}`;
+  }
+
+  const updateCode = leetCode.findAndUploadCode(problemName, fileName, commitMsg, 'upload');
+  const updateRepoReadMe = updateReadmeTopicTagsWithProblem(
+    leetCode.questionDetails?.topicTags,
+    problemName,
+  );
+
+  await Promise.all([updateReadMe, updateNotes, updateCode, updateRepoReadMe]);
+  await incrementStats();
+
+  return {
+    status: 'uploaded',
+    problemName,
+    difficulty,
+  };
+}
+
+async function updateStatsCountsFromSyncedResults(results) {
+  const counts = results.reduce(
+    (acc, result) => {
+      acc.solved += 1;
+      acc.easy += result.difficulty === 'Easy' ? 1 : 0;
+      acc.medium += result.difficulty === 'Medium' ? 1 : 0;
+      acc.hard += result.difficulty === 'Hard' ? 1 : 0;
+      return acc;
+    },
+    {
+      solved: 0,
+      easy: 0,
+      medium: 0,
+      hard: 0,
+    },
+  );
+
+  const { stats = {} } = await chrome.storage.local.get('stats');
+  await chrome.storage.local.set({
+    stats: {
+      ...stats,
+      ...counts,
+      shas: stats.shas ?? {},
+    },
+  });
+
+  return counts;
+}
+
+async function syncPreviousAcceptedSubmissions({
+  limit = 50,
+  maxPages = 10,
+  onProgress = () => {},
+} = {}) {
+  if (uploadState.uploading) {
+    throw new Error('LeetHub-KR is already uploading. Please try again later.');
+  }
+
+  uploadState.uploading = true;
+
+  try {
+    onProgress('Fetching accepted submissions...');
+    const acceptedSubmissions = await fetchAcceptedSubmissions({ limit, maxPages });
+    const latestSubmissions = getLatestAcceptedSubmissionByProblem(acceptedSubmissions);
+    const results = [];
+
+    for (let index = 0; index < latestSubmissions.length; index += 1) {
+      const submission = latestSubmissions[index];
+      onProgress(
+        `Syncing ${index + 1}/${latestSubmissions.length}: ${submission.title}`,
+      );
+
+      const submissionDetails = await fetchSubmissionDetailsById(submission.id);
+      const leetCode = createLeetCodeV2FromSubmission(submissionDetails);
+      results.push(await uploadLeetCodeV2Submission(leetCode));
+    }
+
+    const uploaded = results.filter(result => result.status === 'uploaded').length;
+    const skipped = results.filter(result => result.status === 'skipped').length;
+    const counts = await updateStatsCountsFromSyncedResults(results);
+    onProgress(`Done. Found ${counts.solved} solved problems.`);
+
+    return {
+      uploaded,
+      skipped,
+      counts,
+      totalAccepted: acceptedSubmissions.length,
+      totalProblems: latestSubmissions.length,
+      results,
+    };
+  } finally {
+    uploadState.uploading = false;
+  }
+}
+
+window.leetHubFetchAcceptedSubmissions = fetchAcceptedSubmissions;
+window.leetHubFetchSubmissionDetails = fetchSubmissionDetailsById;
+window.leetHubSyncPreviousAcceptedSubmissions = syncPreviousAcceptedSubmissions;
+window.addEventListener('leetHubFetchAcceptedSubmissionsRequest', async event => {
+  const { requestId, options } = event.detail ?? {};
+
+  try {
+    const submissions = await fetchAcceptedSubmissions(options);
+    window.dispatchEvent(
+      new CustomEvent('leetHubFetchAcceptedSubmissionsResponse', {
+        detail: {
+          requestId,
+          submissions,
+        },
+      }),
+    );
+  } catch (error) {
+    window.dispatchEvent(
+      new CustomEvent('leetHubFetchAcceptedSubmissionsResponse', {
+        detail: {
+          requestId,
+          error: error.message,
+        },
+      }),
+    );
+  }
+});
+window.addEventListener('leetHubFetchSubmissionDetailsRequest', async event => {
+  const { requestId, submissionId } = event.detail ?? {};
+
+  try {
+    const submissionDetails = await fetchSubmissionDetailsById(submissionId);
+    window.dispatchEvent(
+      new CustomEvent('leetHubFetchSubmissionDetailsResponse', {
+        detail: {
+          requestId,
+          submissions: submissionDetails,
+        },
+      }),
+    );
+  } catch (error) {
+    window.dispatchEvent(
+      new CustomEvent('leetHubFetchSubmissionDetailsResponse', {
+        detail: {
+          requestId,
+          error: error.message,
+        },
+      }),
+    );
+  }
+});
+window.addEventListener('leetHubSyncPreviousAcceptedSubmissionsRequest', async event => {
+  const { requestId, options } = event.detail ?? {};
+
+  try {
+    const result = await syncPreviousAcceptedSubmissions(options);
+    window.dispatchEvent(
+      new CustomEvent('leetHubSyncPreviousAcceptedSubmissionsResponse', {
+        detail: {
+          requestId,
+          submissions: result,
+        },
+      }),
+    );
+  } catch (error) {
+    window.dispatchEvent(
+      new CustomEvent('leetHubSyncPreviousAcceptedSubmissionsResponse', {
+        detail: {
+          requestId,
+          error: error.message,
+        },
+      }),
+    );
+  }
+});
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+  if (request?.action === 'pingLeetHubKRContentScript') {
+    sendResponse({ ok: true });
+    return false;
+  }
+
+  if (request?.action !== 'syncPreviousAcceptedSubmissions') {
+    return false;
+  }
+
+  syncPreviousAcceptedSubmissions()
+    .then(result => {
+      sendResponse({ ok: true, result });
+    })
+    .catch(error => {
+      sendResponse({ ok: false, error: error.message });
+    });
+
+  return true;
+});
 /* returns the corresponding language from language extension */
 function getLanguageFromExtension(extension) {
   if (extension === null || extension === undefined) {
@@ -87,6 +543,10 @@ function getLanguageFromExtension(extension) {
   const language = Object.keys(languages).find(key => languages[key] === extension);
   console.log(language);
   return language || null;
+}
+
+function isProblemMetadataFile(filename) {
+  return ['README.md', 'NOTES.md', 'Solution.md'].includes(filename);
 }
 
 /**
@@ -116,9 +576,18 @@ function constructGitHubPath(
     const language = last_language;
     console.log('Language:', language);
     if (language) {
+      if (!problem || isProblemMetadataFile(filename)) {
+        const path = useDifficultyFolder
+          ? `${basePath}/${difficulty}/${filePath}`
+          : problem
+            ? `${basePath}/${filePath}`
+            : filePath;
+        return `https://api.github.com/repos/${hook}/contents/${path}`;
+      }
+
       const path = useDifficultyFolder
-        ? `${language}/${difficulty}/${filePath}`
-        : `${language}/${filePath}`;
+        ? `${basePath}/${difficulty}/${problem}/${language}/${filename}`
+        : `${basePath}/${problem}/${language}/${filename}`;
       return `https://api.github.com/repos/${hook}/contents/${path}`;
     }
   }
@@ -596,7 +1065,7 @@ function addLeadingZeros(title) {
 }
 
 function formatStats(time, timePercentile, space, spacePercentile) {
-  return `Time: ${time} (${timePercentile}%), Space: ${space} (${spacePercentile}%) - LeetHub`;
+  return `Time: ${time} (${timePercentile}%), Space: ${space} (${spacePercentile}%) - LeetHub-KR`;
 }
 
 function getGitIcon() {
@@ -776,7 +1245,7 @@ LeetCodeV1.prototype.findAndUploadCode = function (
               slicedText.indexOf("'") + 1,
               slicedText.lastIndexOf("'"),
             );
-            commitMsg = `Time: ${resultRuntime}, Memory: ${resultMemory} - LeetHub`;
+            commitMsg = `Time: ${resultRuntime}, Memory: ${resultMemory} - LeetHub-KR`;
           }
           if (code != null) {
             return uploadGit(
@@ -911,7 +1380,7 @@ LeetCodeV1.prototype.parseStats = function () {
   const space = probStats[2].textContent;
   const spacePercentile = probStats[3].textContent;
 
-  return `Time: ${time} (${timePercentile}), Space: ${space} (${spacePercentile}) - LeetHub`;
+  return `Time: ${time} (${timePercentile}), Space: ${space} (${spacePercentile}) - LeetHub-KR`;
 };
 /* Parser function for the question, question title, question difficulty, and tags */
 LeetCodeV1.prototype.parseQuestion = function () {
@@ -1007,7 +1476,7 @@ LeetCodeV1.prototype.insertToAnchorElement = function (elem) {
     }
   }
 };
-/* Creates a ✔️ tick mark before "Run Code" button signaling LeetHub has done its job */
+/* Creates a tick mark before "Run Code" button signaling LeetHub-KR has done its job */
 LeetCodeV1.prototype.markUploaded = function () {
   const elem = document.getElementById(this.progressSpinnerElementId);
   if (elem) {
@@ -1031,13 +1500,13 @@ LeetCodeV1.prototype.markUploadFailed = function () {
  */
 LeetCodeV2.prototype.injectAndListen = function () {
   window.addEventListener('leetHubSubmissionId', (event) => {
-    console.log('[LeetHub] Received submission ID:', event.detail.submissionId);
+    console.log('[LeetHub-KR] Received submission ID:', event.detail.submissionId);
     this.processSubmission(event.detail.submissionId);
   });
 
   window.addEventListener('leetHubSolutionPost', (event) => {
     const { questionSlug, content, title } = event.detail;
-    console.log('LeetHub: Received solution post event:', event.detail);
+    console.log('LeetHub-KR: Received solution post event:', event.detail);
     this.handleSolutionPost(questionSlug, content, title);
   });
 };
@@ -1133,7 +1602,7 @@ query submissionDetails($submissionId: ID!) {
   )
     .then(res => res.json())
     .then(res => (isCN ? res.data.submissionDetail : res.data.submissionDetails));
-  console.info('LeetHub:', { submissionDetailsData });
+  console.info('LeetHub-KR:', { submissionDetailsData });
   this.submissionData = submissionDetailsData;
 
   const questionDetailsQuery = {
@@ -1211,7 +1680,7 @@ LeetCodeV2.prototype.getLanguageExtension = function () {
 };
 LeetCodeV2.prototype.getLanguage = function () {
   if (this.submissionData != null) {
-    return this.submissionData.lang.verboseName;
+    return this.submissionData.lang.verboseName ?? this.submissionData.langVerboseName;
   }
   return '';
 };
@@ -1273,7 +1742,7 @@ LeetCodeV2.prototype.parseStats = function () {
 LeetCodeV2.prototype.parseQuestion = function () {
   let markdown;
   if (this.submissionData != null) {
-    const questionUrl = window.location.href.split('/submissions')[0];
+    const questionUrl = `${getLeetCodeBaseUrl()}/problems/${this.submissionData.question.titleSlug}/`;
     const qTitle = `${this.extractQuestionNumber()}. ${this.submissionData.question.title}`;
     const qBody = this.parseQuestionDescription();
 
@@ -1452,10 +1921,10 @@ chrome.storage.local.get('isSync', data => {
       });
     });
     chrome.storage.local.set({ isSync: true }, _ => {
-      console.log('LeetHub Synced to local values');
+      console.log('LeetHub-KR synced to local values');
     });
   } else {
-    console.log('LeetHub Local storage already synced!');
+    console.log('LeetHub-KR local storage already synced!');
   }
 });
 
@@ -1538,7 +2007,7 @@ const loader = (leetCode, suffix) => {
         date: getTodaysDate(),
         problemTopic: probStats.problemTopic,
       };
-      const probStatsCommitMsg = `Time: ${probStats.time} (${probStats.timePercentile}%), Space: ${probStats.space} (${probStats.spacePercentile}%) - LeetHub`; // default commit
+      const probStatsCommitMsg = `Time: ${probStats.time} (${probStats.timePercentile}%), Space: ${probStats.space} (${probStats.spacePercentile}%) - LeetHub-KR`; // default commit
       const commitMsg = (await getCustomCommitMessage(problemContext)) || probStatsCommitMsg;
 
       const { useTimestampFilename = false } =
@@ -1788,7 +2257,7 @@ function sortTopicsInReadme(markdownFile) {
   return markdownFile;
 }
 
-// Function to convert questionSlug to problemName using the same logic as LeetHub
+// Function to convert questionSlug to problemName using the same logic as LeetHub-KR
 async function questionSlugToProblemName(questionSlug) {
   // Query LeetCode GraphQL to get question details
   const questionDetailsQuery = {
@@ -1843,7 +2312,7 @@ async function getLastCommitMessage(problemName) {
     const { useLanguageFolder = false } = await chrome.storage.local.get('useLanguageFolder');
 
     if (!stats?.shas || !leethub_token || !leethub_hook) {
-      return 'Add solution post - LeetHub';
+      return 'Add solution post - LeetHub-KR';
     }
 
     // Try to find the exact problem name, or one that contains the problem name
@@ -1909,7 +2378,11 @@ async function getLastCommitMessage(problemName) {
             }
             
             // Look for commits that contain time/space stats (typical solution commits)
-            if (message.includes('Time:') && message.includes('Space:') && message.includes('LeetHub')) {
+            if (
+              message.includes('Time:') &&
+              message.includes('Space:') &&
+              (message.includes('LeetHub-KR') || message.includes('LeetHub'))
+            ) {
               return message;
             }
             
@@ -1922,10 +2395,10 @@ async function getLastCommitMessage(problemName) {
     } catch (apiError) {
       // Silently handle API errors
     }
-    return 'Add solution post - LeetHub';
+    return 'Add solution post - LeetHub-KR';
   } catch (error) {
     console.error('Error getting last commit message:', error);
-    return 'Add solution post - LeetHub';
+    return 'Add solution post - LeetHub-KR';
   }
 }
 
@@ -1973,4 +2446,3 @@ setTimeout(() => {
   leetCode.addUrlChangeListener();
 }, 6000);
 */
-
