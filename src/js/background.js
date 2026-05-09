@@ -9,10 +9,64 @@ const closeTab = () => {
   });
 };
 
-const handleMessage = request => {
+const isLeetCodeTab = tab => /^https:\/\/leetcode\.(com|cn)\//.test(tab.url ?? '');
+
+const sendMessageToTab = (tabId, message) => {
+  return new Promise(resolve => {
+    chrome.tabs.sendMessage(tabId, message, response => {
+      if (chrome.runtime.lastError) {
+        resolve(null);
+        return;
+      }
+
+      resolve(response);
+    });
+  });
+};
+
+const syncPreviousOnFirstAvailableLeetCodeTab = async () => {
+  const tabs = await chrome.tabs.query({});
+  const leetCodeTabs = tabs.filter(isLeetCodeTab);
+
+  for (const tab of leetCodeTabs) {
+    const pingResponse = await sendMessageToTab(tab.id, {
+      action: 'pingLeetHubKRContentScript',
+    });
+
+    if (!pingResponse?.ok) {
+      continue;
+    }
+
+    const syncResponse = await sendMessageToTab(tab.id, {
+      action: 'syncPreviousAcceptedSubmissions',
+    });
+
+    if (syncResponse?.ok) {
+      return { ok: true, synced: true, tabId: tab.id, result: syncResponse.result };
+    }
+
+    return {
+      ok: false,
+      synced: false,
+      tabId: tab.id,
+      error: syncResponse?.error || 'Initial sync failed.',
+    };
+  }
+
+  return { ok: true, synced: false, reason: 'NO_LEETCODE_TAB' };
+};
+
+const handleMessage = (request, _sender, sendResponse) => {
   if (!request) {
     console.log('Received undefined message');
     return;
+  }
+
+  if (request.action === 'syncPreviousAfterInitialHook') {
+    syncPreviousOnFirstAvailableLeetCodeTab()
+      .then(sendResponse)
+      .catch(error => sendResponse({ ok: false, synced: false, error: error.message }));
+    return true;
   }
 
   if (request.action === 'customCommitMessageUpdated') {

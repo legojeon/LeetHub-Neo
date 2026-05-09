@@ -7,6 +7,10 @@ const repositoryName = () => {
   else return $('#existing_repo').val().trim();
 };
 
+const syncPreviousAfterInitialHook = () => {
+  chrome.runtime.sendMessage({ action: 'syncPreviousAfterInitialHook' });
+};
+
 /* Status codes for creating of repo */
 
 const statusCode = (res, status, name) => {
@@ -57,10 +61,12 @@ const statusCode = (res, status, name) => {
         /* Show new layout */
         document.getElementById('hook_mode').style.display = 'none';
         document.getElementById('commit_mode').style.display = 'inherit';
-      });
-      /* Set Repo Hook */
-      chrome.storage.local.set({ leethub_hook: res.full_name }, () => {
-        console.log('Successfully set new repo hook');
+
+        /* Set Repo Hook */
+        chrome.storage.local.set({ leethub_hook: res.full_name }, () => {
+          console.log('Successfully set new repo hook');
+          syncPreviousAfterInitialHook();
+        });
       });
 
       break;
@@ -232,24 +238,26 @@ const linkRepo = (token, name) => {
             );
             $('#success').show();
             $('#unlink').show();
+
+            /* Set Repo Hook */
+            chrome.storage.local
+              .set({ leethub_hook: res.full_name })
+              .then(() => {
+                console.log('Successfully set new repo hook');
+                syncPreviousAfterInitialHook();
+                return chrome.storage.local.get('stats');
+              })
+              .then(psolved => {
+                /* Get problems solved count */
+                const { stats } = psolved;
+                if (stats && stats.solved) {
+                  $('#p_solved').text(stats.solved);
+                  $('#p_solved_easy').text(stats.easy);
+                  $('#p_solved_medium').text(stats.medium);
+                  $('#p_solved_hard').text(stats.hard);
+                }
+              });
           });
-          /* Set Repo Hook */
-          chrome.storage.local
-            .set({ leethub_hook: res.full_name })
-            .then(() => {
-              console.log('Successfully set new repo hook');
-              return chrome.storage.local.get('stats');
-            })
-            .then(psolved => {
-              /* Get problems solved count */
-              const { stats } = psolved;
-              if (stats && stats.solved) {
-                $('#p_solved').text(stats.solved);
-                $('#p_solved_easy').text(stats.easy);
-                $('#p_solved_medium').text(stats.medium);
-                $('#p_solved_hard').text(stats.hard);
-              }
-            });
 
           /* Hide accordingly */
           document.getElementById('hook_mode').style.display = 'none';

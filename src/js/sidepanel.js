@@ -1,9 +1,5 @@
-import {
-  buildTranslationCacheKey,
-  chunkTextForTranslation,
-  getLeetCodeProblemSlug,
-  normalizeTranslationText,
-} from './translation-utils.js';
+import { buildTranslationCacheKey, getLeetCodeProblemSlug } from './translation-utils.js';
+import { translateDescriptionHtml } from './description-translation.js';
 
 const $ = window.$;
 const oAuth2 = window.oAuth2;
@@ -234,6 +230,17 @@ function setTranslationActionsVisible(isVisible) {
   $('#translation-actions').prop('hidden', !isVisible);
 }
 
+function setActiveView(viewName) {
+  $('#problem_translation_mode').prop('hidden', viewName !== 'description');
+  $('#leethub_mode').prop('hidden', viewName !== 'leethub');
+  $('#description-tab').toggleClass('active', viewName === 'description');
+  $('#leethub-tab').toggleClass('active', viewName === 'leethub');
+}
+
+function setProblemTabsVisible(isVisible) {
+  $('#sidepanel_tabs').prop('hidden', !isVisible);
+}
+
 function renderProblemHeader(problem) {
   const tagNames = (problem.topicTags ?? []).map(tag => tag.name).filter(Boolean);
   const metaParts = [problem.difficulty, ...tagNames].filter(Boolean);
@@ -244,7 +251,7 @@ function renderProblemHeader(problem) {
 }
 
 function renderSource(problem) {
-  $('#source-description').text(normalizeTranslationText(problem.descriptionText));
+  $('#source-description').html(problem.descriptionHtml);
 }
 
 async function getCachedTranslation(cacheKey) {
@@ -252,10 +259,10 @@ async function getCachedTranslation(cacheKey) {
   return data[cacheKey] ?? null;
 }
 
-async function setCachedTranslation(cacheKey, translatedText) {
+async function setCachedTranslation(cacheKey, translatedHtml) {
   await chrome.storage.local.set({
     [cacheKey]: {
-      translatedText,
+      translatedHtml,
       translatedAt: new Date().toISOString(),
     },
   });
@@ -298,8 +305,8 @@ async function translateProblemDescription(problem, { forceRefresh = false } = {
 
   if (!forceRefresh) {
     const cachedTranslation = await getCachedTranslation(cacheKey);
-    if (cachedTranslation?.translatedText) {
-      $('#translated-description').text(cachedTranslation.translatedText);
+    if (cachedTranslation?.translatedHtml) {
+      $('#translated-description').html(cachedTranslation.translatedHtml);
       setTranslationStatus(
         `Using cached Korean translation from ${cachedTranslation.translatedAt}.`,
       );
@@ -309,32 +316,30 @@ async function translateProblemDescription(problem, { forceRefresh = false } = {
 
   setTranslationStatus('Preparing Korean translation...');
   const translator = await createEnglishToKoreanTranslator();
-  const chunks = chunkTextForTranslation(problem.descriptionText);
 
-  if (!chunks.length) {
+  if (!problem.descriptionHtml) {
     throw new Error('This problem does not have a description to translate.');
   }
 
-  const translatedChunks = [];
-  for (let index = 0; index < chunks.length; index += 1) {
-    setTranslationStatus(`Translating description... ${index + 1}/${chunks.length}`);
-    translatedChunks.push(await translator.translate(chunks[index]));
-  }
-
-  const translatedText = translatedChunks.join('\n\n');
-  $('#translated-description').text(translatedText);
-  await setCachedTranslation(cacheKey, translatedText);
+  setTranslationStatus('Translating description...');
+  const translatedHtml = await translateDescriptionHtml(problem.descriptionHtml, text =>
+    translator.translate(text),
+  );
+  $('#translated-description').html(translatedHtml);
+  await setCachedTranslation(cacheKey, translatedHtml);
   setTranslationStatus('Korean translation ready.');
 }
 
 function requestProblemFromTab(tab) {
   const slug = getLeetCodeProblemSlug(tab.url);
   if (!slug) {
-    $('#problem_translation_mode').prop('hidden', true);
+    setProblemTabsVisible(false);
+    setActiveView('leethub');
     return;
   }
 
-  $('#problem_translation_mode').prop('hidden', false);
+  setProblemTabsVisible(true);
+  setActiveView('description');
   setTranslationStatus('Loading LeetCode problem description...');
 
   chrome.tabs.sendMessage(tab.id, { action: 'getCurrentLeetCodeProblem' }, response => {
@@ -365,6 +370,9 @@ function queryActiveTab(callback) {
 }
 
 function initializeTranslationPanel() {
+  $('#description-tab').on('click', () => setActiveView('description'));
+  $('#leethub-tab').on('click', () => setActiveView('leethub'));
+
   $('#translate-retry-btn').on('click', () => {
     if (activeProblem) {
       translateProblemDescription(activeProblem).catch(error =>

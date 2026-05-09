@@ -13,9 +13,14 @@
 
   <body>
     <main class="sidepanel-shell">
-      <section id="problem_translation_mode" class="translation-panel" hidden>
+      <nav id="sidepanel_tabs" class="sidepanel-tabs" hidden>
+        <button id="description-tab" class="sidepanel-tab active" type="button">Description</button>
+        <button id="editorial-tab" class="sidepanel-tab" type="button" disabled>Editorial</button>
+        <button id="leethub-tab" class="sidepanel-tab" type="button">LeetHub</button>
+      </nav>
+
+      <section id="problem_translation_mode" class="sidepanel-view description-view" hidden>
         <div class="translation-header">
-          <p class="translation-eyebrow">LeetCode Description</p>
           <h2 id="problem-title" class="translation-title">Problem</h2>
           <p id="problem-meta" class="translation-meta"></p>
         </div>
@@ -39,7 +44,7 @@
         ></article>
       </section>
 
-      <section class="leethub-panel">
+      <section id="leethub_mode" class="sidepanel-view leethub-panel">
         <div class="ui grid container">
           <div class="sixteen wide center aligned column">
             <h1 id="title">Leet<span style="color: #ff6c0a">Hub</span>-KR</h1>

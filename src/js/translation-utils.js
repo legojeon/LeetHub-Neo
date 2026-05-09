@@ -58,5 +58,5 @@ export async function buildTranslationCacheKey(slug, sourceHtml) {
     .join('')
     .slice(0, 16);
 
-  return `translation:en-ko:${slug}:${hash}`;
+  return `translation-html:en-ko:${slug}:${hash}`;
 }
