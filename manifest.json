@@ -1,13 +1,16 @@
 {
   "manifest_version": 3,
-  "name": "LeetHub-3.0",
-  "description": "Automatically integrate your Leetcode submissions to GitHub",
-  "homepage_url": "https://github.com/raphaelheinz/LeetHub-3.0",
+  "name": "LeetHub-KR",
+  "description": "Automatically sync your LeetCode submissions to GitHub",
+  "homepage_url": "https://github.com/legojeon/LeetHub-KR",
   "version": "0.0.16",
-  "author": "Raphael Heinz",
+  "author": "legojeon",
   "action": {
     "default_icon": "assets/thumbnail.png",
-    "default_popup": "src/html/popup.html"
+    "default_title": "Open LeetHub-KR"
+  },
+  "side_panel": {
+    "default_path": "src/html/sidepanel.html"
   },
   "icons": {
     "16": "assets/thumbnail.png",
@@ -18,6 +21,10 @@
     "service_worker": "src/js/background.js"
   },
   "permissions": [
+    "activeTab",
+    "scripting",
+    "sidePanel",
+    "tabs",
     "unlimitedStorage",
     "storage"
   ],
@@ -43,6 +50,16 @@
       "js": [
         "src/js/leetcode.js",
         "src/js/authorize.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://leetcode.com/*",
+        "https://leetcode.cn/*"
+      ],
+      "js": [
+        "src/js/leetcode-problem.js"
       ],
       "run_at": "document_idle"
     }
