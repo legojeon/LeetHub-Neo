@@ -1,6 +1,7 @@
 .env
 build/*
 node_modules
+.worktrees
 .vscode
 **/.DS_Store
 release/*
