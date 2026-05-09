@@ -7,7 +7,7 @@ export function getLeetCodeProblemSlug(url) {
 
     const match = parsedUrl.pathname.match(/^\/problems\/([^/]+)(?:\/|$)/);
     return match?.[1] ?? null;
-  } catch (_error) {
+  } catch {
     return null;
   }
 }

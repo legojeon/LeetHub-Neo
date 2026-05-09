@@ -102,7 +102,7 @@ async function getCurrentLeetCodeProblem() {
   } catch (error) {
     try {
       return { ok: true, problem: getProblemFromDomFallback(slug) };
-    } catch (_fallbackError) {
+    } catch {
       return { ok: false, error: error.message };
     }
   }
