@@ -1,4 +1,3 @@
-// eslint-disable-next-line no-unused-vars
 const oAuth2 = (() => {
   const AUTHORIZATION_URL = 'https://github.com/login/oauth/authorize';
   const CLIENT_ID = '0114dd35b156d4729fac';
@@ -16,3 +15,5 @@ const oAuth2 = (() => {
     },
   };
 })();
+
+window.oAuth2 = oAuth2;
