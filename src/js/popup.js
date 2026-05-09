@@ -129,27 +129,23 @@ function updateDisplayedStats(stats) {
 }
 
 function sendSyncPreviousMessage(tabId, syncButton, syncStatus) {
-  chrome.tabs.sendMessage(
-    tabId,
-    { action: 'syncPreviousAcceptedSubmissions' },
-    response => {
-      syncButton.prop('disabled', false);
+  chrome.tabs.sendMessage(tabId, { action: 'syncPreviousAcceptedSubmissions' }, response => {
+    syncButton.prop('disabled', false);
 
-      if (chrome.runtime.lastError) {
-        syncStatus.text('Could not connect to the LeetCode page. Refresh it, then try again.');
-        return;
-      }
+    if (chrome.runtime.lastError) {
+      syncStatus.text('Could not connect to the LeetCode page. Refresh it, then try again.');
+      return;
+    }
 
-      if (!response?.ok) {
-        syncStatus.text(response?.error || 'Sync failed.');
-        return;
-      }
+    if (!response?.ok) {
+      syncStatus.text(response?.error || 'Sync failed.');
+      return;
+    }
 
-      const { counts, totalProblems } = response.result;
-      syncStatus.text(`Solved problems: ${counts?.solved ?? totalProblems}.`);
-      updateDisplayedStats(counts);
-    },
-  );
+    const { counts, totalProblems } = response.result;
+    syncStatus.text(`Solved problems: ${counts?.solved ?? totalProblems}.`);
+    updateDisplayedStats(counts);
+  });
 }
 
 $('#sync-previous-btn').click(() => {
@@ -168,33 +164,29 @@ $('#sync-previous-btn').click(() => {
       return;
     }
 
-    chrome.tabs.sendMessage(
-      activeTab.id,
-      { action: 'pingLeetHubKRContentScript' },
-      response => {
-        if (!chrome.runtime.lastError && response?.ok) {
+    chrome.tabs.sendMessage(activeTab.id, { action: 'pingLeetHubKRContentScript' }, response => {
+      if (!chrome.runtime.lastError && response?.ok) {
+        sendSyncPreviousMessage(activeTab.id, syncButton, syncStatus);
+        return;
+      }
+
+      syncStatus.text('Preparing LeetHub-KR on this LeetCode tab...');
+      chrome.scripting.executeScript(
+        {
+          target: { tabId: activeTab.id },
+          files: ['src/js/leetcode.js'],
+        },
+        () => {
+          if (chrome.runtime.lastError) {
+            syncStatus.text('Refresh the LeetCode page, then try again.');
+            syncButton.prop('disabled', false);
+            return;
+          }
+
           sendSyncPreviousMessage(activeTab.id, syncButton, syncStatus);
-          return;
-        }
-
-        syncStatus.text('Preparing LeetHub-KR on this LeetCode tab...');
-        chrome.scripting.executeScript(
-          {
-            target: { tabId: activeTab.id },
-            files: ['src/js/leetcode.js'],
-          },
-          () => {
-            if (chrome.runtime.lastError) {
-              syncStatus.text('Refresh the LeetCode page, then try again.');
-              syncButton.prop('disabled', false);
-              return;
-            }
-
-            sendSyncPreviousMessage(activeTab.id, syncButton, syncStatus);
-          },
-        );
-      },
-    );
+        },
+      );
+    });
   });
 });
 

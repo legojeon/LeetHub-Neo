@@ -7,7 +7,10 @@
   "author": "legojeon",
   "action": {
     "default_icon": "assets/thumbnail.png",
-    "default_popup": "src/html/popup.html"
+    "default_title": "Open LeetHub-KR"
+  },
+  "side_panel": {
+    "default_path": "src/html/sidepanel.html"
   },
   "icons": {
     "16": "assets/thumbnail.png",
@@ -20,6 +23,8 @@
   "permissions": [
     "activeTab",
     "scripting",
+    "sidePanel",
+    "tabs",
     "unlimitedStorage",
     "storage"
   ],
@@ -45,6 +50,16 @@
       "js": [
         "src/js/leetcode.js",
         "src/js/authorize.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://leetcode.com/*",
+        "https://leetcode.cn/*"
+      ],
+      "js": [
+        "src/js/leetcode-problem.js"
       ],
       "run_at": "document_idle"
     }

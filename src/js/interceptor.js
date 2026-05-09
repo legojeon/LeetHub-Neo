@@ -21,8 +21,8 @@ window.fetch = async function (...args) {
         console.log('LeetHub-KR: Submission ID detected', data.submission_id);
         window.dispatchEvent(
           new CustomEvent('leetHubSubmissionId', {
-            detail: { submissionId: data.submission_id }
-          })
+            detail: { submissionId: data.submission_id },
+          }),
         );
       }
     } catch (e) {
@@ -82,10 +82,7 @@ XMLHttpRequest.prototype.open = function (method, url, ...args) {
 };
 
 XMLHttpRequest.prototype.send = function (data) {
-  if (
-    this._leethub_url?.includes('/graphql/') &&
-    this._leethub_method === 'POST'
-  ) {
+  if (this._leethub_url?.includes('/graphql/') && this._leethub_method === 'POST') {
     console.log('LeetHub-KR: GraphQL POST detected via XHR');
 
     try {
@@ -129,8 +126,7 @@ XMLHttpRequest.prototype.send = function (data) {
 console.log('LeetHub-KR: Request interceptors installed in page context');
 
 window.leetHubFetchAcceptedSubmissions = function (options = {}) {
-  const requestId =
-    Date.now().toString(36) + Math.random().toString(36).slice(2);
+  const requestId = Date.now().toString(36) + Math.random().toString(36).slice(2);
 
   return leetHubDispatchRequest(
     'leetHubFetchAcceptedSubmissionsRequest',
@@ -141,8 +137,7 @@ window.leetHubFetchAcceptedSubmissions = function (options = {}) {
 };
 
 window.leetHubFetchSubmissionDetails = function (submissionId) {
-  const requestId =
-    Date.now().toString(36) + Math.random().toString(36).slice(2);
+  const requestId = Date.now().toString(36) + Math.random().toString(36).slice(2);
 
   return leetHubDispatchRequest(
     'leetHubFetchSubmissionDetailsRequest',
@@ -153,8 +148,7 @@ window.leetHubFetchSubmissionDetails = function (submissionId) {
 };
 
 window.leetHubSyncPreviousAcceptedSubmissions = function (options = {}) {
-  const requestId =
-    Date.now().toString(36) + Math.random().toString(36).slice(2);
+  const requestId = Date.now().toString(36) + Math.random().toString(36).slice(2);
 
   return leetHubDispatchRequest(
     'leetHubSyncPreviousAcceptedSubmissionsRequest',
