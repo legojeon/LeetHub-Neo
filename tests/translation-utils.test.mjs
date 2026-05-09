@@ -7,10 +7,7 @@ import {
   normalizeTranslationText,
 } from '../src/js/translation-utils.js';
 
-assert.equal(
-  getLeetCodeProblemSlug('https://leetcode.com/problems/two-sum/'),
-  'two-sum',
-);
+assert.equal(getLeetCodeProblemSlug('https://leetcode.com/problems/two-sum/'), 'two-sum');
 assert.equal(
   getLeetCodeProblemSlug('https://leetcode.com/problems/two-sum/description/'),
   'two-sum',
