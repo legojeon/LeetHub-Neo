@@ -1133,6 +1133,125 @@ async function updateTopicProblemsJson(token, hook, topic, problemEntry, syncedA
   };
 }
 
+function buildTopicProblemEntry({
+  leetCode,
+  problemName,
+  fileName,
+  language,
+  extension,
+  syncedAt,
+}) {
+  const folderPath = topicIndexUtils.buildProblemFolderPath({
+    basePath,
+    difficulty,
+    problemName,
+    language,
+    useDifficultyFolder: leetCode.folderOptions.useDifficultyFolder,
+    useLanguageFolder: leetCode.folderOptions.useLanguageFolder,
+  });
+  const readmePath = topicIndexUtils.buildRepoPath({
+    basePath,
+    difficulty,
+    problemName,
+    filename: 'README.md',
+    language,
+    useDifficultyFolder: leetCode.folderOptions.useDifficultyFolder,
+    useLanguageFolder: leetCode.folderOptions.useLanguageFolder,
+  });
+  const solutionPath = topicIndexUtils.buildRepoPath({
+    basePath,
+    difficulty,
+    problemName,
+    filename: fileName,
+    language,
+    useDifficultyFolder: leetCode.folderOptions.useDifficultyFolder,
+    useLanguageFolder: leetCode.folderOptions.useLanguageFolder,
+  });
+
+  return topicIndexUtils.buildProblemEntry({
+    frontendId: leetCode.extractQuestionNumber(),
+    title: leetCode.parseQuestionTitle(),
+    slug: leetCode.submissionData.question.titleSlug,
+    problemName,
+    difficulty,
+    leetcodeBaseUrl: getLeetCodeBaseUrl(),
+    folderPath,
+    readmePath,
+    language,
+    extension,
+    solutionPath,
+    syncedAt,
+  });
+}
+
+async function getFolderOptions() {
+  const { useDifficultyFolder = false } = await chrome.storage.local.get('useDifficultyFolder');
+  const { useLanguageFolder = false } = await chrome.storage.local.get('useLanguageFolder');
+
+  return {
+    useDifficultyFolder,
+    useLanguageFolder,
+  };
+}
+
+async function updateTopicIndexesForProblem({
+  leetCode,
+  problemName,
+  fileName,
+  language,
+  extension,
+}) {
+  const topicTags = leetCode.questionDetails?.topicTags ?? leetCode.submissionData?.topicTags ?? [];
+  const topics = topicTags.map(topicIndexUtils.normalizeTopicTag).filter(Boolean);
+
+  if (!topics.length) {
+    return [];
+  }
+
+  const { leethub_token, leethub_hook } = await chrome.storage.local.get([
+    'leethub_token',
+    'leethub_hook',
+  ]);
+
+  if (!leethub_token || !leethub_hook) {
+    throw new Error('Missing GitHub token or hook for topic index update');
+  }
+
+  leetCode.folderOptions = await getFolderOptions();
+  const syncedAt = new Date().toISOString();
+  const problemEntry = buildTopicProblemEntry({
+    leetCode,
+    problemName,
+    fileName,
+    language,
+    extension,
+    syncedAt,
+  });
+
+  const updatedTopics = [];
+
+  for (const topic of topics) {
+    try {
+      await ensureTopicReadme(leethub_token, leethub_hook, topic);
+      const result = await updateTopicProblemsJson(
+        leethub_token,
+        leethub_hook,
+        topic,
+        problemEntry,
+        syncedAt,
+      );
+      updatedTopics.push({
+        ...topic,
+        problemCount: result.document.problems.length,
+      });
+    } catch (error) {
+      console.log(`Failed to update topic ${topic.slug}: ${error.message}`);
+    }
+  }
+
+  return updatedTopics;
+}
+
 /* Checks if an elem/array exists and has length */
 function checkElem(elem) {
   return elem && elem.length > 0;
