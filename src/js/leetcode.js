@@ -1252,6 +1252,91 @@ async function updateTopicIndexesForProblem({
   return updatedTopics;
 }
 
+async function listTopicDirectories(token, hook) {
+  const contents = await getGitHubContentByPath(token, hook, topicIndexUtils.TOPICS_BASE_PATH);
+
+  if (!Array.isArray(contents)) {
+    return [];
+  }
+
+  return contents
+    .filter(item => item.type === 'dir')
+    .map(item => ({
+      slug: item.name,
+      path: item.path,
+    }));
+}
+
+async function collectTopicSummaries(token, hook, fallbackTopics = []) {
+  const summaries = [];
+  const topicDirectories = await listTopicDirectories(token, hook);
+  const fallbackBySlug = new Map(fallbackTopics.map(topic => [topic.slug, topic]));
+  const topicsToRead = topicDirectories.length
+    ? topicDirectories.map(topic => fallbackBySlug.get(topic.slug) || topic)
+    : fallbackTopics;
+
+  for (const topic of topicsToRead) {
+    try {
+      const path = topicIndexUtils.buildTopicProblemsPath(topic.slug);
+      const data = await getGitHubContentByPath(token, hook, path);
+      const document = data?.content ? JSON.parse(decodeContent(data.content)) : null;
+      summaries.push({
+        slug: document?.topic?.slug || topic.slug,
+        name: document?.topic?.name || topic.name || topic.slug,
+        problemCount: Array.isArray(document?.problems)
+          ? document.problems.length
+          : topic.problemCount || 0,
+      });
+    } catch (error) {
+      console.log(`Failed to collect topic summary for ${topic.slug}: ${error.message}`);
+      summaries.push({
+        slug: topic.slug,
+        name: topic.name || topic.slug,
+        problemCount: topic.problemCount || 0,
+      });
+    }
+  }
+
+  return summaries;
+}
+
+async function updateRootReadmeSummary(updatedTopics = []) {
+  const { leethub_token, leethub_hook, stats } = await chrome.storage.local.get([
+    'leethub_token',
+    'leethub_hook',
+    'stats',
+  ]);
+
+  if (!leethub_token || !leethub_hook) {
+    throw new Error('Missing GitHub token or hook for root README summary update');
+  }
+
+  let readme = defaultRepoReadme;
+  let sha;
+  const existing = await getGitHubContentByPath(leethub_token, leethub_hook, readmeFilename);
+
+  if (existing?.content) {
+    readme = decodeContent(existing.content);
+    sha = existing.sha;
+  }
+
+  const topicSummaries = await collectTopicSummaries(leethub_token, leethub_hook, updatedTopics);
+  const summary = topicIndexUtils.renderRootReadmeSummary({
+    stats: stats || {},
+    topics: topicSummaries,
+  });
+  const nextReadme = topicIndexUtils.replaceGeneratedSection(readme, summary);
+
+  return putGeneratedFileWithRetry(
+    leethub_token,
+    leethub_hook,
+    readmeFilename,
+    nextReadme,
+    rootReadmeSummaryCommitMessage,
+    sha,
+  );
+}
+
 /* Checks if an elem/array exists and has length */
 function checkElem(elem) {
   return elem && elem.length > 0;
