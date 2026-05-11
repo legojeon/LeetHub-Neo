@@ -41,6 +41,7 @@ const leetCodeSectionHeader = `# LeetCode Topics`;
 const leetCodeSectionEnd = `<!---LeetCode Topics End-->`;
 const readmeFilename = 'README.md';
 const defaultRepoReadme = 'Contains topicwise list of solved problems.\n\n';
+const topicIndexUtils = globalThis.LeetHubTopicIndexUtils;
 
 // SubFolder
 const basePath = 'LeetCode';
@@ -540,10 +541,6 @@ function getLanguageFromExtension(extension) {
   return language || null;
 }
 
-function isProblemMetadataFile(filename) {
-  return ['README.md', 'NOTES.md', 'Solution.md'].includes(filename);
-}
-
 /**
  * Constructs the full GitHub API URL to upload a file to a specific path in the repository.
  *
@@ -566,27 +563,16 @@ function constructGitHubPath(
   useDifficultyFolder,
   useLanguageFolder = false,
 ) {
-  const filePath = problem ? `${problem}/${filename}` : `${filename}`;
-  if (useLanguageFolder) {
-    const language = last_language;
-    console.log('Language:', language);
-    if (language) {
-      if (!problem || isProblemMetadataFile(filename)) {
-        const path = useDifficultyFolder
-          ? `${basePath}/${difficulty}/${filePath}`
-          : problem
-            ? `${basePath}/${filePath}`
-            : filePath;
-        return `https://api.github.com/repos/${hook}/contents/${path}`;
-      }
+  const path = topicIndexUtils.buildRepoPath({
+    basePath: problem ? basePath : '',
+    difficulty,
+    problemName: problem,
+    filename,
+    language: last_language,
+    useDifficultyFolder,
+    useLanguageFolder,
+  });
 
-      const path = useDifficultyFolder
-        ? `${basePath}/${difficulty}/${problem}/${language}/${filename}`
-        : `${basePath}/${problem}/${language}/${filename}`;
-      return `https://api.github.com/repos/${hook}/contents/${path}`;
-    }
-  }
-  const path = useDifficultyFolder ? `${basePath}/${difficulty}/${filePath}` : `${filePath}`;
   return `https://api.github.com/repos/${hook}/contents/${path}`;
 }
 
@@ -2094,23 +2080,14 @@ setTimeout(() => {
 async function appendProblemToReadme(topic, markdownFile, hook, problem) {
   const { useDifficultyFolder = false } = await chrome.storage.local.get('useDifficultyFolder');
   const { useLanguageFolder = false } = await chrome.storage.local.get('useLanguageFolder');
-  const filePath = problem ? `${problem}/` : '';
-
-  let path = '';
-  if (useLanguageFolder) {
-    const language = last_language;
-    console.log('Language:', language);
-    if (language) {
-      path = useDifficultyFolder
-        ? `${language}/${difficulty}/${filePath}`
-        : `${language}/${filePath}`;
-    } else {
-      console.log('No language found for problem:', problem);
-      return '';
-    }
-  } else {
-    path = useDifficultyFolder ? `${basePath}/${difficulty}/${filePath}` : `${filePath}`;
-  }
+  const path = topicIndexUtils.buildProblemFolderPath({
+    basePath,
+    difficulty,
+    problemName: problem,
+    language: last_language,
+    useDifficultyFolder,
+    useLanguageFolder,
+  });
 
   const url = `https://github.com/${hook}/tree/main/${path}`;
 
