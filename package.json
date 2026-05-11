@@ -10,7 +10,7 @@
     "format-test": "prettier --check \"**/*.{js,mjs,jsx,ts,tsx,css,html}\" --ignore-unknown",
     "lint": "eslint . --fix --ignore-pattern 'src/js/static/jquery-3.3.1.min.js' --ignore-pattern 'src/js/static/semantic-2.4.1.min.js'",
     "lint-test": "eslint . --color --ignore-pattern 'src/js/static/jquery-3.3.1.min.js' --ignore-pattern 'src/js/static/semantic-2.4.1.min.js'",
-    "test:unit": "node tests/translation-utils.test.mjs"
+    "test:unit": "node tests/translation-utils.test.mjs && node tests/topic-index-utils.test.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.23.0",
