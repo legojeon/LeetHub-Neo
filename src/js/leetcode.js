@@ -45,6 +45,15 @@ const topicIndexUtils = globalThis.LeetHubTopicIndexUtils;
 
 // SubFolder
 const basePath = 'LeetCode';
+const rootReadmeSummaryCommitMessage = 'Update LeetHub summary';
+
+function encodeContent(content) {
+  return btoa(unescape(encodeURIComponent(content)));
+}
+
+function decodeContent(content) {
+  return decodeURIComponent(escape(atob(content)));
+}
 
 /* Difficulty of most recenty submitted question */
 let difficulty = '';
@@ -1010,6 +1019,118 @@ async function getUpdatedData(
       console.log(`Fetch error: ${err.message}`);
       return {};
     });
+}
+
+async function getGitHubContentByPath(token, hook, path) {
+  const response = await fetch(`https://api.github.com/repos/${hook}/contents/${path}`, {
+    method: 'GET',
+    headers: {
+      Authorization: `token ${token}`,
+      Accept: 'application/vnd.github.v3+json',
+    },
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (response.status === 200 || response.status === 201) {
+    return response.json();
+  }
+
+  throw new Error(String(response.status));
+}
+
+async function putGitHubContentByPath(token, hook, path, content, message, sha) {
+  const payload = {
+    message,
+    content: encodeContent(content),
+  };
+
+  if (sha) {
+    payload.sha = sha;
+  }
+
+  const response = await fetch(`https://api.github.com/repos/${hook}/contents/${path}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `token ${token}`,
+      Accept: 'application/vnd.github.v3+json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (response.status === 200 || response.status === 201) {
+    return response.json();
+  }
+
+  throw new Error(String(response.status));
+}
+
+async function putGeneratedFileWithRetry(token, hook, path, content, message, sha) {
+  try {
+    return await putGitHubContentByPath(token, hook, path, content, message, sha);
+  } catch (error) {
+    if (error.message !== '409') {
+      throw error;
+    }
+
+    const latest = await getGitHubContentByPath(token, hook, path);
+    return putGitHubContentByPath(token, hook, path, content, message, latest?.sha);
+  }
+}
+
+async function ensureTopicReadme(token, hook, topic) {
+  const path = topicIndexUtils.buildTopicReadmePath(topic.slug);
+  const existing = await getGitHubContentByPath(token, hook, path);
+
+  if (existing) {
+    return existing;
+  }
+
+  return putGeneratedFileWithRetry(
+    token,
+    hook,
+    path,
+    topicIndexUtils.createTopicReadme(topic.name),
+    `Create ${topic.name} topic notes`,
+  );
+}
+
+async function updateTopicProblemsJson(token, hook, topic, problemEntry, syncedAt) {
+  const path = topicIndexUtils.buildTopicProblemsPath(topic.slug);
+  const existing = await getGitHubContentByPath(token, hook, path);
+  let existingDocument = null;
+
+  if (existing?.content) {
+    try {
+      existingDocument = JSON.parse(decodeContent(existing.content));
+    } catch (error) {
+      console.log(`Invalid topic JSON at ${path}: ${error.message}`);
+    }
+  }
+
+  const nextDocument = topicIndexUtils.mergeProblemIntoTopicProblems(
+    existingDocument,
+    topic,
+    problemEntry,
+    syncedAt,
+  );
+  const content = `${JSON.stringify(nextDocument, null, 2)}\n`;
+
+  const response = await putGeneratedFileWithRetry(
+    token,
+    hook,
+    path,
+    content,
+    `Update ${topic.name} topic problems`,
+    existing?.sha,
+  );
+
+  return {
+    document: nextDocument,
+    response,
+  };
 }
 
 /* Checks if an elem/array exists and has length */
