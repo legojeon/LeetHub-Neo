@@ -290,13 +290,6 @@ async function uploadLeetCodeV2Submission(leetCode, suffix) {
 
   const problemName = leetCode.getProblemNameSlug();
   const alreadyCompleted = await checkAlreadyCompleted(problemName);
-  if (alreadyCompleted) {
-    return {
-      status: 'skipped',
-      problemName,
-      difficulty,
-    };
-  }
 
   const language = leetCode.getLanguageExtension();
   if (!language) {
@@ -356,17 +349,27 @@ async function uploadLeetCodeV2Submission(leetCode, suffix) {
     fileName = suffix ? `${problemName}${suffix}${language}` : `${problemName}${language}`;
   }
 
-  const updateCode = leetCode.findAndUploadCode(problemName, fileName, commitMsg, 'upload');
-  const updateRepoReadMe = updateReadmeTopicTagsWithProblem(
-    leetCode.questionDetails?.topicTags,
+  const updateCode = alreadyCompleted
+    ? Promise.resolve()
+    : leetCode.findAndUploadCode(problemName, fileName, commitMsg, 'upload');
+  const updatedTopics = await safeUpdateTopicIndexesForProblem({
+    leetCode,
     problemName,
-  );
+    fileName,
+    language: last_language,
+    extension: language,
+  });
 
-  await Promise.all([updateReadMe, updateNotes, updateCode, updateRepoReadMe]);
-  await incrementStats();
+  await Promise.all([updateReadMe, updateNotes, updateCode]);
+
+  if (!alreadyCompleted) {
+    await incrementStats();
+  }
+
+  await safeUpdateRootReadmeSummary(updatedTopics);
 
   return {
-    status: 'uploaded',
+    status: alreadyCompleted ? 'skipped' : 'uploaded',
     problemName,
     difficulty,
   };
@@ -430,6 +433,7 @@ async function syncPreviousAcceptedSubmissions({
     const uploaded = results.filter(result => result.status === 'uploaded').length;
     const skipped = results.filter(result => result.status === 'skipped').length;
     const counts = await updateStatsCountsFromSyncedResults(results);
+    await safeUpdateRootReadmeSummary();
     onProgress(`Done. Found ${counts.solved} solved problems.`);
 
     return {
@@ -1335,6 +1339,24 @@ async function updateRootReadmeSummary(updatedTopics = []) {
     rootReadmeSummaryCommitMessage,
     sha,
   );
+}
+
+async function safeUpdateTopicIndexesForProblem(options) {
+  try {
+    return await updateTopicIndexesForProblem(options);
+  } catch (error) {
+    console.log(`Failed to update topic indexes: ${error.message}`);
+    return [];
+  }
+}
+
+async function safeUpdateRootReadmeSummary(updatedTopics = []) {
+  try {
+    return await updateRootReadmeSummary(updatedTopics);
+  } catch (error) {
+    console.log(`Failed to update root README summary: ${error.message}`);
+    return null;
+  }
 }
 
 /* Checks if an elem/array exists and has length */
@@ -2335,22 +2357,27 @@ const loader = (leetCode, suffix) => {
       }
 
       /* Upload code to Git */
-      const updateCode = leetCode.findAndUploadCode(problemName, fileName, commitMsg, 'upload');
-
-      /* Group problem into its relevant topics */
-      const updateRepoReadMe = updateReadmeTopicTagsWithProblem(
-        leetCode.questionDetails?.topicTags,
+      const updateCode = alreadyCompleted
+        ? Promise.resolve()
+        : leetCode.findAndUploadCode(problemName, fileName, commitMsg, 'upload');
+      const updatedTopics = await safeUpdateTopicIndexesForProblem({
+        leetCode,
         problemName,
-      );
+        fileName,
+        language: last_language,
+        extension: language,
+      });
 
-      await Promise.all([updateReadMe, updateNotes, updateCode, updateRepoReadMe]);
+      await Promise.all([updateReadMe, updateNotes, updateCode]);
 
       uploadState.uploading = false;
       leetCode.markUploaded();
 
       if (!alreadyCompleted) {
-        incrementStats();
+        await incrementStats();
       }
+
+      await safeUpdateRootReadmeSummary(updatedTopics);
     } catch (err) {
       uploadState.uploading = false;
       leetCode.markUploadFailed();
