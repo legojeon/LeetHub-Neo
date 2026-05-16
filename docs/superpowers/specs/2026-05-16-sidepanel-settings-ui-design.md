@@ -52,15 +52,15 @@ Use the selected C-style flow:
 LeetHub top tab
   ├─ Default LeetHub panel
   │    ├─ LeetHub-KR title and caption
-  │    ├─ Settings icon in the header area
   │    └─ Solved summary with total, Easy, Medium, Hard
+  │    └─ Footer settings icon
   └─ Settings panel
        ├─ Back button
        ├─ Settings title
        └─ Consistent setting rows
 ```
 
-The settings icon should sit in the LeetHub panel header area, visually close to the LeetHub-KR title but not crowding the tab bar. It should use an icon-only circular button with a tooltip or accessible label.
+The settings icon should sit in the LeetHub panel footer area, grouped with other secondary links or actions. This keeps the header focused on the LeetHub-KR identity and solved summary. It should use an icon-only circular button with a tooltip or accessible label.
 
 The default panel should not show configuration controls once the user is in commit mode. It should feel like a concise status surface.
 
@@ -109,11 +109,10 @@ Commit mode content:
 
 - LeetHub-KR title.
 - Caption.
-- Settings icon button.
 - Repository link, if available.
 - Total solved count.
 - Easy, Medium, Hard solved counts.
-- Existing feature/social links if they remain visually unobtrusive.
+- Footer actions, including the settings icon button and existing feature/social links if they remain visually unobtrusive.
 
 Authentication and hook mode content should remain available because those states are not settings. Users still need to authenticate or set up the repository hook before settings are useful.
 
