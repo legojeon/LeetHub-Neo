@@ -52,7 +52,7 @@ Use the selected C-style flow:
 LeetHub top tab
   ├─ Default LeetHub panel
   │    ├─ LeetHub-KR title and caption
-  │    └─ Solved summary with total, Easy, Medium, Hard
+  │    ├─ Centered solved total with Easy, Medium, Hard counts
   │    └─ Footer settings icon
   └─ Settings panel
        ├─ Back button
@@ -60,7 +60,7 @@ LeetHub top tab
        └─ Consistent setting rows
 ```
 
-The settings icon should sit in the LeetHub panel footer area, grouped with other secondary links or actions. This keeps the header focused on the LeetHub-KR identity and solved summary. It should use an icon-only circular button with a tooltip or accessible label.
+The settings icon should sit in the LeetHub panel footer area, grouped with other secondary links or actions. This keeps the header focused on the LeetHub-KR identity and solved summary. The existing GitHub and welcome/globe footer icons should keep their original Semantic UI icon treatment rather than being converted into new circular buttons. The settings entry can use a compact icon button with a tooltip or accessible label.
 
 The default panel should not show configuration controls once the user is in commit mode. It should feel like a concise status surface.
 
@@ -88,6 +88,8 @@ The solved summary should keep LeetCode-compatible difficulty colors:
 - Medium: `#ffc01e`.
 - Hard: `#ff375f`.
 
+The total solved number should be visually centered and dominant. The `Problems Solved` label should either appear as a small muted label above the number or be omitted if the total is clear from the surrounding context.
+
 ## Components
 
 ### `SidePanelShell`
@@ -112,7 +114,11 @@ Commit mode content:
 - Repository link, if available.
 - Total solved count.
 - Easy, Medium, Hard solved counts.
-- Footer actions, including the settings icon button and existing feature/social links if they remain visually unobtrusive.
+- Footer actions, including:
+  - Existing feature request link.
+  - Existing GitHub icon with its original styling.
+  - Existing welcome/globe icon with its original styling.
+  - Settings icon entry.
 
 Authentication and hook mode content should remain available because those states are not settings. Users still need to authenticate or set up the repository hook before settings are useful.
 
@@ -132,7 +138,7 @@ Rows:
   - Control: command button.
 - `Migrate Repository Structure`
   - Helper: move existing synced files to match current folder settings.
-  - Control: command button.
+  - Control: command button with the same visual size as `Sync Previous`.
 - `Commit Message`
   - Helper: customize the commit message template and insert variables.
   - Control: disclosure/expand affordance.
