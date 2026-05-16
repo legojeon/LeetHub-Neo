@@ -1,6 +1,7 @@
 .env
 build/*
 node_modules
+.superpowers/
 .worktrees
 .vscode
 **/.DS_Store
