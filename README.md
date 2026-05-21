@@ -196,6 +196,8 @@ Syntax highlighting in the Topics panel uses a local
 used by the bundled template catalog. See `src/vendor/prism-v2/README.md` and
 `src/vendor/prism-v2/LICENSE` for details.
 
+See `THIRD_PARTY_NOTICES.md` for bundled third-party license notices.
+
 ## Contribution
 
 Issues and pull requests are welcome. If you want to request a feature, open an
