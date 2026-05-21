@@ -84,7 +84,7 @@ repository.
 
 ### Manual installation
 
-1. Clone this repository or download it as a ZIP.
+1. Clone this repository or download [Release](https://github.com/legojeon/LeetHub-Neo/releases/tag/v1.0.1) as a ZIP.
 2. Open `chrome://extensions`.
 3. Enable **Developer mode**.
 4. Click **Load unpacked**.
