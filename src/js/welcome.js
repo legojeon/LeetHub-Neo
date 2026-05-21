@@ -7,13 +7,184 @@ const repositoryName = () => {
   else return $('#existing_repo').val().trim();
 };
 
+const templateUtils = globalThis.LeetHubTopicTemplateUtils;
+const templateCatalog = globalThis.LeetHubTopicTemplateCatalog;
+const translationLanguageUtils = globalThis.LeetHubTranslationLanguageUtils;
+const INITIAL_SYNC_AFTER_HOOK_STORAGE_KEY = 'syncAcceptedSubmissionsAfterHook';
+
+const renderWelcomeTemplateLanguageOptions = selectedLanguage => {
+  const select = $('#topic-template-language');
+
+  if (!select.length || !templateCatalog?.languages?.length) {
+    return;
+  }
+
+  select.empty();
+  templateCatalog.languages.forEach(language => {
+    select.append(
+      $('<option>', {
+        value: language.slug,
+        text: language.name,
+        selected: language.slug === selectedLanguage,
+      }),
+    );
+  });
+};
+
+const selectedTemplateLanguage = () => {
+  return templateUtils?.normalizeTemplateLanguage(
+    $('#topic-template-language').val(),
+    templateCatalog,
+  );
+};
+
+const initializeWelcomeTemplateLanguage = () => {
+  if (!templateUtils || !templateCatalog) {
+    return;
+  }
+
+  chrome.storage.local.get(templateUtils.TEMPLATE_LANGUAGE_STORAGE_KEY, values => {
+    const language = templateUtils.normalizeTemplateLanguage(
+      values[templateUtils.TEMPLATE_LANGUAGE_STORAGE_KEY],
+      templateCatalog,
+    );
+    renderWelcomeTemplateLanguageOptions(language);
+  });
+};
+
+const saveSelectedTemplateLanguage = async () => {
+  if (!templateUtils) {
+    return;
+  }
+
+  await chrome.storage.local.set({
+    [templateUtils.TEMPLATE_LANGUAGE_STORAGE_KEY]: selectedTemplateLanguage(),
+  });
+};
+
+const renderWelcomeTranslationLanguageOptions = selectedLanguage => {
+  const select = $('#translation-language');
+
+  if (!select.length || !translationLanguageUtils?.TRANSLATION_LANGUAGE_OPTIONS?.length) {
+    return;
+  }
+
+  select.empty();
+  translationLanguageUtils.TRANSLATION_LANGUAGE_OPTIONS.forEach(language => {
+    select.append(
+      $('<option>', {
+        value: language.code,
+        text: language.name,
+        selected: language.code === selectedLanguage,
+      }),
+    );
+  });
+};
+
+const selectedTranslationLanguage = () => {
+  return translationLanguageUtils?.normalizeTranslationLanguage($('#translation-language').val());
+};
+
+const initializeWelcomeTranslationLanguage = () => {
+  if (!translationLanguageUtils) {
+    return;
+  }
+
+  chrome.storage.local.get(translationLanguageUtils.TRANSLATION_LANGUAGE_STORAGE_KEY, values => {
+    const language = translationLanguageUtils.normalizeTranslationLanguage(
+      values[translationLanguageUtils.TRANSLATION_LANGUAGE_STORAGE_KEY],
+    );
+    renderWelcomeTranslationLanguageOptions(language);
+  });
+};
+
+const saveSelectedTranslationLanguage = async () => {
+  if (!translationLanguageUtils) {
+    return;
+  }
+
+  await chrome.storage.local.set({
+    [translationLanguageUtils.TRANSLATION_LANGUAGE_STORAGE_KEY]: selectedTranslationLanguage(),
+  });
+};
+
+const selectedInitialSyncEnabled = () => {
+  return $('#sync-accepted-submissions-after-hook').is(':checked');
+};
+
+const initializeInitialSyncOption = () => {
+  chrome.storage.local.get({ [INITIAL_SYNC_AFTER_HOOK_STORAGE_KEY]: true }, values => {
+    $('#sync-accepted-submissions-after-hook').prop(
+      'checked',
+      values[INITIAL_SYNC_AFTER_HOOK_STORAGE_KEY],
+    );
+  });
+};
+
+const saveSelectedInitialSyncOption = async () => {
+  await chrome.storage.local.set({
+    [INITIAL_SYNC_AFTER_HOOK_STORAGE_KEY]: selectedInitialSyncEnabled(),
+  });
+};
+
+initializeWelcomeTemplateLanguage();
+initializeWelcomeTranslationLanguage();
+initializeInitialSyncOption();
+
 const syncPreviousAfterInitialHook = () => {
   chrome.runtime.sendMessage({ action: 'syncPreviousAfterInitialHook' });
 };
 
+const appendSuccessLine = message => {
+  $('#success').append('<br />', document.createTextNode(message));
+};
+
+const seedCuratedTopicTemplatesAfterHook = async (token, hook) => {
+  const seedCuratedTopicTemplates = globalThis.LeetHubTopicTemplateSeed?.seedCuratedTopicTemplates;
+
+  if (!seedCuratedTopicTemplates) {
+    return null;
+  }
+
+  appendSuccessLine('Seeding topic templates...');
+
+  try {
+    const result = await seedCuratedTopicTemplates({
+      token,
+      hook,
+      onProgress: progress => {
+        if (progress.current === 1 || progress.current % 50 === 0) {
+          $('#success').find('.topic-seed-progress').remove();
+          $('#success').append(
+            $('<span>', {
+              class: 'topic-seed-progress',
+              text: `Topic templates: ${progress.current}/${progress.total}`,
+            }).prepend('<br />'),
+          );
+        }
+      },
+    });
+
+    $('#success').find('.topic-seed-progress').remove();
+    await chrome.storage.local.set({
+      topicTemplatesSeededAt: new Date().toISOString(),
+      topicTemplatesSeededHook: hook,
+    });
+    appendSuccessLine(
+      `Topic templates ready. Created ${result.created}, skipped ${result.skipped}.`,
+    );
+    return result;
+  } catch (error) {
+    console.error(`Failed to seed topic templates: ${error.message}`);
+    $('#success').find('.topic-seed-progress').remove();
+    appendSuccessLine(`Topic template seed failed: ${error.message}`);
+    return null;
+  }
+};
+
 /* Status codes for creating of repo */
 
-const statusCode = (res, status, name) => {
+const statusCode = (res, status, name, token) => {
   switch (status) {
     case 304:
       $('#success').hide();
@@ -63,9 +234,12 @@ const statusCode = (res, status, name) => {
         document.getElementById('commit_mode').style.display = 'inherit';
 
         /* Set Repo Hook */
-        chrome.storage.local.set({ leethub_hook: res.full_name }, () => {
+        chrome.storage.local.set({ leethub_hook: res.full_name }, async () => {
           console.log('Successfully set new repo hook');
-          syncPreviousAfterInitialHook();
+          await seedCuratedTopicTemplatesAfterHook(token, res.full_name);
+          if (selectedInitialSyncEnabled()) {
+            syncPreviousAfterInitialHook();
+          }
         });
       });
 
@@ -80,14 +254,14 @@ const createRepo = (token, name) => {
     private: true,
     auto_init: true,
     description:
-      'Collection of LeetCode questions to ace the coding interview! - Created using [LeetHub-KR](https://github.com/legojeon/LeetHub-KR)',
+      'Collection of LeetCode questions to ace the coding interview! - Created using [LeetHub-Neo](https://github.com/legojeon/LeetHub-Neo)',
   };
   data = JSON.stringify(data);
 
   const xhr = new XMLHttpRequest();
   xhr.addEventListener('readystatechange', function () {
     if (xhr.readyState === 4) {
-      statusCode(JSON.parse(xhr.responseText), xhr.status, name);
+      statusCode(JSON.parse(xhr.responseText), xhr.status, name, token);
     }
   });
 
@@ -104,7 +278,7 @@ const linkStatusCode = (status, name) => {
     case 301:
       $('#success').hide();
       $('#error').html(
-        `Error linking <a target="blank" href="${`https://github.com/${name}`}">${name}</a> to LeetHub-KR. <br> This repository has been moved permenantly. Try creating a new one.`,
+        `Error linking <a target="blank" href="${`https://github.com/${name}`}">${name}</a> to LeetHub-Neo. <br> This repository has been moved permenantly. Try creating a new one.`,
       );
       $('#error').show();
       break;
@@ -112,7 +286,7 @@ const linkStatusCode = (status, name) => {
     case 403:
       $('#success').hide();
       $('#error').html(
-        `Error linking <a target="blank" href="${`https://github.com/${name}`}">${name}</a> to LeetHub-KR. <br> Forbidden action. Please make sure you have the right access to this repository.`,
+        `Error linking <a target="blank" href="${`https://github.com/${name}`}">${name}</a> to LeetHub-Neo. <br> Forbidden action. Please make sure you have the right access to this repository.`,
       );
       $('#error').show();
       break;
@@ -120,7 +294,7 @@ const linkStatusCode = (status, name) => {
     case 404:
       $('#success').hide();
       $('#error').html(
-        `Error linking <a target="blank" href="${`https://github.com/${name}`}">${name}</a> to LeetHub-KR. <br> Resource not found. Make sure you enter the right repository name.`,
+        `Error linking <a target="blank" href="${`https://github.com/${name}`}">${name}</a> to LeetHub-Neo. <br> Resource not found. Make sure you enter the right repository name.`,
       );
       $('#error').show();
       break;
@@ -203,7 +377,7 @@ function loadRepositories() {
     1. Check if existing repository exists and the user has write access to it.
     2. Link Hook to it (chrome Storage).
 */
-const linkRepo = (token, name) => {
+const linkRepo = (token, name, seedTemplates = false) => {
   const AUTHENTICATION_URL = `https://api.github.com/repos/${name}`;
 
   const xhr = new XMLHttpRequest();
@@ -218,7 +392,7 @@ const linkRepo = (token, name) => {
           // unable to gain access to repo in commit mode. Must switch to hook mode.
           /* Set mode type to hook */
           chrome.storage.local.set({ mode_type: 'hook' }, () => {
-            console.log(`Error linking ${name} to LeetHub-KR`);
+            console.log(`Error linking ${name} to LeetHub-Neo`);
           });
           /* Set Repo Hook to NONE */
           chrome.storage.local.set({ leethub_hook: null }, () => {
@@ -234,7 +408,7 @@ const linkRepo = (token, name) => {
           chrome.storage.local.set({ mode_type: 'commit', repo: res.html_url }, () => {
             $('#error').hide();
             $('#success').html(
-              `Successfully linked <a target="blank" href="${res.html_url}">${name}</a> to LeetHub-KR. Start <a href="http://leetcode.com">LeetCoding</a> now!`,
+              `Successfully linked <a target="blank" href="${res.html_url}">${name}</a> to LeetHub-Neo. Start <a href="http://leetcode.com">LeetCoding</a> now!`,
             );
             $('#success').show();
             $('#unlink').show();
@@ -242,9 +416,14 @@ const linkRepo = (token, name) => {
             /* Set Repo Hook */
             chrome.storage.local
               .set({ leethub_hook: res.full_name })
-              .then(() => {
+              .then(async () => {
                 console.log('Successfully set new repo hook');
-                syncPreviousAfterInitialHook();
+                if (seedTemplates) {
+                  await seedCuratedTopicTemplatesAfterHook(token, res.full_name);
+                }
+                if (selectedInitialSyncEnabled()) {
+                  syncPreviousAfterInitialHook();
+                }
                 return chrome.storage.local.get('stats');
               })
               .then(psolved => {
@@ -322,31 +501,37 @@ $('#hook_button').on('click', () => {
       - step 3: if (1), POST request to repoName (iff option = create new repo) ; else display error message.
       - step 4: if proceed from 3, hide hook_mode and display commit_mode (show stats e.g: files pushed/questions-solved/leaderboard)
     */
-    chrome.storage.local.get('leethub_token', data => {
+    chrome.storage.local.get('leethub_token', async data => {
       const token = data.leethub_token;
       if (token === null || token === undefined) {
         /* Not authorized yet. */
         $('#error').text(
-          'Authorization error - Grant LeetHub-KR access to your GitHub account to continue (launch extension to proceed)',
+          'Authorization error - Grant LeetHub-Neo access to your GitHub account to continue (launch extension to proceed)',
         );
         $('#error').show();
         $('#success').hide();
-      } else if (option() === 'new') {
-        createRepo(token, repositoryName());
       } else {
-        chrome.storage.local.get('leethub_username', data2 => {
-          const username = data2.leethub_username;
-          if (!username) {
-            /* Improper authorization. */
-            $('#error').text(
-              'Improper Authorization error - Grant LeetHub-KR access to your GitHub account to continue (launch extension to proceed)',
-            );
-            $('#error').show();
-            $('#success').hide();
-          } else {
-            linkRepo(token, `${username}/${repositoryName()}`, false);
-          }
-        });
+        await saveSelectedTemplateLanguage();
+        await saveSelectedTranslationLanguage();
+        await saveSelectedInitialSyncOption();
+
+        if (option() === 'new') {
+          createRepo(token, repositoryName());
+        } else {
+          chrome.storage.local.get('leethub_username', data2 => {
+            const username = data2.leethub_username;
+            if (!username) {
+              /* Improper authorization. */
+              $('#error').text(
+                'Improper Authorization error - Grant LeetHub-Neo access to your GitHub account to continue (launch extension to proceed)',
+              );
+              $('#error').show();
+              $('#success').hide();
+            } else {
+              linkRepo(token, `${username}/${repositoryName()}`, true);
+            }
+          });
+        }
       }
     });
   }
@@ -396,7 +581,7 @@ $('#sync_counts').on('click', async () => {
   const token = await chrome.storage.local.get('leethub_token').then(({ leethub_token }) => {
     if (leethub_token == null) {
       $('#error').text(
-        'No token found - Please authorize LeetHub-KR to access your GitHub account!',
+        'No token found - Please authorize LeetHub-Neo to access your GitHub account!',
       );
       $('#error').show();
       return;
@@ -516,7 +701,7 @@ chrome.storage.local.get('mode_type', data => {
       if (token === null || token === undefined) {
         /* Not authorized yet. */
         $('#error').text(
-          'Authorization error - Grant LeetHub-KR access to your GitHub account to continue (click the LeetHub-KR extension on the top right to proceed)',
+          'Authorization error - Grant LeetHub-Neo access to your GitHub account to continue (click the LeetHub-Neo extension on the top right to proceed)',
         );
         $('#error').show();
         $('#success').hide();
@@ -530,7 +715,7 @@ chrome.storage.local.get('mode_type', data => {
           if (!hook) {
             /* Not authorized yet. */
             $('#error').text(
-              'Improper Authorization error - Grant LeetHub-KR access to your GitHub account to continue (click the LeetHub-KR extension on the top right to proceed)',
+              'Improper Authorization error - Grant LeetHub-Neo access to your GitHub account to continue (click the LeetHub-Neo extension on the top right to proceed)',
             );
             $('#error').show();
             $('#success').hide();

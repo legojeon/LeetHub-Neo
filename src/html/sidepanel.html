@@ -2,12 +2,13 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="../css/sidepanel.css" />
-    <script src="../js/static/jquery-3.3.1.min.js"></script>
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="../css/sidepanel.css" />
+    <link rel="stylesheet" href="../features/sidepanel/leethub/leethub.css" />
+    <script src="../js/static/jquery-3.3.1.min.js"></script>
     <script src="../js/static/semantic-2.4.1.min.js"></script>
   </head>
 
@@ -15,93 +16,241 @@
     <main class="sidepanel-shell">
       <nav id="sidepanel_tabs" class="sidepanel-tabs" hidden>
         <button id="description-tab" class="sidepanel-tab active" type="button">Description</button>
-        <button id="editorial-tab" class="sidepanel-tab" type="button" disabled>Editorial</button>
+        <button id="scratchpad-tab" class="sidepanel-tab" type="button">Scratchpad</button>
+        <button id="topics-tab" class="sidepanel-tab" type="button">Topics</button>
         <button id="leethub-tab" class="sidepanel-tab" type="button">LeetHub</button>
       </nav>
 
       <section id="problem_translation_mode" class="sidepanel-view description-view" hidden>
         <div class="translation-header">
-          <h2 id="problem-title" class="translation-title">Problem</h2>
-          <p id="problem-meta" class="translation-meta"></p>
+          <div class="translation-header-main">
+            <h2 id="problem-title" class="translation-title">Problem</h2>
+            <div id="problem-meta" class="translation-meta"></div>
+          </div>
+          <div id="translation-actions" class="translation-actions" hidden>
+            <button
+              id="translate-refresh-btn"
+              class="translation-icon-btn"
+              type="button"
+              aria-label="Refresh translation"
+              title="Refresh translation"
+            >
+              &#8635;
+            </button>
+          </div>
         </div>
 
         <div id="translation-status" class="translation-status" role="status"></div>
 
-        <div id="translation-actions" class="translation-actions" hidden>
-          <button id="translate-retry-btn" class="ui mini secondary button">Retry</button>
-          <button id="translate-refresh-btn" class="ui mini button">Refresh</button>
-          <label class="translation-toggle">
-            <input type="checkbox" id="show-source-toggle" />
-            Show original
-          </label>
+        <article id="translated-description" class="translation-content"></article>
+      </section>
+
+      <section id="scratchpad_mode" class="sidepanel-view scratchpad-view" hidden>
+        <textarea
+          id="scratchpad-input"
+          class="scratchpad-input"
+          aria-label="Scratchpad"
+          placeholder="Freely sketch notes, edge cases, or ideas..."
+          spellcheck="false"
+        ></textarea>
+      </section>
+
+      <section id="topic_mode" class="sidepanel-view topic-view" hidden>
+        <div id="topic-selector" class="topic-selector"></div>
+
+        <div class="topic-subtabs">
+          <button id="topic-notes-tab" class="topic-subtab active" type="button">Notes</button>
+          <button id="topic-templates-tab" class="topic-subtab" type="button">Templates</button>
         </div>
 
-        <article id="translated-description" class="translation-content"></article>
-        <article
-          id="source-description"
-          class="translation-content source-content"
-          hidden
-        ></article>
+        <p id="topic-panel-status" class="topic-panel-status" role="status"></p>
+
+        <section id="topic-notes-panel" class="topic-subpanel">
+          <div class="topic-notes-toolbar">
+            <button
+              id="topic-readme-edit-btn"
+              class="topic-readme-edit-btn"
+              type="button"
+              aria-label="Edit topic README on GitHub"
+              title="Edit README on GitHub"
+              hidden
+            >
+              <i class="icon pencil alternate"></i>
+            </button>
+          </div>
+          <article id="topic-notes-content" class="topic-markdown"></article>
+          <section id="topic-related-problems" class="related-problems"></section>
+        </section>
+
+        <section id="topic-templates-panel" class="topic-subpanel" hidden>
+          <div id="topic-templates-content" class="topic-templates"></div>
+        </section>
       </section>
 
       <section id="leethub_mode" class="sidepanel-view leethub-panel">
-        <div class="ui grid container">
-          <div class="sixteen wide center aligned column">
-            <h1 id="title">Leet<span style="color: #ff6c0a">Hub</span>-KR</h1>
-            <p id="caption">Sync your code from LeetCode to GitHub</p>
-            <br />
-            <!-- Authentication mode -->
-            <div id="auth_mode" hidden>
-              <p class="onboarding">
-                <br />
-                Authenticate with GitHub to use
-                <strong>Leet<span style="color: #ff6c0a">Hub</span>-KR</strong>
-              </p>
-              <button id="authenticate" class="ui secondary button">
-                <i class="icon github"></i>
-                Authenticate
-              </button>
+        <div id="leethub_home_view" class="leethub-subview leethub-home-view">
+          <div class="ui grid container leethub-grid">
+            <div class="sixteen wide center aligned column leethub-home-column">
+              <h1 id="title">Leet<span class="leethub-brand-accent">Hub</span>-Neo</h1>
+              <p id="caption">Sync your code from LeetCode to GitHub</p>
+
+              <!-- Authentication mode -->
+              <div id="auth_mode" hidden>
+                <p class="onboarding">
+                  <br />
+                  Authenticate with GitHub to use
+                  <strong>Leet<span class="leethub-brand-accent">Hub</span>-Neo</strong>
+                </p>
+                <button id="authenticate" class="ui secondary button">
+                  <i class="icon github"></i>
+                  Authenticate
+                </button>
+              </div>
+
+              <!-- Repo Hook mode -->
+              <div id="hook_mode" hidden>
+                <p class="onboarding">
+                  <br />
+                  Set up repository hook to use
+                  <strong>Leet<span class="leethub-brand-accent">Hub</span>-Neo</strong>
+                </p>
+                <a id="hook_URL" href="" target="blank" class="ui secondary button">
+                  <i class="icon github"></i>
+                  Set up Hook
+                </a>
+              </div>
+
+              <!-- Commit mode -->
+              <div id="commit_mode" hidden>
+                <p id="repo_url" class="leethub-repo-link"></p>
+
+                <section class="leethub-stat-card" aria-label="Solved problem stats">
+                  <p class="leethub-stat-label">Problems Solved</p>
+                  <div
+                    id="leethub_difficulty_donut"
+                    class="leethub-difficulty-donut"
+                    aria-label="Difficulty distribution"
+                  >
+                    <span id="p_solved" class="leethub-donut-value">0</span>
+                    <span class="leethub-donut-label">Solved</span>
+                  </div>
+                  <div id="leethub_difficulty_stats" class="leethub-difficulty-stats"></div>
+                </section>
+
+                <section
+                  id="leethub_profile_summary"
+                  class="leethub-profile-summary"
+                  aria-label="LeetHub profile summary"
+                >
+                  <div class="leethub-streak-row">
+                    <div>
+                      <span class="leethub-profile-label">Current</span>
+                      <strong id="leethub_current_streak">0</strong>
+                    </div>
+                    <div>
+                      <span class="leethub-profile-label">Best</span>
+                      <strong id="leethub_best_streak">0</strong>
+                    </div>
+                  </div>
+
+                  <div
+                    id="leethub_activity_grid"
+                    class="leethub-activity-grid"
+                    aria-label="Recent solve activity"
+                  ></div>
+
+                  <div id="leethub_top_tags" class="leethub-top-tags"></div>
+                </section>
+
+                <footer class="leethub-footer-actions" aria-label="LeetHub links and settings">
+                  <a
+                    class="leethub-feature-link"
+                    target="_blank"
+                    href="https://github.com/legojeon/LeetHub-Neo/labels/feature"
+                    >Request a feature!</a
+                  >
+                  <a href="https://github.com/legojeon/LeetHub-Neo" target="_blank">
+                    <i class="ui black github icon"></i>
+                  </a>
+                  <a id="welcome_URL" href="" target="_blank">
+                    <i class="ui grey globe icon"></i>
+                  </a>
+                  <button
+                    id="open-leethub-settings-btn"
+                    class="leethub-settings-icon-btn"
+                    type="button"
+                    aria-label="Open LeetHub settings"
+                    title="Settings"
+                  >
+                    <i class="icon cog"></i>
+                  </button>
+                </footer>
+              </div>
             </div>
+          </div>
+        </div>
 
-            <!-- Repo Hook mode -->
-            <div id="hook_mode" hidden>
-              <p class="onboarding">
-                <br />
-                Set up repository hook to use
-                <strong>Leet<span style="color: #ff6c0a">Hub</span>-KR</strong>
-              </p>
-              <a id="hook_URL" href="" target="blank" class="ui secondary button">
-                <i class="icon github"></i>
-                Set up Hook
-              </a>
-            </div>
+        <div id="leethub_settings_view" class="leethub-subview leethub-settings-view" hidden>
+          <header class="leethub-settings-header">
+            <button
+              id="back-leethub-home-btn"
+              class="leethub-back-btn"
+              type="button"
+              aria-label="Back to LeetHub panel"
+            >
+              &lsaquo;
+            </button>
+            <h2>Settings</h2>
+          </header>
 
-            <!-- Commit mode -->
-            <div id="commit_mode" hidden>
-              <p id="repo_url" class="ui small header"></p>
-              <p class="onboarding">Problems Solved: <span id="p_solved">0</span></p>
-              <p class="ui small header">
-                <span style="color: #5cb85c">Easy:</span>
-                <span id="p_solved_easy" style="color: #000000; opacity: 0.75">0 </span>
-                <span style="color: #f0ad4e">&ensp; &ensp; Medium:</span>
-                <span id="p_solved_medium" style="color: #000000; opacity: 0.75">0 </span>
-                <span style="color: #d9534f">&ensp; &ensp; Hard:</span>
-                <span id="p_solved_hard" style="color: #000000; opacity: 0.75">0 </span>
-              </p>
-
-              <button id="sync-previous-btn" class="ui secondary button">
+          <div class="leethub-settings-list">
+            <section class="leethub-setting-row">
+              <div class="leethub-setting-copy">
+                <h3>Sync Previous</h3>
+                <p>Sync accepted LeetCode submissions into GitHub.</p>
+                <p id="sync-previous-status" class="leethub-setting-status"></p>
+              </div>
+              <button id="sync-previous-btn" class="leethub-command-btn" type="button">
                 <i class="icon sync"></i>
-                Sync Previous
+                Sync
               </button>
-              <p id="sync-previous-status" class="ui tiny header"></p>
+            </section>
 
-              <!-- Toggle custom commit menu -->
-              <span id="collapsible-commit-message-icon" class="collapsible-icon">&#9654;</span>
-              Customize Commit Message
+            <section class="leethub-setting-row">
+              <div class="leethub-setting-copy">
+                <h3>Migrate Repository Structure</h3>
+                <p>Move existing synced files to match current folder settings.</p>
+                <p id="migrate-repository-structure-status" class="leethub-setting-status"></p>
+              </div>
+              <button
+                id="migrate-repository-structure-btn"
+                class="leethub-command-btn"
+                type="button"
+              >
+                <i class="icon folder open"></i>
+                Migrate
+              </button>
+            </section>
 
+            <!-- Toggle custom commit menu -->
+            <section class="leethub-setting-block">
+              <div class="leethub-setting-row">
+                <div class="leethub-setting-copy">
+                  <h3>Commit Message</h3>
+                  <p>Customize the commit template and insert variables.</p>
+                </div>
+                <button
+                  id="collapsible-commit-message-icon"
+                  class="leethub-disclosure-btn collapsible-icon"
+                  type="button"
+                  aria-label="Toggle commit message settings"
+                >
+                  &#9654;
+                </button>
+              </div>
               <div
                 id="collapsible-commit-message-container"
-                class="collapsible-container"
+                class="collapsible-container leethub-setting-panel"
                 style="display: none"
               >
                 <label for="variables">Available Variables</label>
@@ -117,7 +266,7 @@
                 <textarea
                   rows="4"
                   id="custom-commit-msg"
-                  placeholder="Time: {time}, Space: {space} - LeetHub-KR"
+                  placeholder="Time: {time}, Space: {space} - LeetHub-Neo"
                 ></textarea>
                 <div id="setting-btns">
                   <button class="setting-btns" id="msg-reset-btn">Reset</button>
@@ -126,119 +275,234 @@
                   <span id="success-message">Commit message saved!</span>
                 </div>
               </div>
+            </section>
 
-              <!-- Toggle useDifficultyFolder setting -->
-              <div>
-                <span id="collapsible-difficulty-icon" class="collapsible-icon">&#9654;</span> Use
-                Difficulty Subfolder
-                <div
-                  id="collapsible-difficulty-container"
-                  class="collapsible-container"
-                  style="display: none"
+            <!-- Toggle useDifficultyFolder setting -->
+            <section class="leethub-setting-block">
+              <div class="leethub-setting-row">
+                <div class="leethub-setting-copy">
+                  <h3>Use Difficulty Subfolder</h3>
+                  <p>Organize submissions under Easy, Medium, and Hard folders.</p>
+                </div>
+                <button
+                  id="collapsible-difficulty-icon"
+                  class="leethub-disclosure-btn collapsible-icon"
+                  type="button"
+                  aria-label="Toggle difficulty folder settings"
                 >
-                  <p>
-                    Organize files into folders like
-                    <code>LeetCode/Easy/0001-two-sum/0001-two-sum.js</code>
-                  </p>
-                  <div class="centered-toggle">
-                    <div class="ui toggle checkbox">
-                      <input type="checkbox" id="use-difficulty-folder" />
-                      <label for="use-difficulty-folder"></label>
-                    </div>
+                  &#9654;
+                </button>
+              </div>
+              <div
+                id="collapsible-difficulty-container"
+                class="collapsible-container leethub-setting-panel"
+                style="display: none"
+              >
+                <p>
+                  Organize files into folders like
+                  <code>Easy/0001-two-sum/0001-two-sum.js</code>
+                </p>
+                <div class="centered-toggle">
+                  <div class="ui toggle checkbox">
+                    <input type="checkbox" id="use-difficulty-folder" />
+                    <label for="use-difficulty-folder"></label>
                   </div>
                 </div>
               </div>
+            </section>
 
-              <!-- Toggle useLanguageFolder setting -->
-              <div>
-                <span id="collapsible-language-icon" class="collapsible-icon">&#9654;</span> Use
-                Language Subfolder
-                <div
-                  id="collapsible-language-container"
-                  class="collapsible-container"
-                  style="display: none"
+            <!-- Toggle useLanguageFolder setting -->
+            <section class="leethub-setting-block">
+              <div class="leethub-setting-row">
+                <div class="leethub-setting-copy">
+                  <h3>Use Language Subfolder</h3>
+                  <p>Group each problem's files by solved language.</p>
+                </div>
+                <button
+                  id="collapsible-language-icon"
+                  class="leethub-disclosure-btn collapsible-icon"
+                  type="button"
+                  aria-label="Toggle language folder settings"
                 >
-                  <p>
-                    Organize files into folders like
-                    <code>LeetCode/Easy/0001-two-sum/JavaScript/0001-two-sum.js</code>
-                  </p>
-                  <div class="centered-toggle">
-                    <div class="ui toggle checkbox">
-                      <input type="checkbox" id="use-language-folder" />
-                      <label for="use-language-folder"></label>
-                    </div>
+                  &#9654;
+                </button>
+              </div>
+              <div
+                id="collapsible-language-container"
+                class="collapsible-container leethub-setting-panel"
+                style="display: none"
+              >
+                <p>
+                  Organize files into folders like
+                  <code>Easy/0001-two-sum/JavaScript/0001-two-sum.js</code>
+                </p>
+                <div class="centered-toggle">
+                  <div class="ui toggle checkbox">
+                    <input type="checkbox" id="use-language-folder" />
+                    <label for="use-language-folder"></label>
                   </div>
                 </div>
               </div>
+            </section>
 
-              <!-- Toggle useTimestampFilename setting -->
-              <div>
-                <span id="collapsible-timestamp-icon" class="collapsible-icon">&#9654;</span>
-                Enable Timestamped Filenames
-                <div
-                  id="collapsible-timestamp-container"
-                  class="collapsible-container"
-                  style="display: none"
+            <!-- Toggle useTimestampFilename setting -->
+            <section class="leethub-setting-block">
+              <div class="leethub-setting-row">
+                <div class="leethub-setting-copy">
+                  <h3>Timestamped Filenames</h3>
+                  <p>Keep multiple accepted versions by adding timestamps to filenames.</p>
+                </div>
+                <button
+                  id="collapsible-timestamp-icon"
+                  class="leethub-disclosure-btn collapsible-icon"
+                  type="button"
+                  aria-label="Toggle timestamp filename settings"
                 >
-                  <p>
-                    Save submissions like
-                    <code>0001-two-sum_03-30-2025_12-30-15.js</code> to preserve versions.
-                  </p>
-                  <div class="centered-toggle">
-                    <input type="checkbox" id="use-timestamp-filename" />
-                    <label for="use-timestamp-filename"
-                      >Add versioned filenames (timestamped)</label
-                    >
+                  &#9654;
+                </button>
+              </div>
+              <div
+                id="collapsible-timestamp-container"
+                class="collapsible-container leethub-setting-panel"
+                style="display: none"
+              >
+                <p>
+                  Save submissions like
+                  <code>0001-two-sum_03-30-2025_12-30-15.js</code> to preserve versions.
+                </p>
+                <div class="centered-toggle">
+                  <input type="checkbox" id="use-timestamp-filename" />
+                  <label for="use-timestamp-filename">Add versioned filenames</label>
+                </div>
+              </div>
+            </section>
+
+            <!-- Toggle autoCommitSolutionPost setting -->
+            <section class="leethub-setting-block">
+              <div class="leethub-setting-row">
+                <div class="leethub-setting-copy">
+                  <h3>Auto-Commit Solution Posts</h3>
+                  <p>Commit published LeetCode solution posts as Solution.md.</p>
+                </div>
+                <button
+                  id="collapsible-solution-post-icon"
+                  class="leethub-disclosure-btn collapsible-icon"
+                  type="button"
+                  aria-label="Toggle solution post settings"
+                >
+                  &#9654;
+                </button>
+              </div>
+              <div
+                id="collapsible-solution-post-container"
+                class="collapsible-container leethub-setting-panel"
+                style="display: none"
+              >
+                <p>
+                  Automatically commit your solution posts to GitHub as
+                  <code>Solution.md</code> files when you publish them on LeetCode.
+                </p>
+                <div class="centered-toggle">
+                  <div class="ui toggle checkbox">
+                    <input type="checkbox" id="auto-commit-solution-post" checked />
+                    <label for="auto-commit-solution-post"></label>
                   </div>
                 </div>
               </div>
+            </section>
 
-              <!-- Toggle autoCommitSolutionPost setting -->
-              <div>
-                <span id="collapsible-solution-post-icon" class="collapsible-icon">&#9654;</span>
-                Auto-Commit Solution Posts
-                <div
-                  id="collapsible-solution-post-container"
-                  class="collapsible-container"
-                  style="display: none"
+            <!-- Topic template settings -->
+            <section class="leethub-setting-block">
+              <div class="leethub-setting-row">
+                <div class="leethub-setting-copy">
+                  <h3>Topic Templates</h3>
+                  <p>Choose template language and Topics tab visibility.</p>
+                </div>
+                <button
+                  id="collapsible-topic-template-icon"
+                  class="leethub-disclosure-btn collapsible-icon"
+                  type="button"
+                  aria-label="Toggle topic template settings"
                 >
-                  <p>
-                    Automatically commit your solution posts to GitHub as
-                    <code>Solution.md</code> files when you publish them on LeetCode.
-                  </p>
-                  <div class="centered-toggle">
-                    <div class="ui toggle checkbox">
-                      <input type="checkbox" id="auto-commit-solution-post" checked />
-                      <label for="auto-commit-solution-post"></label>
-                    </div>
+                  &#9654;
+                </button>
+              </div>
+              <div
+                id="collapsible-topic-template-container"
+                class="collapsible-container leethub-setting-panel"
+                style="display: none"
+              >
+                <label class="leethub-field-label" for="topic-template-language">
+                  Default template language
+                </label>
+                <select id="topic-template-language" class="leethub-select"></select>
+                <div class="centered-toggle">
+                  <div class="ui toggle checkbox">
+                    <input type="checkbox" id="show-topic-templates" checked />
+                    <label for="show-topic-templates">Show templates in side panel</label>
                   </div>
                 </div>
+                <button class="setting-btns" id="topic-template-reset-btn">Reset</button>
+                <span id="topic-template-status"></span>
               </div>
+            </section>
 
-              <div class="ui small header">
-                Want more features?
-                <a
-                  style="color: cadetblue !important"
-                  target="_blank"
-                  href="https://github.com/legojeon/LeetHub-KR/labels/feature"
-                  >Request a feature!</a
+            <!-- Translation language settings -->
+            <section class="leethub-setting-block">
+              <div class="leethub-setting-row">
+                <div class="leethub-setting-copy">
+                  <h3>Translation Language</h3>
+                  <p>Choose the target language for LeetCode problem descriptions.</p>
+                </div>
+                <button
+                  id="collapsible-translation-language-icon"
+                  class="leethub-disclosure-btn collapsible-icon"
+                  type="button"
+                  aria-label="Toggle translation language settings"
                 >
+                  &#9654;
+                </button>
               </div>
-            </div>
-          </div>
-
-          <!-- Generate Socials -->
-          <div id="socials" class="sixteen wide column">
-            <a href="https://github.com/legojeon/LeetHub-KR" target="_blank">
-              <i class="ui black github icon"></i>
-            </a>
-            <a id="welcome_URL" href="" target="_blank"><i class="ui grey globe icon"></i></a>
+              <div
+                id="collapsible-translation-language-container"
+                class="collapsible-container leethub-setting-panel"
+                style="display: none"
+              >
+                <label class="leethub-field-label" for="translation-language">
+                  Problem translation language
+                </label>
+                <select id="translation-language" class="leethub-select"></select>
+                <div class="leethub-setting-actions">
+                  <button class="leethub-secondary-btn" id="translation-language-reset-btn">
+                    Reset
+                  </button>
+                  <span
+                    id="translation-language-status"
+                    class="leethub-setting-inline-status"
+                  ></span>
+                </div>
+              </div>
+            </section>
           </div>
         </div>
       </section>
     </main>
 
     <script src="../js/oauth2.js"></script>
+    <script type="text/javascript" src="../core/config/repository-files.js"></script>
+    <script type="text/javascript" src="../data/topic-template-catalog.generated.js"></script>
+    <script type="text/javascript" src="../core/templates/topic-readme-template.js"></script>
+    <script type="text/javascript" src="../core/templates/topic-template-utils.js"></script>
+    <script
+      type="text/javascript"
+      src="../features/shared/settings/topic-template-settings.js"
+    ></script>
+    <script type="text/javascript" src="../core/config/translation-languages.js"></script>
+    <script
+      type="text/javascript"
+      src="../features/shared/settings/translation-language-settings.js"
+    ></script>
+    <script type="text/javascript" src="../features/sidepanel/topics/topic-panel-utils.js"></script>
     <script type="module" src="../js/sidepanel.js"></script>
   </body>
 </html>

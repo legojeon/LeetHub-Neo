@@ -1,0 +1,1 @@
+class Token{type;content;alias;length;constructor(t,s,a,i=""){this.type=t,this.content=s,this.alias=a,this.length=i.length}addAlias(t){let s=this.alias;s?Array.isArray(s)||(this.alias=s=[s]):this.alias=s=[],s.push(t)}}function t(s){return"string"==typeof s?s:Array.isArray(s)?s.map(t).join(""):t(s.content)}export{Token as T,t as g};

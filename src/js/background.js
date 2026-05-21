@@ -9,7 +9,25 @@ const closeTab = () => {
   });
 };
 
-const isLeetCodeTab = tab => /^https:\/\/leetcode\.(com|cn)\//.test(tab.url ?? '');
+const isLeetCodeTab = tab => {
+  try {
+    const url = new URL(tab.url ?? '');
+    return url.protocol === 'https:' && /^leetcode\.(com|cn)$/.test(url.hostname);
+  } catch {
+    return false;
+  }
+};
+
+const LEETHUB_CONTENT_SCRIPT_FILES = [
+  'src/core/config/repository-files.js',
+  'src/core/config/leetcode-languages.js',
+  'src/core/scratchpad/scratchpad-comment.js',
+  'src/core/templates/root-readme-template.js',
+  'src/core/templates/topic-readme-template.js',
+  'src/js/topic-index-utils.js',
+  'src/js/leetcode-account-utils.js',
+  'src/js/leetcode.js',
+];
 
 const sendMessageToTab = (tabId, message) => {
   return new Promise(resolve => {
@@ -24,16 +42,42 @@ const sendMessageToTab = (tabId, message) => {
   });
 };
 
+const executeScriptInTab = (tabId, files) => {
+  return new Promise(resolve => {
+    chrome.scripting.executeScript({ target: { tabId }, files }, () => {
+      resolve(!chrome.runtime.lastError);
+    });
+  });
+};
+
+const ensureLeetHubSyncScript = async tabId => {
+  const pingResponse = await sendMessageToTab(tabId, {
+    action: 'pingLeetHubNeoContentScript',
+  });
+
+  if (pingResponse?.ok) {
+    return true;
+  }
+
+  const injected = await executeScriptInTab(tabId, LEETHUB_CONTENT_SCRIPT_FILES);
+  if (!injected) {
+    return false;
+  }
+
+  const readyResponse = await sendMessageToTab(tabId, {
+    action: 'pingLeetHubNeoContentScript',
+  });
+
+  return Boolean(readyResponse?.ok);
+};
+
 const syncPreviousOnFirstAvailableLeetCodeTab = async () => {
   const tabs = await chrome.tabs.query({});
   const leetCodeTabs = tabs.filter(isLeetCodeTab);
 
   for (const tab of leetCodeTabs) {
-    const pingResponse = await sendMessageToTab(tab.id, {
-      action: 'pingLeetHubKRContentScript',
-    });
-
-    if (!pingResponse?.ok) {
+    const isReady = await ensureLeetHubSyncScript(tab.id);
+    if (!isReady) {
       continue;
     }
 

@@ -7,6 +7,15 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 
 export default [
+  {
+    ignores: [
+      'node_modules/**',
+      'dist/**',
+      'build/**',
+      'src/vendor/prism-v2/**',
+      'src/templates/**',
+    ],
+  },
   js.configs.recommended,
   prettierConfig,
   {
@@ -39,6 +48,5 @@ export default [
         version: 'detect',
       },
     },
-    ignores: ['node_modules/', 'dist/', 'build/'],
   },
 ];

@@ -1,4 +1,4 @@
-function getLeetHubKRBaseUrl() {
+function getLeetHubNeoBaseUrl() {
   const hostname = window.location.hostname;
   return `https://${hostname.includes('leetcode.cn') ? 'leetcode.cn' : 'leetcode.com'}`;
 }
@@ -30,7 +30,7 @@ query questionDetail($titleSlug: String!) {
   }
 }`;
 
-  const response = await fetch(`${getLeetHubKRBaseUrl()}/graphql/`, {
+  const response = await fetch(`${getLeetHubNeoBaseUrl()}/graphql/`, {
     method: 'POST',
     headers: {
       cookie: document.cookie,

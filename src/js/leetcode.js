@@ -4,44 +4,19 @@ function getLeetCodeBaseUrl() {
   return `https://${hostname.includes('leetcode.cn') ? 'leetcode.cn' : 'leetcode.com'}`;
 }
 
-/* Enum for languages supported by LeetCode. */
-const languages = {
-  C: '.c',
-  'C++': '.cpp',
-  'C#': '.cs',
-  Bash: '.sh',
-  Cangjie: '.cj', // LeetCode CN specific
-  Dart: '.dart',
-  Elixir: '.ex',
-  Erlang: '.erl',
-  Go: '.go',
-  Java: '.java',
-  JavaScript: '.js',
-  Javascript: '.js',
-  Kotlin: '.kt',
-  MySQL: '.sql',
-  'MS SQL Server': '.sql',
-  Oracle: '.sql',
-  PHP: '.php',
-  Pandas: '.py',
-  PostgreSQL: '.sql',
-  Python: '.py',
-  Python3: '.py',
-  Racket: '.rkt',
-  Ruby: '.rb',
-  Rust: '.rs',
-  Scala: '.scala',
-  Swift: '.swift',
-  TypeScript: '.ts',
-};
-
-const readmeFilename = 'README.md';
-const defaultRepoReadme = 'Contains topicwise list of solved problems.\n\n';
+const repositoryFiles = globalThis.LeetHubRepositoryFiles;
+const rootReadmeTemplate = globalThis.LeetHubRootReadmeTemplate;
+const languages = globalThis.LeetHubLeetCodeLanguages.LEETCODE_LANGUAGE_EXTENSIONS;
+const scratchpadComment = globalThis.LeetHubScratchpadComment;
+const readmeFilename = repositoryFiles.ROOT_README_FILENAME;
+const defaultRepoReadme = rootReadmeTemplate.DEFAULT_ROOT_README;
 const topicIndexUtils = globalThis.LeetHubTopicIndexUtils;
+const leetCodeAccountUtils = globalThis.LeetHubLeetCodeAccountUtils;
 
 // SubFolder
-const basePath = 'LeetCode';
-const rootReadmeSummaryCommitMessage = 'Update LeetHub summary';
+const basePath = '';
+const rootReadmeSummaryCommitMessage = rootReadmeTemplate.ROOT_README_SUMMARY_COMMIT_MESSAGE;
+let solutionLookupTreePromise = null;
 
 function encodeContent(content) {
   return btoa(unescape(encodeURIComponent(content)));
@@ -49,6 +24,45 @@ function encodeContent(content) {
 
 function decodeContent(content) {
   return decodeURIComponent(escape(atob(content)));
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function requestScratchpadContentForUpload() {
+  return new Promise(resolve => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        resolve('');
+      }
+    }, 300);
+
+    chrome.runtime.sendMessage({ action: 'getScratchpadContentForUpload' }, response => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      clearTimeout(timer);
+
+      if (chrome.runtime.lastError || !response?.ok) {
+        resolve('');
+        return;
+      }
+
+      resolve(String(response.content ?? ''));
+    });
+  });
+}
+
+async function appendScratchpadToSubmissionCode(code, extension) {
+  const scratchpadText = await requestScratchpadContentForUpload();
+  return scratchpadComment?.appendScratchpadToCode
+    ? scratchpadComment.appendScratchpadToCode(code, scratchpadText, extension)
+    : String(code ?? '');
 }
 
 /* Difficulty of most recenty submitted question */
@@ -110,6 +124,36 @@ query Submissions($offset: Int!, $limit: Int!, $lastKey: String, $questionSlug: 
   }
 }`;
 
+const QUESTION_DETAIL_QUERY = `
+query questionDetail($titleSlug: String!) {
+  question(titleSlug: $titleSlug) {
+    title
+    titleSlug
+    questionId
+    questionFrontendId
+    questionTitle
+    translatedTitle
+    content
+    translatedContent
+    categoryTitle
+    difficulty
+    stats
+    topicTags {
+      name
+      slug
+      translatedName
+    }
+  }
+}`;
+
+const CURRENT_USER_QUERY = `
+query globalData {
+  userStatus {
+    isSignedIn
+    username
+  }
+}`;
+
 async function fetchLeetCodeGraphQL(query, variables, operationName) {
   const response = await fetch(`${getLeetCodeBaseUrl()}/graphql/`, {
     method: 'POST',
@@ -136,10 +180,88 @@ async function fetchLeetCodeGraphQL(query, variables, operationName) {
   return payload.data;
 }
 
+function getLeetCodeAccountSite() {
+  return getLeetCodeBaseUrl().includes('leetcode.cn') ? 'leetcode.cn' : 'leetcode.com';
+}
+
+async function fetchCurrentLeetCodeAccount() {
+  const site = getLeetCodeAccountSite();
+  const data = await fetchLeetCodeGraphQL(CURRENT_USER_QUERY, {}, 'globalData');
+  const userStatus = data?.userStatus;
+
+  return {
+    site,
+    username: userStatus?.isSignedIn ? userStatus.username : '',
+  };
+}
+
+async function saveLeetCodeAccountForHook({ hook, site, username }) {
+  const storageKey = leetCodeAccountUtils.LEETCODE_ACCOUNT_BY_HOOK_STORAGE_KEY;
+  const values = await chrome.storage.local.get(storageKey);
+  const accountByHook = leetCodeAccountUtils.updateStoredLeetCodeAccount(
+    values[storageKey],
+    hook,
+    site,
+    username,
+    new Date().toISOString(),
+  );
+
+  await chrome.storage.local.set({ [storageKey]: accountByHook });
+}
+
+async function ensureLeetCodeAccountCanSync({ confirmMismatch = true } = {}) {
+  if (!leetCodeAccountUtils) {
+    throw new Error('LeetCode account guard is not available.');
+  }
+
+  const { leethub_hook: hook } = await chrome.storage.local.get('leethub_hook');
+
+  if (!hook) {
+    throw new Error('No GitHub repository is linked to LeetHub-Neo.');
+  }
+
+  const currentAccount = await fetchCurrentLeetCodeAccount();
+  const storageKey = leetCodeAccountUtils.LEETCODE_ACCOUNT_BY_HOOK_STORAGE_KEY;
+  const values = await chrome.storage.local.get(storageKey);
+  const storedAccount = leetCodeAccountUtils.getStoredLeetCodeAccount(
+    values[storageKey],
+    hook,
+    currentAccount.site,
+  );
+  const decision = leetCodeAccountUtils.createLeetCodeAccountSyncDecision({
+    storedUsername: storedAccount?.username,
+    currentUsername: currentAccount.username,
+    site: currentAccount.site,
+  });
+
+  if (decision.shouldConfirm) {
+    const shouldContinue = confirmMismatch && window.confirm(decision.confirmMessage);
+
+    if (!shouldContinue) {
+      throw new Error(decision.errorMessage);
+    }
+  } else if (!decision.canSync) {
+    throw new Error(decision.errorMessage);
+  }
+
+  if (decision.shouldStore) {
+    await saveLeetCodeAccountForHook({
+      hook,
+      site: currentAccount.site,
+      username: currentAccount.username,
+    });
+  }
+
+  return {
+    ...currentAccount,
+    status: decision.status,
+  };
+}
+
 async function fetchAcceptedSubmissions({
-  limit = 20,
+  limit = 50,
   offset = 0,
-  maxPages = 1,
+  maxPages = null,
   questionSlug = undefined,
 } = {}) {
   const acceptedSubmissions = [];
@@ -148,7 +270,7 @@ async function fetchAcceptedSubmissions({
   let hasNext = true;
   let pagesFetched = 0;
 
-  while (hasNext && pagesFetched < maxPages) {
+  while (hasNext && (maxPages == null || pagesFetched < maxPages)) {
     const data = await fetchLeetCodeGraphQL(
       SUBMISSION_LIST_QUERY,
       {
@@ -184,7 +306,7 @@ async function fetchAcceptedSubmissions({
       timestamp: submission.timestamp,
     })),
   );
-  console.info('[LeetHub-KR] Accepted submissions fetched:', acceptedSubmissions);
+  console.info('[LeetHub-Neo] Accepted submissions fetched:', acceptedSubmissions);
 
   return acceptedSubmissions;
 }
@@ -242,38 +364,139 @@ query submissionDetails($submissionId: ID!) {
   );
   const submissionDetails = isCN ? data.submissionDetail : data.submissionDetails;
 
-  console.info('[LeetHub-KR] Submission details fetched:', submissionDetails);
+  console.info('[LeetHub-Neo] Submission details fetched:', submissionDetails);
   if (submissionDetails?.code) {
-    console.info('[LeetHub-KR] Submission code preview:\n', submissionDetails.code);
+    console.info('[LeetHub-Neo] Submission code preview:\n', submissionDetails.code);
   }
 
   return submissionDetails;
 }
 
+async function fetchQuestionDetailsBySlug(titleSlug) {
+  if (!titleSlug) {
+    return null;
+  }
+
+  const data = await fetchLeetCodeGraphQL(QUESTION_DETAIL_QUERY, { titleSlug }, 'questionDetail');
+  const questionDetails = data?.question ?? null;
+
+  console.info('[LeetHub-Neo] Question details fetched:', questionDetails);
+  return questionDetails;
+}
+
 function getLatestAcceptedSubmissionByProblem(submissions) {
   const latestByProblem = new Map();
+  const firstAcceptedTimestampByProblem = new Map();
 
   for (const submission of submissions) {
     const current = latestByProblem.get(submission.titleSlug);
+    const firstTimestamp = firstAcceptedTimestampByProblem.get(submission.titleSlug);
 
     if (!current || Number(submission.timestamp) > Number(current.timestamp)) {
       latestByProblem.set(submission.titleSlug, submission);
     }
+
+    if (firstTimestamp === undefined || Number(submission.timestamp) < Number(firstTimestamp)) {
+      firstAcceptedTimestampByProblem.set(submission.titleSlug, submission.timestamp);
+    }
   }
 
-  return [...latestByProblem.values()];
+  return [...latestByProblem.values()].map(submission => ({
+    ...submission,
+    firstAcceptedTimestamp: firstAcceptedTimestampByProblem.get(submission.titleSlug),
+  }));
 }
 
-function createLeetCodeV2FromSubmission(submissionDetails) {
-  const leetCode = Object.create(LeetCodeV2.prototype);
-  leetCode.submissionData = submissionDetails;
-  leetCode.questionDetails = {
-    topicTags: submissionDetails.topicTags ?? [],
+function hasTopicTags(topicTags) {
+  return topicIndexUtils.normalizeTopicTags(topicTags).length > 0;
+}
+
+function shouldFetchQuestionDetailsForSubmission(submissionDetails) {
+  const question = submissionDetails?.question ?? {};
+
+  return (
+    !hasTopicTags(submissionDetails?.topicTags) ||
+    !question.title ||
+    !question.content ||
+    !question.difficulty ||
+    !question.questionFrontendId
+  );
+}
+
+function mergeQuestionDetails(submissionQuestion = {}, questionDetails = {}) {
+  const question = {
+    ...questionDetails,
+    ...submissionQuestion,
   };
+
+  return {
+    ...question,
+    title:
+      submissionQuestion.title ??
+      questionDetails.title ??
+      questionDetails.translatedTitle ??
+      questionDetails.questionTitle ??
+      '',
+    content:
+      submissionQuestion.content ??
+      questionDetails.content ??
+      questionDetails.translatedContent ??
+      '',
+    difficulty: submissionQuestion.difficulty ?? questionDetails.difficulty ?? '',
+    questionFrontendId:
+      submissionQuestion.questionFrontendId ??
+      questionDetails.questionFrontendId ??
+      submissionQuestion.questionId ??
+      questionDetails.questionId ??
+      '',
+    questionId: submissionQuestion.questionId ?? questionDetails.questionId ?? '',
+    titleSlug: submissionQuestion.titleSlug ?? questionDetails.titleSlug ?? '',
+  };
+}
+
+async function fetchQuestionDetailsForSubmission(submissionDetails, fallbackTitleSlug) {
+  if (!shouldFetchQuestionDetailsForSubmission(submissionDetails)) {
+    return null;
+  }
+
+  const titleSlug = submissionDetails?.question?.titleSlug ?? fallbackTitleSlug;
+
+  try {
+    return await fetchQuestionDetailsBySlug(titleSlug);
+  } catch (error) {
+    console.log(`Failed to fetch question details for ${titleSlug}: ${error.message}`);
+    return null;
+  }
+}
+
+function createLeetCodeV2FromSubmission(
+  submissionDetails,
+  questionDetails = null,
+  acceptedSubmission = null,
+) {
+  const leetCode = Object.create(LeetCodeV2.prototype);
+  const topicTags = topicIndexUtils.normalizeTopicTags(
+    questionDetails?.topicTags,
+    submissionDetails.topicTags,
+  );
+  const question = questionDetails
+    ? mergeQuestionDetails(submissionDetails.question, questionDetails)
+    : submissionDetails.question;
+
+  leetCode.submissionData = {
+    ...submissionDetails,
+    question,
+    topicTags,
+  };
+  leetCode.questionDetails = {
+    ...(questionDetails ?? {}),
+    topicTags,
+  };
+  leetCode.acceptedSubmission = acceptedSubmission;
   return leetCode;
 }
 
-async function uploadLeetCodeV2Submission(leetCode, suffix) {
+async function uploadLeetCodeV2Submission(leetCode, suffix, { updateSummary = true } = {}) {
   const probStats = leetCode.parseStats();
   if (!probStats) {
     throw new Error('Could not get submission stats');
@@ -294,13 +517,14 @@ async function uploadLeetCodeV2Submission(leetCode, suffix) {
   last_language = leetCode.getLanguage();
 
   const updateReadMe = await chrome.storage.local.get('stats').then(({ stats }) => {
-    const shaExists = stats?.shas?.[problemName]?.['README.md'] !== undefined;
+    const shaExists =
+      stats?.shas?.[problemName]?.[repositoryFiles.PROBLEM_README_FILENAME] !== undefined;
 
     if (!shaExists) {
       return uploadGit(
         btoa(unescape(encodeURIComponent(probStatement))),
         problemName,
-        'README.md',
+        repositoryFiles.PROBLEM_README_FILENAME,
         `Create readme : ${problemName}`,
         'upload',
         false,
@@ -314,7 +538,7 @@ async function uploadLeetCodeV2Submission(leetCode, suffix) {
     updateNotes = uploadGit(
       btoa(unescape(encodeURIComponent(notes))),
       problemName,
-      'NOTES.md',
+      repositoryFiles.NOTES_FILENAME,
       `Attach Notes : ${problemName}`,
       'upload',
       false,
@@ -330,7 +554,7 @@ async function uploadLeetCodeV2Submission(leetCode, suffix) {
     date: getTodaysDate(),
     problemTopic: probStats.problemTopic,
   };
-  const probStatsCommitMsg = `Time: ${probStats.time} (${probStats.timePercentile}%), Space: ${probStats.space} (${probStats.spacePercentile}%) - LeetHub-KR`;
+  const probStatsCommitMsg = `Time: ${probStats.time} (${probStats.timePercentile}%), Space: ${probStats.space} (${probStats.spacePercentile}%) - LeetHub-Neo`;
   const commitMsg = (await getCustomCommitMessage(problemContext)) || probStatsCommitMsg;
 
   const { useTimestampFilename = false } = await chrome.storage.local.get('useTimestampFilename');
@@ -346,90 +570,102 @@ async function uploadLeetCodeV2Submission(leetCode, suffix) {
   }
 
   const updateCode = alreadyCompleted
-    ? Promise.resolve()
+    ? getExistingSolutionRecord(problemName, fileName)
     : leetCode.findAndUploadCode(problemName, fileName, commitMsg, 'upload');
+  const [solutionRecord] = await Promise.all([updateCode, updateReadMe, updateNotes]);
   const updatedTopics = await safeUpdateTopicIndexesForProblem({
     leetCode,
     problemName,
-    fileName,
     language: last_language,
     extension: language,
+    solutionRecord,
   });
 
-  await Promise.all([updateReadMe, updateNotes, updateCode]);
-
   if (!alreadyCompleted) {
-    await incrementStats();
+    await recordSolvedProblemStats(leetCode, problemName, { preserveLegacyCounts: true });
   }
 
-  await safeUpdateRootReadmeSummary(updatedTopics);
+  if (updateSummary) {
+    await safeUpdateRootReadmeSummary(updatedTopics);
+  }
 
   return {
     status: alreadyCompleted ? 'skipped' : 'uploaded',
     problemName,
     difficulty,
+    ...buildSolvedProblemStatsEntry(leetCode, problemName),
+    updatedTopics,
   };
 }
 
 async function updateStatsCountsFromSyncedResults(results) {
-  const counts = results.reduce(
-    (acc, result) => {
-      acc.solved += 1;
-      acc.easy += result.difficulty === 'Easy' ? 1 : 0;
-      acc.medium += result.difficulty === 'Medium' ? 1 : 0;
-      acc.hard += result.difficulty === 'Hard' ? 1 : 0;
-      return acc;
-    },
+  const { stats = {} } = await chrome.storage.local.get('stats');
+  const nextStats = results.reduce(
+    (profileStats, result) => topicIndexUtils.recordSolvedProblemInStats(profileStats, result),
     {
-      solved: 0,
-      easy: 0,
-      medium: 0,
-      hard: 0,
+      ...stats,
+      problemStats: {},
+      shas: stats.shas ?? {},
+      solutionPaths: stats.solutionPaths ?? {},
     },
   );
 
-  const { stats = {} } = await chrome.storage.local.get('stats');
-  await chrome.storage.local.set({
-    stats: {
-      ...stats,
-      ...counts,
-      shas: stats.shas ?? {},
-    },
-  });
+  await chrome.storage.local.set({ stats: nextStats });
 
-  return counts;
+  return {
+    solved: nextStats.solved,
+    easy: nextStats.easy,
+    medium: nextStats.medium,
+    hard: nextStats.hard,
+  };
 }
 
 async function syncPreviousAcceptedSubmissions({
   limit = 50,
-  maxPages = 10,
+  maxPages = null,
   onProgress = () => {},
 } = {}) {
   if (uploadState.uploading) {
-    throw new Error('LeetHub-KR is already uploading. Please try again later.');
+    throw new Error('LeetHub-Neo is already uploading. Please try again later.');
   }
 
   uploadState.uploading = true;
 
   try {
+    solutionLookupTreePromise = null;
+    onProgress('Checking LeetCode account...');
+    await ensureLeetCodeAccountCanSync();
     onProgress('Fetching accepted submissions...');
     const acceptedSubmissions = await fetchAcceptedSubmissions({ limit, maxPages });
     const latestSubmissions = getLatestAcceptedSubmissionByProblem(acceptedSubmissions);
     const results = [];
+    let syncedTopics = [];
 
     for (let index = 0; index < latestSubmissions.length; index += 1) {
       const submission = latestSubmissions[index];
       onProgress(`Syncing ${index + 1}/${latestSubmissions.length}: ${submission.title}`);
 
       const submissionDetails = await fetchSubmissionDetailsById(submission.id);
-      const leetCode = createLeetCodeV2FromSubmission(submissionDetails);
-      results.push(await uploadLeetCodeV2Submission(leetCode));
+      const questionDetails = await fetchQuestionDetailsForSubmission(
+        submissionDetails,
+        submission.titleSlug,
+      );
+      const leetCode = createLeetCodeV2FromSubmission(
+        submissionDetails,
+        questionDetails,
+        submission,
+      );
+      const result = await uploadLeetCodeV2Submission(leetCode, undefined, {
+        updateSummary: false,
+      });
+      syncedTopics = topicIndexUtils.mergeTopicUpdates(syncedTopics, result.updatedTopics);
+      results.push(result);
     }
 
     const uploaded = results.filter(result => result.status === 'uploaded').length;
     const skipped = results.filter(result => result.status === 'skipped').length;
     const counts = await updateStatsCountsFromSyncedResults(results);
-    await safeUpdateRootReadmeSummary();
+    await safeUpdateRootReadmeSummary(syncedTopics);
     onProgress(`Done. Found ${counts.solved} solved problems.`);
 
     return {
@@ -445,9 +681,77 @@ async function syncPreviousAcceptedSubmissions({
   }
 }
 
+async function migrateRepositoryStructure({ onProgress = () => {} } = {}) {
+  if (uploadState.uploading) {
+    throw new Error('LeetHub-Neo is already uploading. Please try again later.');
+  }
+
+  uploadState.uploading = true;
+
+  try {
+    const { leethub_token: token, leethub_hook: hook } = await chrome.storage.local.get([
+      'leethub_token',
+      'leethub_hook',
+    ]);
+
+    if (!token || !hook) {
+      throw new Error('Missing GitHub token or repository hook.');
+    }
+
+    onProgress('Scanning repository...');
+    const repositoryState = await getRepositoryState(token, hook);
+    const topicDocuments = await getTopicProblemsDocuments(
+      token,
+      hook,
+      repositoryState.tree.tree ?? [],
+    );
+
+    if (!topicDocuments.length) {
+      throw new Error('Run Sync Previous before migrating repository structure.');
+    }
+
+    const folderOptions = await getFolderOptions();
+    const syncedAt = new Date().toISOString();
+    const plan = topicIndexUtils.createRepositoryStructureMigrationPlan({
+      treeFiles: repositoryState.tree.tree ?? [],
+      topicDocuments,
+      folderOptions,
+      syncedAt,
+    });
+    const treeEntries = createMigrationTreeEntries(plan);
+
+    if (!treeEntries.length) {
+      return {
+        moved: 0,
+        updatedTopicIndexes: 0,
+        conflicts: plan.conflicts,
+        missing: plan.missing,
+        status: 'noop',
+      };
+    }
+
+    onProgress(`Migrating ${plan.moves.length} files...`);
+    await commitRepositoryMigration(token, hook, repositoryState, treeEntries);
+    solutionLookupTreePromise = null;
+    await updateStatsSolutionPathsForMigration(plan.solutionPathUpdates);
+
+    return {
+      moved: plan.moves.length,
+      updatedTopicIndexes: plan.topicDocuments.length,
+      conflicts: plan.conflicts,
+      missing: plan.missing,
+      status: 'migrated',
+    };
+  } finally {
+    uploadState.uploading = false;
+  }
+}
+
 window.leetHubFetchAcceptedSubmissions = fetchAcceptedSubmissions;
 window.leetHubFetchSubmissionDetails = fetchSubmissionDetailsById;
+window.leetHubFetchQuestionDetails = fetchQuestionDetailsBySlug;
 window.leetHubSyncPreviousAcceptedSubmissions = syncPreviousAcceptedSubmissions;
+window.leetHubMigrateRepositoryStructure = migrateRepositoryStructure;
 window.addEventListener('leetHubFetchAcceptedSubmissionsRequest', async event => {
   const { requestId, options } = event.detail ?? {};
 
@@ -521,24 +825,36 @@ window.addEventListener('leetHubSyncPreviousAcceptedSubmissionsRequest', async e
   }
 });
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-  if (request?.action === 'pingLeetHubKRContentScript') {
+  if (request?.action === 'pingLeetHubNeoContentScript') {
     sendResponse({ ok: true });
     return false;
   }
 
-  if (request?.action !== 'syncPreviousAcceptedSubmissions') {
-    return false;
+  if (request?.action === 'syncPreviousAcceptedSubmissions') {
+    syncPreviousAcceptedSubmissions()
+      .then(result => {
+        sendResponse({ ok: true, result });
+      })
+      .catch(error => {
+        sendResponse({ ok: false, error: error.message });
+      });
+
+    return true;
   }
 
-  syncPreviousAcceptedSubmissions()
-    .then(result => {
-      sendResponse({ ok: true, result });
-    })
-    .catch(error => {
-      sendResponse({ ok: false, error: error.message });
-    });
+  if (request?.action === 'migrateRepositoryStructure') {
+    migrateRepositoryStructure()
+      .then(result => {
+        sendResponse({ ok: true, result });
+      })
+      .catch(error => {
+        sendResponse({ ok: false, error: error.message });
+      });
 
-  return true;
+    return true;
+  }
+
+  return false;
 });
 /* returns the corresponding language from language extension */
 function getLanguageFromExtension(extension) {
@@ -572,7 +888,27 @@ function constructGitHubPath(
   useDifficultyFolder,
   useLanguageFolder = false,
 ) {
-  const path = topicIndexUtils.buildRepoPath({
+  const path = buildGitHubContentPath({
+    basePath,
+    difficulty,
+    problem,
+    filename,
+    useDifficultyFolder,
+    useLanguageFolder,
+  });
+
+  return `https://api.github.com/repos/${hook}/contents/${path}`;
+}
+
+function buildGitHubContentPath({
+  basePath,
+  difficulty,
+  problem,
+  filename,
+  useDifficultyFolder,
+  useLanguageFolder = false,
+}) {
+  return topicIndexUtils.buildRepoPath({
     basePath: problem ? basePath : '',
     difficulty,
     problemName: problem,
@@ -581,8 +917,6 @@ function constructGitHubPath(
     useDifficultyFolder,
     useLanguageFolder,
   });
-
-  return `https://api.github.com/repos/${hook}/contents/${path}`;
 }
 
 const parseCustomCommitMessage = (text, problemContext) => {
@@ -624,15 +958,15 @@ const upload = (
   useLanguageFolder,
 ) => {
   // const URL = `https://api.github.com/repos/${hook}/contents/${problem}/${filename}`;
-  const URL = constructGitHubPath(
-    hook,
+  const uploadPath = buildGitHubContentPath({
     basePath,
     difficulty,
     problem,
     filename,
     useDifficultyFolder,
     useLanguageFolder,
-  );
+  });
+  const URL = `https://api.github.com/repos/${hook}/contents/${uploadPath}`;
 
   /* Define Payload */
   let data = {
@@ -662,15 +996,25 @@ const upload = (
     })
     .then(async body => {
       updatedSha = body.content.sha; // get updated SHA.
+      const actualPath = body.content.path || uploadPath;
       const stats = await getAndInitializeStats(problem);
       stats.shas[problem][filename] = updatedSha;
-      return chrome.storage.local.set({ stats });
+      if (isSolutionUpload(filename)) {
+        stats.solutionPaths[problem][filename] = actualPath;
+      }
+      await chrome.storage.local.set({ stats });
+      return {
+        filename,
+        path: actualPath,
+        sha: updatedSha,
+      };
     })
-    .then(() => {
+    .then(uploadResult => {
       console.log(`Successfully committed ${filename} to github`);
       if (cb != undefined) {
         cb();
       }
+      return uploadResult;
     });
 };
 
@@ -686,28 +1030,308 @@ const getAndInitializeStats = problem => {
       stats.shas = {};
     }
 
+    if (stats.shas == null) {
+      stats.shas = {};
+    }
+
+    if (stats.solutionPaths == null) {
+      stats.solutionPaths = {};
+    }
+
     if (stats.shas[problem] == null) {
       stats.shas[problem] = {};
+    }
+
+    if (stats.solutionPaths[problem] == null) {
+      stats.solutionPaths[problem] = {};
     }
 
     return stats;
   });
 };
 
-const incrementStats = () => {
-  return chrome.storage.local.get('stats').then(({ stats }) => {
-    stats.solved += 1;
-    stats.easy += difficulty === 'Easy' ? 1 : 0;
-    stats.medium += difficulty === 'Medium' ? 1 : 0;
-    stats.hard += difficulty === 'Hard' ? 1 : 0;
-    return chrome.storage.local.set({ stats });
-  });
-};
+function isSolutionUpload(filename) {
+  return ![
+    repositoryFiles.PROBLEM_README_FILENAME,
+    repositoryFiles.NOTES_FILENAME,
+    repositoryFiles.SOLUTION_POST_FILENAME,
+  ].includes(filename);
+}
+
+function buildSolvedProblemStatsEntry(leetCode, problemName) {
+  const topicTags = topicIndexUtils.normalizeTopicTags(
+    leetCode.questionDetails?.topicTags,
+    leetCode.submissionData?.topicTags,
+  );
+
+  return {
+    problemName,
+    title: leetCode.parseQuestionTitle(),
+    slug: leetCode.submissionData?.question?.titleSlug ?? '',
+    difficulty,
+    solvedAt:
+      leetCode.acceptedSubmission?.firstAcceptedTimestamp ??
+      leetCode.submissionData?.timestamp ??
+      new Date().toISOString(),
+    topicTags,
+  };
+}
+
+async function recordSolvedProblemStats(leetCode, problemName, options = {}) {
+  const { stats = {} } = await chrome.storage.local.get('stats');
+  const nextStats = topicIndexUtils.recordSolvedProblemInStats(
+    stats,
+    buildSolvedProblemStatsEntry(leetCode, problemName),
+    new Date(),
+    options,
+  );
+
+  await chrome.storage.local.set({ stats: nextStats });
+  return nextStats;
+}
 
 const checkAlreadyCompleted = async problemName => {
   const { stats } = await chrome.storage.local.get('stats');
   return stats?.shas?.[problemName] ?? false;
 };
+
+async function getExistingSolutionRecord(problemName, filename) {
+  const { stats } = await chrome.storage.local.get('stats');
+  const path = stats?.solutionPaths?.[problemName]?.[filename];
+  const sha = stats?.shas?.[problemName]?.[filename];
+
+  if (!sha) {
+    return path
+      ? {
+          filename,
+          path,
+          sha: '',
+        }
+      : null;
+  }
+
+  const scannedRecord = await findExistingSolutionRecordInRepo(problemName, filename, path);
+  if (scannedRecord) {
+    const nextStats = await getAndInitializeStats(problemName);
+    nextStats.solutionPaths[problemName][filename] = scannedRecord.path;
+    await chrome.storage.local.set({ stats: nextStats });
+
+    return scannedRecord;
+  }
+
+  return path
+    ? {
+        filename,
+        path,
+        sha: sha || '',
+      }
+    : null;
+}
+
+async function requestGitHubJson(token, url, options = {}) {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      Authorization: `token ${token}`,
+      Accept: 'application/vnd.github.v3+json',
+      ...(options.headers ?? {}),
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`GitHub request failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+async function getRepositoryState(token, hook) {
+  const repo = await requestGitHubJson(token, `https://api.github.com/repos/${hook}`);
+  const branchName = repo.default_branch || 'main';
+  const ref = await requestGitHubJson(
+    token,
+    `https://api.github.com/repos/${hook}/git/ref/heads/${branchName}`,
+  );
+  const commit = await requestGitHubJson(
+    token,
+    `https://api.github.com/repos/${hook}/git/commits/${ref.object.sha}`,
+  );
+  const tree = await requestGitHubJson(
+    token,
+    `https://api.github.com/repos/${hook}/git/trees/${commit.tree.sha}?recursive=1`,
+  );
+
+  return {
+    branchName,
+    commit,
+    tree,
+  };
+}
+
+async function getTopicProblemsDocuments(token, hook, treeFiles) {
+  const topicProblemsPathPattern = new RegExp(
+    `^${escapeRegExp(repositoryFiles.TOPICS_BASE_PATH)}/[^/]+/${escapeRegExp(
+      repositoryFiles.TOPIC_PROBLEMS_FILENAME,
+    )}$`,
+  );
+  const topicProblemFiles = treeFiles
+    .filter(file => file.type === 'blob' && topicProblemsPathPattern.test(file.path))
+    .sort((a, b) => a.path.localeCompare(b.path));
+  const documents = [];
+
+  for (const file of topicProblemFiles) {
+    const content = await getGitHubContentByPath(token, hook, file.path);
+
+    if (!content?.content) {
+      continue;
+    }
+
+    try {
+      documents.push({
+        path: file.path,
+        document: JSON.parse(decodeContent(content.content)),
+      });
+    } catch (error) {
+      console.log(`Skipping invalid topic problems document ${file.path}: ${error.message}`);
+    }
+  }
+
+  return documents;
+}
+
+function createMigrationTreeEntries(plan) {
+  const treeEntries = [];
+
+  for (const move of plan.moves) {
+    treeEntries.push({
+      path: move.targetPath,
+      mode: '100644',
+      type: 'blob',
+      sha: move.sha,
+    });
+    treeEntries.push({
+      path: move.sourcePath,
+      mode: '100644',
+      type: 'blob',
+      sha: null,
+    });
+  }
+
+  for (const topicDocument of plan.topicDocuments) {
+    treeEntries.push({
+      path: topicDocument.path,
+      mode: '100644',
+      type: 'blob',
+      content: topicDocument.content,
+    });
+  }
+
+  return treeEntries;
+}
+
+async function commitRepositoryMigration(token, hook, repositoryState, treeEntries) {
+  const tree = await requestGitHubJson(token, `https://api.github.com/repos/${hook}/git/trees`, {
+    method: 'POST',
+    body: JSON.stringify({
+      base_tree: repositoryState.commit.tree.sha,
+      tree: treeEntries,
+    }),
+  });
+  const commit = await requestGitHubJson(
+    token,
+    `https://api.github.com/repos/${hook}/git/commits`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        message: 'Migrate LeetHub repository structure',
+        tree: tree.sha,
+        parents: [repositoryState.commit.sha],
+      }),
+    },
+  );
+
+  return requestGitHubJson(
+    token,
+    `https://api.github.com/repos/${hook}/git/refs/heads/${repositoryState.branchName}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        sha: commit.sha,
+      }),
+    },
+  );
+}
+
+async function updateStatsSolutionPathsForMigration(solutionPathUpdates) {
+  if (!solutionPathUpdates.length) {
+    return null;
+  }
+
+  const { stats } = await chrome.storage.local.get('stats');
+
+  if (!stats) {
+    return null;
+  }
+
+  const nextStats = {
+    ...stats,
+    solutionPaths: {
+      ...(stats.solutionPaths ?? {}),
+    },
+  };
+
+  for (const update of solutionPathUpdates) {
+    nextStats.solutionPaths[update.problemName] = {
+      ...(nextStats.solutionPaths[update.problemName] ?? {}),
+      [update.filename]: update.path,
+    };
+  }
+
+  await chrome.storage.local.set({ stats: nextStats });
+  return nextStats;
+}
+
+async function getRepositoryTreeForSolutionLookup(token, hook) {
+  if (!solutionLookupTreePromise) {
+    solutionLookupTreePromise = getRepositoryState(token, hook).then(state => state.tree);
+  }
+
+  return solutionLookupTreePromise;
+}
+
+async function findExistingSolutionRecordInRepo(problemName, filename, preferredPath = '') {
+  try {
+    const { leethub_token: token, leethub_hook: hook } = await chrome.storage.local.get([
+      'leethub_token',
+      'leethub_hook',
+    ]);
+
+    if (!token || !hook) {
+      return null;
+    }
+
+    const tree = await getRepositoryTreeForSolutionLookup(token, hook);
+    const match = topicIndexUtils.findProblemSolutionFile({
+      treeFiles: tree.tree ?? [],
+      problemName,
+      filename,
+      preferredPath,
+    });
+
+    if (!match) {
+      return null;
+    }
+
+    return {
+      filename,
+      path: match.path,
+      sha: match.sha || '',
+    };
+  } catch (error) {
+    console.log(`Failed to scan existing solution path for ${problemName}: ${error.message}`);
+    return null;
+  }
+}
 
 /* Main function for updating code on GitHub Repo */
 /* Read from existing file on GitHub */
@@ -849,26 +1473,29 @@ function uploadGit(
           fileName,
           useDifficultyFolder,
           useLanguageFolder,
-        );
+        ).then(data => ({
+          retryUpload: true,
+          sha: data?.sha || '',
+        }));
       } else {
         throw err;
       }
     })
-    .then(data =>
-      data != null
+    .then(result =>
+      result?.retryUpload
         ? upload(
             token,
             hook,
             code,
             problemName,
             fileName,
-            data.sha,
+            result.sha,
             commitMsg,
             cb,
             useDifficultyFolder,
             useLanguageFolder,
           )
-        : undefined,
+        : result,
     );
 }
 
@@ -993,35 +1620,47 @@ async function ensureTopicReadme(token, hook, topic) {
 async function updateTopicProblemsJson(token, hook, topic, problemEntry, syncedAt) {
   const path = topicIndexUtils.buildTopicProblemsPath(topic.slug);
   const existing = await getGitHubContentByPath(token, hook, path);
-  let existingDocument = null;
-
-  if (existing?.content) {
-    try {
-      existingDocument = JSON.parse(decodeContent(existing.content));
-    } catch (error) {
-      console.log(`Invalid topic JSON at ${path}: ${error.message}`);
-    }
-  }
-
-  const nextDocument = topicIndexUtils.mergeProblemIntoTopicProblems(
-    existingDocument,
+  let content = topicIndexUtils.mergeProblemIntoTopicProblemsContent(
+    existing?.content ? decodeContent(existing.content) : '',
     topic,
     problemEntry,
     syncedAt,
   );
-  const content = `${JSON.stringify(nextDocument, null, 2)}\n`;
+  let response;
 
-  const response = await putGeneratedFileWithRetry(
-    token,
-    hook,
-    path,
-    content,
-    `Update ${topic.name} topic problems`,
-    existing?.sha,
-  );
+  try {
+    response = await putGitHubContentByPath(
+      token,
+      hook,
+      path,
+      content,
+      `Update ${topic.name} topic problems`,
+      existing?.sha,
+    );
+  } catch (error) {
+    if (error.message !== '409') {
+      throw error;
+    }
+
+    const latest = await getGitHubContentByPath(token, hook, path);
+    content = topicIndexUtils.mergeProblemIntoTopicProblemsContent(
+      latest?.content ? decodeContent(latest.content) : '',
+      topic,
+      problemEntry,
+      syncedAt,
+    );
+    response = await putGitHubContentByPath(
+      token,
+      hook,
+      path,
+      content,
+      `Update ${topic.name} topic problems`,
+      latest?.sha,
+    );
+  }
 
   return {
-    document: nextDocument,
+    document: JSON.parse(content),
     response,
   };
 }
@@ -1029,9 +1668,9 @@ async function updateTopicProblemsJson(token, hook, topic, problemEntry, syncedA
 function buildTopicProblemEntry({
   leetCode,
   problemName,
-  fileName,
   language,
   extension,
+  solutionRecord,
   syncedAt,
 }) {
   const folderPath = topicIndexUtils.buildProblemFolderPath({
@@ -1046,21 +1685,11 @@ function buildTopicProblemEntry({
     basePath,
     difficulty,
     problemName,
-    filename: 'README.md',
+    filename: repositoryFiles.PROBLEM_README_FILENAME,
     language,
     useDifficultyFolder: leetCode.folderOptions.useDifficultyFolder,
     useLanguageFolder: leetCode.folderOptions.useLanguageFolder,
   });
-  const solutionPath = topicIndexUtils.buildRepoPath({
-    basePath,
-    difficulty,
-    problemName,
-    filename: fileName,
-    language,
-    useDifficultyFolder: leetCode.folderOptions.useDifficultyFolder,
-    useLanguageFolder: leetCode.folderOptions.useLanguageFolder,
-  });
-
   return topicIndexUtils.buildProblemEntry({
     frontendId: leetCode.extractQuestionNumber(),
     title: leetCode.parseQuestionTitle(),
@@ -1072,7 +1701,9 @@ function buildTopicProblemEntry({
     readmePath,
     language,
     extension,
-    solutionPath,
+    solutionPath: solutionRecord?.path ?? '',
+    solutionSha: solutionRecord?.sha ?? '',
+    solutionFilename: solutionRecord?.filename ?? '',
     syncedAt,
   });
 }
@@ -1090,12 +1721,14 @@ async function getFolderOptions() {
 async function updateTopicIndexesForProblem({
   leetCode,
   problemName,
-  fileName,
   language,
   extension,
+  solutionRecord,
 }) {
-  const topicTags = leetCode.questionDetails?.topicTags ?? leetCode.submissionData?.topicTags ?? [];
-  const topics = topicTags.map(topicIndexUtils.normalizeTopicTag).filter(Boolean);
+  const topics = topicIndexUtils.normalizeTopicTags(
+    leetCode.questionDetails?.topicTags,
+    leetCode.submissionData?.topicTags,
+  );
 
   if (!topics.length) {
     return [];
@@ -1115,9 +1748,9 @@ async function updateTopicIndexesForProblem({
   const problemEntry = buildTopicProblemEntry({
     leetCode,
     problemName,
-    fileName,
     language,
     extension,
+    solutionRecord,
     syncedAt,
   });
 
@@ -1280,7 +1913,7 @@ function addLeadingZeros(title) {
 }
 
 function formatStats(time, timePercentile, space, spacePercentile) {
-  return `Time: ${time} (${timePercentile}%), Space: ${space} (${spacePercentile}%) - LeetHub-KR`;
+  return `Time: ${time} (${timePercentile}%), Space: ${space} (${spacePercentile}%) - LeetHub-Neo`;
 }
 
 function getGitIcon() {
@@ -1378,7 +2011,7 @@ document.addEventListener('click', event => {
         uploadGit(
           addition,
           problemName,
-          'README.md',
+          repositoryFiles.PROBLEM_README_FILENAME,
           `Prepend discussion post: ${problemName}`,
           'update',
           true,
@@ -1431,7 +2064,7 @@ LeetCodeV1.prototype.findAndUploadCode = function (
         throw new Error('' + res.status);
       }
     })
-    .then(responseText => {
+    .then(async responseText => {
       const doc = new DOMParser().parseFromString(responseText, 'text/html');
       /* the response has a js object called pageData. */
       /* Pagedata has the details data with code about that submission */
@@ -1467,11 +2100,15 @@ LeetCodeV1.prototype.findAndUploadCode = function (
               slicedText.indexOf("'") + 1,
               slicedText.lastIndexOf("'"),
             );
-            commitMsg = `Time: ${resultRuntime}, Memory: ${resultMemory} - LeetHub-KR`;
+            commitMsg = `Time: ${resultRuntime}, Memory: ${resultMemory} - LeetHub-Neo`;
           }
           if (code != null) {
+            const codeWithScratchpad = await appendScratchpadToSubmissionCode(
+              code,
+              this.getLanguageExtension(),
+            );
             return uploadGit(
-              btoa(unescape(encodeURIComponent(code))),
+              btoa(unescape(encodeURIComponent(codeWithScratchpad))),
               problemName,
               fileName,
               commitMsg,
@@ -1602,7 +2239,7 @@ LeetCodeV1.prototype.parseStats = function () {
   const space = probStats[2].textContent;
   const spacePercentile = probStats[3].textContent;
 
-  return `Time: ${time} (${timePercentile}), Space: ${space} (${spacePercentile}) - LeetHub-KR`;
+  return `Time: ${time} (${timePercentile}), Space: ${space} (${spacePercentile}) - LeetHub-Neo`;
 };
 /* Parser function for the question, question title, question difficulty, and tags */
 LeetCodeV1.prototype.parseQuestion = function () {
@@ -1698,7 +2335,7 @@ LeetCodeV1.prototype.insertToAnchorElement = function (elem) {
     }
   }
 };
-/* Creates a tick mark before "Run Code" button signaling LeetHub-KR has done its job */
+/* Creates a tick mark before "Run Code" button signaling LeetHub-Neo has done its job */
 LeetCodeV1.prototype.markUploaded = function () {
   const elem = document.getElementById(this.progressSpinnerElementId);
   if (elem) {
@@ -1722,13 +2359,13 @@ LeetCodeV1.prototype.markUploadFailed = function () {
  */
 LeetCodeV2.prototype.injectAndListen = function () {
   window.addEventListener('leetHubSubmissionId', event => {
-    console.log('[LeetHub-KR] Received submission ID:', event.detail.submissionId);
+    console.log('[LeetHub-Neo] Received submission ID:', event.detail.submissionId);
     this.processSubmission(event.detail.submissionId);
   });
 
   window.addEventListener('leetHubSolutionPost', event => {
     const { questionSlug, content, title } = event.detail;
-    console.log('LeetHub-KR: Received solution post event:', event.detail);
+    console.log('LeetHub-Neo: Received solution post event:', event.detail);
     this.handleSolutionPost(questionSlug, content, title);
   });
 };
@@ -1824,7 +2461,7 @@ query submissionDetails($submissionId: ID!) {
   )
     .then(res => res.json())
     .then(res => (isCN ? res.data.submissionDetail : res.data.submissionDetails));
-  console.info('LeetHub-KR:', { submissionDetailsData });
+  console.info('LeetHub-Neo:', { submissionDetailsData });
   this.submissionData = submissionDetailsData;
 
   const questionDetailsQuery = {
@@ -1849,7 +2486,7 @@ query submissionDetails($submissionId: ID!) {
     .then(res => res.data.question);
   this.questionDetails = questionDetailsData;
 };
-LeetCodeV2.prototype.findAndUploadCode = function (
+LeetCodeV2.prototype.findAndUploadCode = async function (
   problemName,
   fileName,
   commitMsg,
@@ -1861,8 +2498,13 @@ LeetCodeV2.prototype.findAndUploadCode = function (
     throw new Error('No solution code found');
   }
 
+  const codeWithScratchpad = await appendScratchpadToSubmissionCode(
+    code,
+    this.getLanguageExtension(),
+  );
+
   return uploadGit(
-    btoa(unescape(encodeURIComponent(code))),
+    btoa(unescape(encodeURIComponent(codeWithScratchpad))),
     problemName,
     fileName,
     commitMsg,
@@ -2143,10 +2785,10 @@ chrome.storage.local.get('isSync', data => {
       });
     });
     chrome.storage.local.set({ isSync: true }, _ => {
-      console.log('LeetHub-KR synced to local values');
+      console.log('LeetHub-Neo synced to local values');
     });
   } else {
-    console.log('LeetHub-KR local storage already synced!');
+    console.log('LeetHub-Neo local storage already synced!');
   }
 });
 
@@ -2168,6 +2810,8 @@ const loader = (leetCode, suffix) => {
 
       // If successful, stop polling
       clearInterval(intervalId);
+
+      await ensureLeetCodeAccountCanSync();
 
       // For v2, query LeetCode API for submission results
       await leetCode.init();
@@ -2192,13 +2836,14 @@ const loader = (leetCode, suffix) => {
 
       /* Upload README */
       const updateReadMe = await chrome.storage.local.get('stats').then(({ stats }) => {
-        const shaExists = stats?.shas?.[problemName]?.['README.md'] !== undefined;
+        const shaExists =
+          stats?.shas?.[problemName]?.[repositoryFiles.PROBLEM_README_FILENAME] !== undefined;
 
         if (!shaExists) {
           return uploadGit(
             btoa(unescape(encodeURIComponent(probStatement))),
             problemName,
-            'README.md',
+            repositoryFiles.PROBLEM_README_FILENAME,
             `Create readme : ${problemName}`,
             'upload',
             false,
@@ -2213,7 +2858,7 @@ const loader = (leetCode, suffix) => {
         updateNotes = uploadGit(
           btoa(unescape(encodeURIComponent(notes))),
           problemName,
-          'NOTES.md',
+          repositoryFiles.NOTES_FILENAME,
           `Attach Notes : ${problemName}`,
           'upload',
           false,
@@ -2229,7 +2874,7 @@ const loader = (leetCode, suffix) => {
         date: getTodaysDate(),
         problemTopic: probStats.problemTopic,
       };
-      const probStatsCommitMsg = `Time: ${probStats.time} (${probStats.timePercentile}%), Space: ${probStats.space} (${probStats.spacePercentile}%) - LeetHub-KR`; // default commit
+      const probStatsCommitMsg = `Time: ${probStats.time} (${probStats.timePercentile}%), Space: ${probStats.space} (${probStats.spacePercentile}%) - LeetHub-Neo`; // default commit
       const commitMsg = (await getCustomCommitMessage(problemContext)) || probStatsCommitMsg;
 
       const { useTimestampFilename = false } =
@@ -2247,23 +2892,23 @@ const loader = (leetCode, suffix) => {
 
       /* Upload code to Git */
       const updateCode = alreadyCompleted
-        ? Promise.resolve()
+        ? getExistingSolutionRecord(problemName, fileName)
         : leetCode.findAndUploadCode(problemName, fileName, commitMsg, 'upload');
+
+      const [solutionRecord] = await Promise.all([updateCode, updateReadMe, updateNotes]);
       const updatedTopics = await safeUpdateTopicIndexesForProblem({
         leetCode,
         problemName,
-        fileName,
         language: last_language,
         extension: language,
+        solutionRecord,
       });
-
-      await Promise.all([updateReadMe, updateNotes, updateCode]);
 
       uploadState.uploading = false;
       leetCode.markUploaded();
 
       if (!alreadyCompleted) {
-        await incrementStats();
+        await recordSolvedProblemStats(leetCode, problemName, { preserveLegacyCounts: true });
       }
 
       await safeUpdateRootReadmeSummary(updatedTopics);
@@ -2310,7 +2955,7 @@ setTimeout(() => {
   });
 }, 2000);
 
-// Function to convert questionSlug to problemName using the same logic as LeetHub-KR
+// Function to convert questionSlug to problemName using the same logic as LeetHub-Neo
 async function questionSlugToProblemName(questionSlug) {
   // Query LeetCode GraphQL to get question details
   const questionDetailsQuery = {
@@ -2365,7 +3010,7 @@ async function getLastCommitMessage(problemName) {
     const { useLanguageFolder = false } = await chrome.storage.local.get('useLanguageFolder');
 
     if (!stats?.shas || !leethub_token || !leethub_hook) {
-      return 'Add solution post - LeetHub-KR';
+      return 'Add solution post - LeetHub-Neo';
     }
 
     // Try to find the exact problem name, or one that contains the problem name
@@ -2437,7 +3082,7 @@ async function getLastCommitMessage(problemName) {
             if (
               message.includes('Time:') &&
               message.includes('Space:') &&
-              (message.includes('LeetHub-KR') || message.includes('LeetHub'))
+              (message.includes('LeetHub-Neo') || message.includes('LeetHub'))
             ) {
               return message;
             }
@@ -2451,10 +3096,10 @@ async function getLastCommitMessage(problemName) {
     } catch (apiError) {
       // Silently handle API errors
     }
-    return 'Add solution post - LeetHub-KR';
+    return 'Add solution post - LeetHub-Neo';
   } catch (error) {
     console.error('Error getting last commit message:', error);
-    return 'Add solution post - LeetHub-KR';
+    return 'Add solution post - LeetHub-Neo';
   }
 }
 
@@ -2482,7 +3127,7 @@ LeetCodeV2.prototype.handleSolutionPost = async function (questionSlug, content,
     await uploadGit(
       btoa(unescape(encodeURIComponent(solutionContent))),
       problemName,
-      'Solution.md',
+      repositoryFiles.SOLUTION_POST_FILENAME,
       commitMsg,
       'upload',
       false,

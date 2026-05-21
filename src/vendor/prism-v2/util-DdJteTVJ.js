@@ -1,0 +1,1 @@
+function n(n){let e,r=!1;return()=>(r||(e=n(),r=!0),e)}function e(n){return n.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/\u00a0/g," ")}const r=()=>{};function t(n){return null!=n}function a(n){return n.replace(/([\\[\](){}+*?|^$.])/g,"\\$1")}export{e as h,t as i,n as l,r as n,a as r};

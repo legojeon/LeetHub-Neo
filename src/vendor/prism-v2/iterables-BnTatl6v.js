@@ -1,0 +1,1 @@
+function r(r){return Array.isArray(r)?r:null==r?[]:[r]}function t(r,t){Array.isArray(r)?r.forEach(t):null!=r&&t(r,0)}function n(t){return(r=>"object"==typeof r&&Symbol.iterator in Object(r))(t)?t:r(t)}export{n as a,t as f,r as t};

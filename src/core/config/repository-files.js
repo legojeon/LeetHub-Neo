@@ -1,0 +1,27 @@
+(function initializeRepositoryFiles(globalObject) {
+  const ROOT_README_FILENAME = 'README.md';
+  const PROBLEM_README_FILENAME = 'README.md';
+  const NOTES_FILENAME = 'NOTES.md';
+  const SOLUTION_POST_FILENAME = 'Solution.md';
+  const TOPICS_BASE_PATH = 'Topics';
+  const TOPIC_PROBLEMS_FILENAME = 'problems.json';
+  const TOPIC_TEMPLATES_FILENAME = 'templates.json';
+  const LEGACY_PROBLEM_BASE_PATHS = ['LeetCode', 'LeetHub', 'Leethub'];
+  const PROBLEM_METADATA_FILENAMES = [
+    PROBLEM_README_FILENAME,
+    NOTES_FILENAME,
+    SOLUTION_POST_FILENAME,
+  ];
+
+  globalObject.LeetHubRepositoryFiles = {
+    LEGACY_PROBLEM_BASE_PATHS,
+    NOTES_FILENAME,
+    PROBLEM_METADATA_FILENAMES,
+    PROBLEM_README_FILENAME,
+    ROOT_README_FILENAME,
+    SOLUTION_POST_FILENAME,
+    TOPICS_BASE_PATH,
+    TOPIC_PROBLEMS_FILENAME,
+    TOPIC_TEMPLATES_FILENAME,
+  };
+})(globalThis);

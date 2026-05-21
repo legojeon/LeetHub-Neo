@@ -14,7 +14,9 @@
     <div class="ui grid container">
       <div class="sixteen wide center aligned column">
         <br />
-        <p class="caption" style="font-size: 9em">Leet<span style="color: #ff6c0a">Hub</span>-KR</p>
+        <p class="caption" style="font-size: 9em">
+          Leet<span style="color: #ff6c0a">Hub</span>-Neo
+        </p>
         <p class="caption">Automatically sync your code from LeetCode to GitHub</p>
         <br /><br /><br /><br /><br /><br /><br /><br />
         <p hidden id="error"></p>
@@ -25,7 +27,7 @@
       <!-- Create Hook -->
       <div style="display: none" id="hook_mode" class="ui grid container">
         <div class="six wide column">
-          <p class="caption ui large header center aligned">To get started with LeetHub-KR</p>
+          <p class="caption ui large header center aligned">To get started with LeetHub-Neo</p>
         </div>
         <div class="four wide left aligned column">
           <div class="ui form">
@@ -52,6 +54,27 @@
                 <option value="">Select a Repository</option>
                 <!-- Repositories will be populated here -->
               </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="sixteen wide center aligned column">
+          <div class="ui inverted form">
+            <div class="field">
+              <label for="topic-template-language">Default template language</label>
+              <select id="topic-template-language" class="ui dropdown"></select>
+            </div>
+            <div class="field">
+              <label for="translation-language">Problem translation language</label>
+              <select id="translation-language" class="ui dropdown"></select>
+            </div>
+            <div class="field">
+              <div class="ui checkbox">
+                <input id="sync-accepted-submissions-after-hook" type="checkbox" checked />
+                <label for="sync-accepted-submissions-after-hook">
+                  Sync accepted submissions after linking GitHub
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -87,7 +110,7 @@
             Want more features? <br /><a
               style="color: aqua !important; font-size: 0.8em"
               target="_blank"
-              href="https://github.com/legojeon/LeetHub-KR/labels/feature"
+              href="https://github.com/legojeon/LeetHub-Neo/labels/feature"
               >Request a feature!</a
             >
           </div>
@@ -101,14 +124,24 @@
           <a
             style="color: rgb(143, 202, 202) !important"
             target="_blank"
-            href="https://github.com/legojeon/LeetHub-KR"
+            href="https://github.com/legojeon/LeetHub-Neo"
             >Star <span style="color: white">Leet</span
-            ><span style="color: #ff6c0a !important">Hub</span>-KR on GitHub</a
+            ><span style="color: #ff6c0a !important">Hub</span>-Neo on GitHub</a
           >
         </div>
       </div>
     </div>
 
+    <script type="text/javascript" src="../core/config/repository-files.js"></script>
+    <script type="text/javascript" src="../data/topic-template-catalog.generated.js"></script>
+    <script type="text/javascript" src="../core/templates/topic-readme-template.js"></script>
+    <script type="text/javascript" src="../core/templates/topic-template-utils.js"></script>
+    <script type="text/javascript" src="../core/templates/topic-template-seed.js"></script>
+    <script type="text/javascript" src="../core/config/translation-languages.js"></script>
+    <script
+      type="text/javascript"
+      src="../features/shared/settings/translation-language-settings.js"
+    ></script>
     <script type="text/javascript" src="../js/welcome.js"></script>
   </body>
 </html>

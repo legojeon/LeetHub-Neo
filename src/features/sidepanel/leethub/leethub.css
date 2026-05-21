@@ -1,0 +1,529 @@
+.leethub-panel {
+  width: 100%;
+  max-width: none;
+  min-height: calc(100vh - 34px);
+  padding: 0;
+  background: #ffffff;
+  text-align: center;
+}
+
+.leethub-subview {
+  min-height: calc(100vh - 34px);
+  box-sizing: border-box;
+}
+
+.leethub-subview[hidden] {
+  display: none;
+}
+
+.leethub-home-view {
+  display: flex;
+  flex-direction: column;
+}
+
+.leethub-grid {
+  flex: 1;
+  display: flex !important;
+  flex-direction: column;
+}
+
+.leethub-home-column {
+  flex: 1;
+  display: flex !important;
+  flex-direction: column;
+  padding: 18px 14px 0 !important;
+}
+
+#title {
+  font-weight: 500;
+}
+
+.leethub-brand-accent {
+  color: #ff6c0a;
+}
+
+.leethub-repo-link {
+  margin: 14px 0 0;
+  color: cadetblue;
+  font-size: 12px;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.leethub-repo-link a {
+  color: cadetblue !important;
+  font-size: 1em !important;
+}
+
+.leethub-stat-card {
+  margin: 16px 0 0;
+  padding: 18px 12px 14px;
+  border: 1px solid #e7e7e8;
+  border-radius: 8px;
+  background: #ffffff;
+  text-align: center;
+}
+
+.leethub-stat-label {
+  margin: 0;
+  color: #71717a;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.leethub-difficulty-donut {
+  width: 190px;
+  height: 190px;
+  margin: 12px auto 0;
+  border-radius: 50%;
+  background: conic-gradient(#ebedf0 0% 100%);
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.leethub-difficulty-donut::after {
+  content: '';
+  position: absolute;
+  inset: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.leethub-donut-value,
+.leethub-donut-label {
+  position: relative;
+  z-index: 1;
+}
+
+.leethub-donut-value {
+  color: #ff6c0a;
+  font-size: 44px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.leethub-donut-label {
+  margin-top: 3px;
+  color: #71717a;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.leethub-difficulty-stats {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.leethub-difficulty-pill {
+  min-width: 0;
+  padding: 7px 6px;
+  border-radius: 999px;
+  background: #f7f7f8;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.leethub-difficulty-label {
+  font-weight: 400;
+}
+
+.leethub-difficulty-value {
+  font-weight: 800;
+}
+
+.leethub-difficulty-pill.easy {
+  color: #00b8a3;
+}
+
+.leethub-difficulty-pill.medium {
+  color: #ffc01e;
+}
+
+.leethub-difficulty-pill.hard {
+  color: #ff375f;
+}
+
+.leethub-profile-summary {
+  margin: 10px 0 0;
+  padding: 12px;
+  border: 1px solid #e7e7e8;
+  border-radius: 8px;
+  background: #ffffff;
+  text-align: left;
+}
+
+.leethub-streak-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.leethub-streak-row div {
+  min-width: 0;
+  padding: 9px 8px;
+  border-radius: 6px;
+  background: #f7f7f8;
+}
+
+.leethub-profile-label {
+  display: block;
+  color: #71717a;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.leethub-streak-row strong {
+  display: block;
+  margin-top: 2px;
+  color: #222222;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.leethub-activity-grid {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 12px;
+  display: grid;
+  grid-template-rows: repeat(7, 10px);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 3px;
+  padding-bottom: 2px;
+}
+
+.leethub-activity-cell {
+  width: 100%;
+  height: 10px;
+  border-radius: 2px;
+  background: #ebedf0;
+}
+
+.leethub-activity-cell.level-1 {
+  background: #ffd8bf;
+}
+
+.leethub-activity-cell.level-2 {
+  background: #ffad7a;
+}
+
+.leethub-activity-cell.level-3 {
+  background: #ff7a2f;
+}
+
+.leethub-activity-cell.level-4 {
+  background: #c44f05;
+}
+
+.leethub-top-tags {
+  margin-top: 12px;
+  display: grid;
+  gap: 7px;
+}
+
+.leethub-tag-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.leethub-tag-name {
+  min-width: 0;
+  color: #222222;
+  font-size: 11px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leethub-tag-count {
+  color: #71717a;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.leethub-tag-meter {
+  grid-column: 1 / -1;
+  height: 5px;
+  border-radius: 999px;
+  background: #f0f0f1;
+  overflow: hidden;
+}
+
+.leethub-tag-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #ff6c0a;
+}
+
+.leethub-footer-actions {
+  margin-top: auto;
+  min-height: 54px;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 4px 0;
+}
+
+.leethub-feature-link {
+  color: cadetblue !important;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.leethub-settings-icon-btn {
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid #e7e7e8;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #222222;
+  cursor: pointer;
+}
+
+.leethub-settings-icon-btn .icon {
+  margin: 0;
+}
+
+.leethub-settings-view {
+  background: #ffffff;
+  text-align: left;
+}
+
+.leethub-settings-header {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border-bottom: 1px solid #e7e7e8;
+  background: #ffffff;
+}
+
+.leethub-settings-header h2 {
+  margin: 0;
+  color: #222222;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.leethub-back-btn {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #e7e7e8;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #222222;
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.leethub-settings-list {
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.leethub-setting-block {
+  display: grid;
+  gap: 0;
+}
+
+.leethub-setting-row {
+  min-height: 56px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 10px;
+  border: 1px solid #e7e7e8;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.leethub-setting-block:has(.collapsible-icon.open) .leethub-setting-row {
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.leethub-setting-copy {
+  min-width: 0;
+}
+
+.leethub-setting-copy h3 {
+  margin: 0;
+  color: #222222;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.leethub-setting-copy p {
+  margin: 3px 0 0;
+  color: #71717a;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.leethub-setting-status {
+  min-height: 0;
+}
+
+.leethub-command-btn {
+  width: 82px;
+  min-height: 30px;
+  flex: 0 0 auto;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: #1f2937;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.leethub-command-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.leethub-command-btn .icon {
+  margin: 0 4px 0 0;
+}
+
+.leethub-disclosure-btn.collapsible-icon {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #71717a;
+  cursor: pointer;
+}
+
+.leethub-setting-panel.collapsible-container {
+  margin: -1px 0 0;
+  padding: 12px;
+  border: 1px solid #e7e7e8;
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+  background: #ffffff;
+  color: #222222;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.leethub-field-label {
+  display: block;
+  margin: 0 0 6px;
+  color: #888888;
+  font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.leethub-select {
+  width: 100%;
+  min-height: 34px;
+  box-sizing: border-box;
+  padding: 0 34px 0 10px;
+  border: 1px solid #ebebeb;
+  border-radius: 6px;
+  background-color: #f5f5f5;
+  color: #171717;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.leethub-select:focus {
+  border-color: #a1a1a1;
+  background-color: #ffffff;
+  outline: 0;
+}
+
+.leethub-setting-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.leethub-secondary-btn {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid #ebebeb;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #171717;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+.leethub-secondary-btn:hover {
+  border-color: #a1a1a1;
+  background: #fafafa;
+}
+
+.leethub-setting-inline-status {
+  min-width: 0;
+  color: #888888;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.centered-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.leethub-settings-view input[type='checkbox'] {
+  accent-color: #ff6c0a;
+}
+
+.leethub-settings-view .ui.toggle.checkbox input:checked ~ label:before {
+  background-color: #ff6c0a !important;
+}
+
+.leethub-settings-view .ui.toggle.checkbox input:focus:checked ~ label:before {
+  background-color: #ff6c0a !important;
+}
+
+.leethub-settings-view .ui.checkbox input:checked ~ label:after {
+  color: #ff6c0a !important;
+}

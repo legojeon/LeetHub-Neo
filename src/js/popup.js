@@ -1,6 +1,25 @@
 /* global oAuth2 */
 
 let action = false;
+const LEETHUB_CONTENT_SCRIPT_FILES = [
+  'src/core/config/repository-files.js',
+  'src/core/config/leetcode-languages.js',
+  'src/core/scratchpad/scratchpad-comment.js',
+  'src/core/templates/root-readme-template.js',
+  'src/core/templates/topic-readme-template.js',
+  'src/js/topic-index-utils.js',
+  'src/js/leetcode-account-utils.js',
+  'src/js/leetcode.js',
+];
+
+function isLeetCodeUrl(url) {
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.protocol === 'https:' && /^leetcode\.(com|cn)$/.test(parsedUrl.hostname);
+  } catch {
+    return false;
+  }
+}
 
 $('#authenticate').on('click', () => {
   if (action) {
@@ -21,7 +40,7 @@ $('#collapsible-commit-message-icon').click(() => {
 
     // if null, undefined, or an empty string, set default placeholder
     if (!commitMessage) {
-      $('#custom-commit-msg').attr('placeholder', 'Time: {time}, Space: {space} - LeetHub-KR');
+      $('#custom-commit-msg').attr('placeholder', 'Time: {time}, Space: {space} - LeetHub-Neo');
     } else {
       $('#custom-commit-msg').attr('placeholder', commitMessage);
       $('#custom-commit-msg').val(commitMessage);
@@ -97,6 +116,9 @@ $('#auto-commit-solution-post').change(function () {
   chrome.storage.local.set({ autoCommitSolutionPost: isChecked });
 });
 
+globalThis.LeetHubTopicTemplateSettings?.initializeTopicTemplateSettingsPanel();
+globalThis.LeetHubTranslationLanguageSettings?.initializeTranslationLanguageSettingsPanel();
+
 $('#msg-save-btn').click(() => {
   const commitMessage = $('#custom-commit-msg').val();
   chrome.runtime.sendMessage({
@@ -113,7 +135,7 @@ $('#msg-save-btn').click(() => {
 
 $('#msg-reset-btn').click(() => {
   $('#custom-commit-msg').val('');
-  $('#custom-commit-msg').attr('placeholder', 'Time: {time}, Space: {space} - LeetHub-KR'); // reset to default
+  $('#custom-commit-msg').attr('placeholder', 'Time: {time}, Space: {space} - LeetHub-Neo'); // reset to default
   chrome.runtime.sendMessage({ action: 'customCommitMessageUpdated', message: null });
 });
 
@@ -143,8 +165,30 @@ function sendSyncPreviousMessage(tabId, syncButton, syncStatus) {
     }
 
     const { counts, totalProblems } = response.result;
-    syncStatus.text(`Solved problems: ${counts?.solved ?? totalProblems}.`);
+    syncStatus.text(`Full sync complete. Solved problems: ${counts?.solved ?? totalProblems}.`);
     updateDisplayedStats(counts);
+  });
+}
+
+function sendMigrateRepositoryStructureMessage(tabId, migrateButton, migrateStatus) {
+  chrome.tabs.sendMessage(tabId, { action: 'migrateRepositoryStructure' }, response => {
+    migrateButton.prop('disabled', false);
+
+    if (chrome.runtime.lastError) {
+      migrateStatus.text('Could not connect to the LeetCode page. Refresh it, then try again.');
+      return;
+    }
+
+    if (!response?.ok) {
+      migrateStatus.text(response?.error || 'Migration failed.');
+      return;
+    }
+
+    const { moved, updatedTopicIndexes, conflicts } = response.result;
+    const conflictText = conflicts?.length ? ` ${conflicts.length} conflicts skipped.` : '';
+    migrateStatus.text(
+      `Migration complete. Moved ${moved} files and updated ${updatedTopicIndexes} topic indexes.${conflictText}`,
+    );
   });
 }
 
@@ -153,28 +197,30 @@ $('#sync-previous-btn').click(() => {
   const syncStatus = $('#sync-previous-status');
 
   syncButton.prop('disabled', true);
-  syncStatus.text('Open a LeetCode tab and keep it active while syncing...');
+  syncStatus.text('Open https://leetcode.com/ and keep it active while syncing...');
 
   chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
     const activeTab = tabs?.[0];
 
-    if (!activeTab?.id || !activeTab.url?.includes('leetcode.')) {
-      syncStatus.text('Please open a LeetCode problem page, then click Sync Previous again.');
+    if (!activeTab?.id || !isLeetCodeUrl(activeTab.url)) {
+      syncStatus.text(
+        'Open https://leetcode.com/ or https://leetcode.cn/, sign in, then try again.',
+      );
       syncButton.prop('disabled', false);
       return;
     }
 
-    chrome.tabs.sendMessage(activeTab.id, { action: 'pingLeetHubKRContentScript' }, response => {
+    chrome.tabs.sendMessage(activeTab.id, { action: 'pingLeetHubNeoContentScript' }, response => {
       if (!chrome.runtime.lastError && response?.ok) {
         sendSyncPreviousMessage(activeTab.id, syncButton, syncStatus);
         return;
       }
 
-      syncStatus.text('Preparing LeetHub-KR on this LeetCode tab...');
+      syncStatus.text('Preparing LeetHub-Neo on this LeetCode tab...');
       chrome.scripting.executeScript(
         {
           target: { tabId: activeTab.id },
-          files: ['src/js/leetcode.js'],
+          files: LEETHUB_CONTENT_SCRIPT_FILES,
         },
         () => {
           if (chrome.runtime.lastError) {
@@ -184,6 +230,57 @@ $('#sync-previous-btn').click(() => {
           }
 
           sendSyncPreviousMessage(activeTab.id, syncButton, syncStatus);
+        },
+      );
+    });
+  });
+});
+
+$('#migrate-repository-structure-btn').click(() => {
+  const migrateButton = $('#migrate-repository-structure-btn');
+  const migrateStatus = $('#migrate-repository-structure-status');
+  const shouldContinue = window.confirm(
+    'Move existing synced files in GitHub to match the current folder settings?',
+  );
+
+  if (!shouldContinue) {
+    return;
+  }
+
+  migrateButton.prop('disabled', true);
+  migrateStatus.text('Open https://leetcode.com/ and keep it active while migrating...');
+
+  chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+    const activeTab = tabs?.[0];
+
+    if (!activeTab?.id || !isLeetCodeUrl(activeTab.url)) {
+      migrateStatus.text(
+        'Open https://leetcode.com/ or https://leetcode.cn/, sign in, then try again.',
+      );
+      migrateButton.prop('disabled', false);
+      return;
+    }
+
+    chrome.tabs.sendMessage(activeTab.id, { action: 'pingLeetHubNeoContentScript' }, response => {
+      if (!chrome.runtime.lastError && response?.ok) {
+        sendMigrateRepositoryStructureMessage(activeTab.id, migrateButton, migrateStatus);
+        return;
+      }
+
+      migrateStatus.text('Preparing LeetHub-Neo on this LeetCode tab...');
+      chrome.scripting.executeScript(
+        {
+          target: { tabId: activeTab.id },
+          files: LEETHUB_CONTENT_SCRIPT_FILES,
+        },
+        () => {
+          if (chrome.runtime.lastError) {
+            migrateStatus.text('Refresh the LeetCode page, then try again.');
+            migrateButton.prop('disabled', false);
+            return;
+          }
+
+          sendMigrateRepositoryStructureMessage(activeTab.id, migrateButton, migrateStatus);
         },
       );
     });

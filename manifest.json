@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "LeetHub-KR",
-  "description": "Automatically sync your LeetCode submissions to GitHub",
-  "homepage_url": "https://github.com/legojeon/LeetHub-KR",
-  "version": "0.0.16",
+  "name": "LeetHub-Neo",
+  "description": "Sync LeetCode submissions to GitHub with side panel tools and repository templates",
+  "homepage_url": "https://github.com/legojeon/LeetHub-Neo",
+  "version": "1.0.0",
   "author": "legojeon",
   "action": {
     "default_icon": "assets/thumbnail.png",
-    "default_title": "Open LeetHub-KR"
+    "default_title": "Open LeetHub-Neo"
   },
   "side_panel": {
     "default_path": "src/html/sidepanel.html"
@@ -20,48 +20,33 @@
   "background": {
     "service_worker": "src/js/background.js"
   },
-  "permissions": [
-    "activeTab",
-    "scripting",
-    "sidePanel",
-    "tabs",
-    "unlimitedStorage",
-    "storage"
-  ],
+  "permissions": ["activeTab", "scripting", "sidePanel", "tabs", "unlimitedStorage", "storage"],
+  "host_permissions": ["https://leetcode.com/*", "https://leetcode.cn/*"],
   "content_scripts": [
     {
-      "matches": [
-        "https://leetcode.com/*",
-        "https://leetcode.cn/*",
-        "https://github.com/*"
-      ],
-      "js": [
-        "src/js/interceptor.js"
-      ],
+      "matches": ["https://leetcode.com/*", "https://leetcode.cn/*", "https://github.com/*"],
+      "js": ["src/js/interceptor.js"],
       "run_at": "document_start",
       "world": "MAIN"
     },
     {
-      "matches": [
-        "https://leetcode.com/*",
-        "https://leetcode.cn/*",
-        "https://github.com/*"
-      ],
+      "matches": ["https://leetcode.com/*", "https://leetcode.cn/*", "https://github.com/*"],
       "js": [
+        "src/core/config/repository-files.js",
+        "src/core/config/leetcode-languages.js",
+        "src/core/scratchpad/scratchpad-comment.js",
+        "src/core/templates/root-readme-template.js",
+        "src/core/templates/topic-readme-template.js",
         "src/js/topic-index-utils.js",
+        "src/js/leetcode-account-utils.js",
         "src/js/leetcode.js",
         "src/js/authorize.js"
       ],
       "run_at": "document_idle"
     },
     {
-      "matches": [
-        "https://leetcode.com/*",
-        "https://leetcode.cn/*"
-      ],
-      "js": [
-        "src/js/leetcode-problem.js"
-      ],
+      "matches": ["https://leetcode.com/*", "https://leetcode.cn/*"],
+      "js": ["src/js/leetcode-problem.js"],
       "run_at": "document_idle"
     }
   ],

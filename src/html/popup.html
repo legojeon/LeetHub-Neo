@@ -14,7 +14,7 @@
   <body>
     <div class="ui grid container">
       <div class="sixteen wide center aligned column">
-        <h1 id="title">Leet<span style="color: #ff6c0a">Hub</span>-KR</h1>
+        <h1 id="title">Leet<span style="color: #ff6c0a">Hub</span>-Neo</h1>
         <p id="caption">Sync your code from LeetCode to GitHub</p>
         <br />
         <!-- Authentication mode -->
@@ -22,7 +22,7 @@
           <p class="onboarding">
             <br />
             Authenticate with GitHub to use
-            <strong>Leet<span style="color: #ff6c0a">Hub</span>-KR</strong>
+            <strong>Leet<span style="color: #ff6c0a">Hub</span>-Neo</strong>
           </p>
           <button id="authenticate" class="ui secondary button">
             <i class="icon github"></i>
@@ -35,7 +35,7 @@
           <p class="onboarding">
             <br />
             Set up repository hook to use
-            <strong>Leet<span style="color: #ff6c0a">Hub</span>-KR</strong>
+            <strong>Leet<span style="color: #ff6c0a">Hub</span>-Neo</strong>
           </p>
           <a id="hook_URL" href="" target="blank" class="ui secondary button">
             <i class="icon github"></i>
@@ -62,6 +62,12 @@
           </button>
           <p id="sync-previous-status" class="ui tiny header"></p>
 
+          <button id="migrate-repository-structure-btn" class="ui secondary button">
+            <i class="icon folder open"></i>
+            Migrate Repository Structure
+          </button>
+          <p id="migrate-repository-structure-status" class="ui tiny header"></p>
+
           <!-- Toggle custom commit menu -->
           <span id="collapsible-commit-message-icon" class="collapsible-icon">&#9654;</span>
           Customize Commit Message
@@ -84,7 +90,7 @@
             <textarea
               rows="4"
               id="custom-commit-msg"
-              placeholder="Time: {time}, Space: {space} - LeetHub-KR"
+              placeholder="Time: {time}, Space: {space} - LeetHub-Neo"
             ></textarea>
             <div id="setting-btns">
               <button class="setting-btns" id="msg-reset-btn">Reset</button>
@@ -105,7 +111,7 @@
             >
               <p>
                 Organize files into folders like
-                <code>LeetCode/Easy/0001-two-sum/0001-two-sum.js</code>
+                <code>Easy/0001-two-sum/0001-two-sum.js</code>
               </p>
               <div class="centered-toggle">
                 <div class="ui toggle checkbox">
@@ -127,7 +133,7 @@
             >
               <p>
                 Organize files into folders like
-                <code>LeetCode/Easy/0001-two-sum/JavaScript/0001-two-sum.js</code>
+                <code>Easy/0001-two-sum/JavaScript/0001-two-sum.js</code>
               </p>
               <div class="centered-toggle">
                 <div class="ui toggle checkbox">
@@ -180,12 +186,41 @@
             </div>
           </div>
 
+          <!-- Topic template settings -->
+          <div>
+            <span id="collapsible-topic-template-icon" class="collapsible-icon">&#9654;</span>
+            Topic Templates
+            <div
+              id="collapsible-topic-template-container"
+              class="collapsible-container"
+              style="display: none"
+            >
+              <label for="topic-template-language">Default template language</label>
+              <select id="topic-template-language" class="ui dropdown"></select>
+              <div class="centered-toggle">
+                <div class="ui toggle checkbox">
+                  <input type="checkbox" id="show-topic-templates" checked />
+                  <label for="show-topic-templates">Show templates in side panel</label>
+                </div>
+              </div>
+              <button class="setting-btns" id="topic-template-reset-btn">Reset</button>
+              <span id="topic-template-status"></span>
+            </div>
+          </div>
+
+          <div>
+            <label for="translation-language">Problem translation language</label>
+            <select id="translation-language" class="ui dropdown"></select>
+            <button class="setting-btns" id="translation-language-reset-btn">Reset</button>
+            <span id="translation-language-status"></span>
+          </div>
+
           <div class="ui small header">
             Want more features?
             <a
               style="color: cadetblue !important"
               target="_blank"
-              href="https://github.com/legojeon/LeetHub-KR/labels/feature"
+              href="https://github.com/legojeon/LeetHub-Neo/labels/feature"
               >Request a feature!</a
             >
           </div>
@@ -194,7 +229,7 @@
 
       <!-- Generate Socials -->
       <div id="socials" class="sixteen wide column">
-        <a href="https://github.com/legojeon/LeetHub-KR" target="_blank">
+        <a href="https://github.com/legojeon/LeetHub-Neo" target="_blank">
           <i class="ui black github icon"></i>
         </a>
         <a id="welcome_URL" href="" target="_blank"><i class="ui grey globe icon"></i></a>
@@ -202,6 +237,19 @@
     </div>
 
     <script src="../js/oauth2.js"></script>
+    <script type="text/javascript" src="../core/config/repository-files.js"></script>
+    <script type="text/javascript" src="../data/topic-template-catalog.generated.js"></script>
+    <script type="text/javascript" src="../core/templates/topic-readme-template.js"></script>
+    <script type="text/javascript" src="../core/templates/topic-template-utils.js"></script>
+    <script
+      type="text/javascript"
+      src="../features/shared/settings/topic-template-settings.js"
+    ></script>
+    <script type="text/javascript" src="../core/config/translation-languages.js"></script>
+    <script
+      type="text/javascript"
+      src="../features/shared/settings/translation-language-settings.js"
+    ></script>
     <script type="text/javascript" src="../js/popup.js"></script>
   </body>
 </html>
