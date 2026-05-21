@@ -6,9 +6,6 @@
   <a href="https://github.com/legojeon/LeetHub-Neo/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license"/>
   </a>
-  <a href="https://github.com/legojeon/LeetHub-Neo/graphs/contributors" alt="Contributors">
-    <img src="https://img.shields.io/github/contributors/legojeon/LeetHub-Neo" />
-  </a>
 </p>
 
 ## What is LeetHub-Neo?
@@ -60,9 +57,9 @@ dashboard progress, solve notes, topic workspaces, and sync settings.
       <sub>Dashboard and recent progress</sub>
     </td>
     <td align="center">
-      <img src="assets/extension/notes.png" alt="LeetHub-Neo scratchpad notes" width="420">
+      <img src="assets/extension/notes.png" alt="LeetHub-Neo user notes" width="420">
       <br>
-      <sub>Scratchpad notes while solving</sub>
+      <sub>User notes</sub>
     </td>
   </tr>
   <tr>
