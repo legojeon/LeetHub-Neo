@@ -81,6 +81,7 @@ assert.deepEqual(
 
 assert.equal(buildTopicReadmePath('array'), 'Topics/array/README.md');
 assert.equal(buildTopicProblemsPath('array'), 'Topics/array/problems.json');
+assert.equal(sandbox.globalThis.LeetHubRepositoryFiles.SCRATCHPAD_MEMO_FILENAME, 'memo.txt');
 assert.equal(
   createTopicReadme('Array'),
   [
@@ -141,6 +142,17 @@ assert.equal(
     useLanguageFolder: true,
   }),
   'Easy/0001-two-sum/README.md',
+);
+assert.equal(
+  buildRepoPath({
+    difficulty: 'Easy',
+    problemName: '0001-two-sum',
+    filename: 'memo.txt',
+    language: 'Python3',
+    useDifficultyFolder: true,
+    useLanguageFolder: true,
+  }),
+  'Easy/0001-two-sum/memo.txt',
 );
 assert.equal(
   buildProblemFolderPath({
