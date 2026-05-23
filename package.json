@@ -10,7 +10,7 @@
     "format-test": "prettier --check \"**/*.{js,mjs,jsx,ts,tsx,css,html}\" --ignore-unknown",
     "lint": "eslint . --fix --ignore-pattern 'src/js/static/jquery-3.3.1.min.js' --ignore-pattern 'src/js/static/semantic-2.4.1.min.js'",
     "lint-test": "eslint . --color --ignore-pattern 'src/js/static/jquery-3.3.1.min.js' --ignore-pattern 'src/js/static/semantic-2.4.1.min.js'",
-    "test:unit": "node tests/translation-utils.test.mjs && node tests/topic-index-utils.test.mjs && node tests/topic-template-utils.test.mjs && node tests/topic-template-seed.test.mjs && node tests/leetcode-account-utils.test.mjs && node tests/topic-panel-utils.test.mjs && node tests/topic-code-highlight.test.mjs && node tests/scratchpad-comment.test.mjs && node tests/brand-copy.test.mjs && node tests/sidepanel-leethub-ui.test.mjs"
+    "test:unit": "node tests/repository-files.test.mjs && node tests/translation-utils.test.mjs && node tests/topic-index-utils.test.mjs && node tests/topic-template-utils.test.mjs && node tests/topic-template-seed.test.mjs && node tests/leetcode-account-utils.test.mjs && node tests/topic-panel-utils.test.mjs && node tests/topic-code-highlight.test.mjs && node tests/scratchpad-memo.test.mjs && node tests/leetcode-scratchpad-upload.test.mjs && node tests/brand-copy.test.mjs && node tests/sidepanel-leethub-ui.test.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.23.0",

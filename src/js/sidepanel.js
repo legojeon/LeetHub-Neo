@@ -28,7 +28,7 @@ const repositoryFiles = globalThis.LeetHubRepositoryFiles;
 const LEETHUB_CONTENT_SCRIPT_FILES = [
   'src/core/config/repository-files.js',
   'src/core/config/leetcode-languages.js',
-  'src/core/scratchpad/scratchpad-comment.js',
+  'src/core/scratchpad/scratchpad-memo.js',
   'src/core/templates/root-readme-template.js',
   'src/core/templates/topic-readme-template.js',
   'src/js/topic-index-utils.js',

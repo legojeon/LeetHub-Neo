@@ -7,7 +7,7 @@ function getLeetCodeBaseUrl() {
 const repositoryFiles = globalThis.LeetHubRepositoryFiles;
 const rootReadmeTemplate = globalThis.LeetHubRootReadmeTemplate;
 const languages = globalThis.LeetHubLeetCodeLanguages.LEETCODE_LANGUAGE_EXTENSIONS;
-const scratchpadComment = globalThis.LeetHubScratchpadComment;
+const scratchpadMemo = globalThis.LeetHubScratchpadMemo;
 const readmeFilename = repositoryFiles.ROOT_README_FILENAME;
 const defaultRepoReadme = rootReadmeTemplate.DEFAULT_ROOT_README;
 const topicIndexUtils = globalThis.LeetHubTopicIndexUtils;
@@ -58,11 +58,29 @@ function requestScratchpadContentForUpload() {
   });
 }
 
-async function appendScratchpadToSubmissionCode(code, extension) {
+async function formatScratchpadMemoForUpload() {
   const scratchpadText = await requestScratchpadContentForUpload();
-  return scratchpadComment?.appendScratchpadToCode
-    ? scratchpadComment.appendScratchpadToCode(code, scratchpadText, extension)
-    : String(code ?? '');
+
+  return scratchpadMemo?.formatScratchpadMemo
+    ? scratchpadMemo.formatScratchpadMemo(scratchpadText)
+    : '';
+}
+
+async function uploadScratchpadMemoIfAny(problemName) {
+  const memoContent = await formatScratchpadMemoForUpload();
+
+  if (!memoContent) {
+    return undefined;
+  }
+
+  return uploadGit(
+    encodeContent(memoContent),
+    problemName,
+    repositoryFiles.SCRATCHPAD_MEMO_FILENAME,
+    `Attach memo : ${problemName}`,
+    'upload',
+    false,
+  );
 }
 
 /* Difficulty of most recenty submitted question */
@@ -544,6 +562,7 @@ async function uploadLeetCodeV2Submission(leetCode, suffix, { updateSummary = tr
       false,
     );
   }
+  const updateMemo = uploadScratchpadMemoIfAny(problemName);
 
   const problemContext = {
     time: `${probStats.time} (${probStats.timePercentile}%)`,
@@ -572,7 +591,7 @@ async function uploadLeetCodeV2Submission(leetCode, suffix, { updateSummary = tr
   const updateCode = alreadyCompleted
     ? getExistingSolutionRecord(problemName, fileName)
     : leetCode.findAndUploadCode(problemName, fileName, commitMsg, 'upload');
-  const [solutionRecord] = await Promise.all([updateCode, updateReadMe, updateNotes]);
+  const [solutionRecord] = await Promise.all([updateCode, updateReadMe, updateNotes, updateMemo]);
   const updatedTopics = await safeUpdateTopicIndexesForProblem({
     leetCode,
     problemName,
@@ -1051,11 +1070,7 @@ const getAndInitializeStats = problem => {
 };
 
 function isSolutionUpload(filename) {
-  return ![
-    repositoryFiles.PROBLEM_README_FILENAME,
-    repositoryFiles.NOTES_FILENAME,
-    repositoryFiles.SOLUTION_POST_FILENAME,
-  ].includes(filename);
+  return repositoryFiles.isSolutionUpload(filename);
 }
 
 function buildSolvedProblemStatsEntry(leetCode, problemName) {
@@ -2103,12 +2118,8 @@ LeetCodeV1.prototype.findAndUploadCode = function (
             commitMsg = `Time: ${resultRuntime}, Memory: ${resultMemory} - LeetHub-Neo`;
           }
           if (code != null) {
-            const codeWithScratchpad = await appendScratchpadToSubmissionCode(
-              code,
-              this.getLanguageExtension(),
-            );
             return uploadGit(
-              btoa(unescape(encodeURIComponent(codeWithScratchpad))),
+              btoa(unescape(encodeURIComponent(code))),
               problemName,
               fileName,
               commitMsg,
@@ -2498,13 +2509,8 @@ LeetCodeV2.prototype.findAndUploadCode = async function (
     throw new Error('No solution code found');
   }
 
-  const codeWithScratchpad = await appendScratchpadToSubmissionCode(
-    code,
-    this.getLanguageExtension(),
-  );
-
   return uploadGit(
-    btoa(unescape(encodeURIComponent(codeWithScratchpad))),
+    btoa(unescape(encodeURIComponent(code))),
     problemName,
     fileName,
     commitMsg,
@@ -2864,6 +2870,7 @@ const loader = (leetCode, suffix) => {
           false,
         );
       }
+      const updateMemo = uploadScratchpadMemoIfAny(problemName);
 
       const problemContext = {
         time: `${probStats.time} (${probStats.timePercentile}%)`,
@@ -2895,7 +2902,12 @@ const loader = (leetCode, suffix) => {
         ? getExistingSolutionRecord(problemName, fileName)
         : leetCode.findAndUploadCode(problemName, fileName, commitMsg, 'upload');
 
-      const [solutionRecord] = await Promise.all([updateCode, updateReadMe, updateNotes]);
+      const [solutionRecord] = await Promise.all([
+        updateCode,
+        updateReadMe,
+        updateNotes,
+        updateMemo,
+      ]);
       const updatedTopics = await safeUpdateTopicIndexesForProblem({
         leetCode,
         problemName,

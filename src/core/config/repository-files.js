@@ -15,6 +15,14 @@
     SCRATCHPAD_MEMO_FILENAME,
   ];
 
+  function isProblemMetadataFile(filename) {
+    return PROBLEM_METADATA_FILENAMES.includes(filename);
+  }
+
+  function isSolutionUpload(filename) {
+    return !isProblemMetadataFile(filename);
+  }
+
   globalObject.LeetHubRepositoryFiles = {
     LEGACY_PROBLEM_BASE_PATHS,
     NOTES_FILENAME,
@@ -26,5 +34,7 @@
     TOPICS_BASE_PATH,
     TOPIC_PROBLEMS_FILENAME,
     TOPIC_TEMPLATES_FILENAME,
+    isProblemMetadataFile,
+    isSolutionUpload,
   };
 })(globalThis);
