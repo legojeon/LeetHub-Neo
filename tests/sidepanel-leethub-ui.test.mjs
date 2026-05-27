@@ -176,6 +176,14 @@ assert.match(
 );
 assert.match(sidepanelCss, /\.topic-template-header h3\s*\{[\s\S]*margin: 0;/);
 assert.match(sidepanelCss, /\.topic-template-block pre\s*\{[\s\S]*margin-top: 4px;/);
+assert.match(sidepanelCss, /--lh-code-mockup-bg: #f7f8fa;/);
+assert.match(sidepanelCss, /--lh-code-mockup-text: #24292f;/);
+assert.match(
+  sidepanelCss,
+  /body\[data-theme='dark'\]\s*\{[\s\S]*--lh-code-mockup-bg: #111111;[\s\S]*--lh-code-mockup-text: #d4d4d4;/,
+);
+assert.match(sidepanelCss, /\.topic-markdown pre,[\s\S]*background: var\(--lh-code-mockup-bg\);/);
+assert.match(sidepanelCss, /\.topic-markdown pre,[\s\S]*color: var\(--lh-code-mockup-text\);/);
 assert.match(sidepanelCss, /\.topic-template-create-toolbar\s*\{[\s\S]*justify-content: center;/);
 assert.match(
   sidepanelCss,
@@ -184,6 +192,15 @@ assert.match(
 assert.match(sidepanelCss, /\.topic-template-create-form\s*\{[\s\S]*display: grid;/);
 assert.match(sidepanelCss, /\.topic-template-create-actions\s*\{[\s\S]*justify-content: center;/);
 assert.match(sidepanelCss, /\.sidepanel-tabs\[hidden\]\s*\{[\s\S]*display: none !important;/);
+assert.match(sidepanelCss, /html,\s*body\s*\{[\s\S]*height: 100%;[\s\S]*overflow: hidden;/);
+assert.match(sidepanelCss, /\.sidepanel-shell\s*\{[\s\S]*height: 100vh;[\s\S]*padding: 0;/);
+assert.match(sidepanelCss, /\.sidepanel-view\s*\{[\s\S]*flex: 1 1 auto;[\s\S]*overflow-y: auto;/);
+assert.match(
+  leethubCss,
+  /\.leethub-settings-view \.ui\.checkbox label\s*\{[\s\S]*color: var\(--lh-heading\) !important;/,
+);
+assert.match(leethubCss, /\.commit-variable\s*\{[\s\S]*color: var\(--lh-heading\);/);
+assert.match(leethubCss, /#custom-commit-msg\s*\{[\s\S]*color: var\(--lh-heading\);/);
 assert.match(sidepanelCss, /--lh-brand: #ff6c0a;/);
 assert.match(sidepanelCss, /--lh-brand-strong: #c44f05;/);
 assert.match(sidepanelCss, /--lh-easy: #00b8a3;/);

@@ -442,6 +442,36 @@
   line-height: 1.45;
 }
 
+.leethub-settings-view .ui.checkbox label {
+  color: var(--lh-heading) !important;
+}
+
+.leethub-settings-view .ui.checkbox label:hover,
+.leethub-settings-view .ui.checkbox input:focus ~ label {
+  color: var(--lh-heading) !important;
+}
+
+.leethub-settings-view #custom-commit-msg {
+  background-color: var(--lh-control-bg);
+  color: var(--lh-heading);
+}
+
+.leethub-settings-view #custom-commit-msg::placeholder {
+  color: var(--lh-muted);
+}
+
+.leethub-settings-view .commit-variable {
+  color: var(--lh-heading);
+}
+
+.leethub-settings-view .commit-variable:hover {
+  color: #ffffff;
+}
+
+.leethub-settings-view .setting-btns {
+  color: var(--lh-heading);
+}
+
 .leethub-field-label {
   display: block;
   margin: 0 0 6px;
