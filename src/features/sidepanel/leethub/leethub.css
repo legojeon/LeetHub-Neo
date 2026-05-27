@@ -142,15 +142,15 @@
 }
 
 .leethub-difficulty-pill.easy {
-  color: var(--lh-success);
+  color: var(--lh-easy);
 }
 
 .leethub-difficulty-pill.medium {
-  color: #ffc01e;
+  color: var(--lh-medium);
 }
 
 .leethub-difficulty-pill.hard {
-  color: var(--lh-error);
+  color: var(--lh-hard);
 }
 
 .leethub-profile-summary {
@@ -213,19 +213,19 @@
 }
 
 .leethub-activity-cell.level-1 {
-  background: #d8c7f2;
+  background: var(--lh-activity-1);
 }
 
 .leethub-activity-cell.level-2 {
-  background: #b79ae6;
+  background: var(--lh-activity-2);
 }
 
 .leethub-activity-cell.level-3 {
-  background: #8757cf;
+  background: var(--lh-activity-3);
 }
 
 .leethub-activity-cell.level-4 {
-  background: var(--lh-brand);
+  background: var(--lh-activity-4);
 }
 
 .leethub-top-tags {

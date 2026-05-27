@@ -23,9 +23,9 @@ export function createDifficultyStatItems(stats = {}) {
 
 export function createDifficultyDonutStyle(stats = {}) {
   const items = [
-    { value: stats.easy ?? 0, color: '#44bd32' },
-    { value: stats.medium ?? 0, color: '#ffc01e' },
-    { value: stats.hard ?? 0, color: '#e84118' },
+    { value: stats.easy ?? 0, color: 'var(--lh-easy)' },
+    { value: stats.medium ?? 0, color: 'var(--lh-medium)' },
+    { value: stats.hard ?? 0, color: 'var(--lh-hard)' },
   ];
   const total = items.reduce((sum, item) => sum + item.value, 0);
 

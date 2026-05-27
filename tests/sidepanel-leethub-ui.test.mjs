@@ -42,7 +42,7 @@ assert.deepEqual(createDifficultyStatItems({}), [
 
 assert.equal(
   createDifficultyDonutStyle({ easy: 2, medium: 1, hard: 1 }),
-  'conic-gradient(#44bd32 0% 50%, #ffc01e 50% 75%, #e84118 75% 100%)',
+  'conic-gradient(var(--lh-easy) 0% 50%, var(--lh-medium) 50% 75%, var(--lh-hard) 75% 100%)',
 );
 assert.equal(createDifficultyDonutStyle({}), 'conic-gradient(var(--lh-border) 0% 100%)');
 
@@ -131,6 +131,9 @@ assert.match(leethubCss, /\.leethub-difficulty-donut\s*\{[\s\S]*width: 190px;/);
 assert.match(leethubCss, /\.leethub-difficulty-donut::after\s*\{[\s\S]*inset: 24px;/);
 assert.match(leethubCss, /\.leethub-donut-value\s*\{[\s\S]*color: var\(--lh-brand\);/);
 assert.match(leethubCss, /\.leethub-donut-value\s*\{[\s\S]*font-size: 44px;/);
+assert.match(leethubCss, /\.leethub-difficulty-pill\.easy\s*\{[\s\S]*color: var\(--lh-easy\);/);
+assert.match(leethubCss, /\.leethub-difficulty-pill\.medium\s*\{[\s\S]*color: var\(--lh-medium\);/);
+assert.match(leethubCss, /\.leethub-difficulty-pill\.hard\s*\{[\s\S]*color: var\(--lh-hard\);/);
 assert.match(leethubCss, /\.leethub-activity-grid\s*\{[\s\S]*width: 100%;/);
 assert.match(leethubCss, /\.leethub-activity-grid\s*\{[\s\S]*grid-auto-columns: minmax\(0, 1fr\);/);
 assert.match(welcomeHtml, /id="sync-accepted-submissions-after-hook"/);
@@ -181,9 +184,14 @@ assert.match(
 assert.match(sidepanelCss, /\.topic-template-create-form\s*\{[\s\S]*display: grid;/);
 assert.match(sidepanelCss, /\.topic-template-create-actions\s*\{[\s\S]*justify-content: center;/);
 assert.match(sidepanelCss, /\.sidepanel-tabs\[hidden\]\s*\{[\s\S]*display: none !important;/);
-assert.match(sidepanelCss, /--lh-brand: #551e9f;/);
+assert.match(sidepanelCss, /--lh-brand: #ff6c0a;/);
+assert.match(sidepanelCss, /--lh-brand-strong: #c44f05;/);
+assert.match(sidepanelCss, /--lh-easy: #00b8a3;/);
+assert.match(sidepanelCss, /--lh-medium: #ffc01e;/);
+assert.match(sidepanelCss, /--lh-hard: #ff375f;/);
 assert.match(sidepanelCss, /--lh-success: #44bd32;/);
 assert.match(sidepanelCss, /--lh-error: #e84118;/);
+assert.doesNotMatch(sidepanelCss, /--lh-brand: #551e9f;/);
 assert.match(sidepanelCss, /body\[data-theme='dark'\]\s*\{[\s\S]*--lh-bg: #1a1a1a;/);
 assert.match(sidepanelCss, /body\s*\{[\s\S]*background-color: var\(--lh-bg\) !important;/);
 assert.doesNotMatch(sidepanelHtml, /id="editorial-tab"/);
