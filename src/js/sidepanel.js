@@ -25,6 +25,7 @@ const topicTemplateUtils = globalThis.LeetHubTopicTemplateUtils;
 const topicTemplateCatalog = globalThis.LeetHubTopicTemplateCatalog;
 const translationLanguageUtils = globalThis.LeetHubTranslationLanguageUtils;
 const repositoryFiles = globalThis.LeetHubRepositoryFiles;
+const THEME_STORAGE_KEY = 'useDarkTheme';
 const LEETHUB_CONTENT_SCRIPT_FILES = [
   'src/core/config/repository-files.js',
   'src/core/config/leetcode-languages.js',
@@ -189,6 +190,29 @@ function sendMigrateRepositoryStructureMessage(tabId, migrateButton, migrateStat
   });
 }
 
+function applySidepanelTheme(useDarkTheme) {
+  document.body.dataset.theme = useDarkTheme ? 'dark' : 'light';
+}
+
+function initializeThemeControls() {
+  chrome.storage.local.get({ [THEME_STORAGE_KEY]: false }, values => {
+    const useDarkTheme = Boolean(values[THEME_STORAGE_KEY]);
+    applySidepanelTheme(useDarkTheme);
+    $('#use-dark-theme').prop('checked', useDarkTheme);
+  });
+
+  $('#collapsible-theme-icon').click(() => {
+    $('#collapsible-theme-icon').toggleClass('open');
+    $('#collapsible-theme-container').toggle();
+  });
+
+  $('#use-dark-theme').change(function () {
+    const useDarkTheme = $(this).is(':checked');
+    applySidepanelTheme(useDarkTheme);
+    chrome.storage.local.set({ [THEME_STORAGE_KEY]: useDarkTheme });
+  });
+}
+
 function initializeLeetHubControls() {
   $('#authenticate').on('click', () => {
     if (action) {
@@ -201,6 +225,7 @@ function initializeLeetHubControls() {
 
   $('#open-leethub-settings-btn').on('click', () => applyLeetHubSubview($, 'settings'));
   $('#back-leethub-home-btn').on('click', () => applyLeetHubSubview($, 'home'));
+  initializeThemeControls();
 
   $('#collapsible-commit-message-icon').click(() => {
     $('#collapsible-commit-message-icon').toggleClass('open');
@@ -408,7 +433,7 @@ function initializeLeetHubMode() {
               updateDisplayedStats(data3.stats);
               if (data3.leethub_hook) {
                 $('#repo_url').html(
-                  `<a target="blank" style="color: cadetblue !important; font-size:0.8em;" href="https://github.com/${data3.leethub_hook}">${data3.leethub_hook}</a>`,
+                  `<a target="blank" href="https://github.com/${data3.leethub_hook}">${data3.leethub_hook}</a>`,
                 );
               }
             });

@@ -232,6 +232,36 @@
               </button>
             </section>
 
+            <!-- Theme setting -->
+            <section class="leethub-setting-block">
+              <div class="leethub-setting-row">
+                <div class="leethub-setting-copy">
+                  <h3>Theme</h3>
+                  <p>Switch the side panel between light and dark mode.</p>
+                </div>
+                <button
+                  id="collapsible-theme-icon"
+                  class="leethub-disclosure-btn collapsible-icon"
+                  type="button"
+                  aria-label="Toggle theme settings"
+                >
+                  &#9654;
+                </button>
+              </div>
+              <div
+                id="collapsible-theme-container"
+                class="collapsible-container leethub-setting-panel"
+                style="display: none"
+              >
+                <div class="centered-toggle">
+                  <div class="ui toggle checkbox">
+                    <input type="checkbox" id="use-dark-theme" />
+                    <label for="use-dark-theme">Dark Mode</label>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             <!-- Toggle custom commit menu -->
             <section class="leethub-setting-block">
               <div class="leethub-setting-row">

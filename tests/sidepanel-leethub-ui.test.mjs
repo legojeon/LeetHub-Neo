@@ -42,9 +42,9 @@ assert.deepEqual(createDifficultyStatItems({}), [
 
 assert.equal(
   createDifficultyDonutStyle({ easy: 2, medium: 1, hard: 1 }),
-  'conic-gradient(#00b8a3 0% 50%, #ffc01e 50% 75%, #ff375f 75% 100%)',
+  'conic-gradient(#44bd32 0% 50%, #ffc01e 50% 75%, #e84118 75% 100%)',
 );
-assert.equal(createDifficultyDonutStyle({}), 'conic-gradient(#ebedf0 0% 100%)');
+assert.equal(createDifficultyDonutStyle({}), 'conic-gradient(var(--lh-border) 0% 100%)');
 
 assert.deepEqual(
   createActivityGridItems(
@@ -102,6 +102,9 @@ const leethubCss = await readFile(
 
 assert.match(sidepanelHtml, /id="collapsible-translation-language-icon"/);
 assert.match(sidepanelHtml, /id="collapsible-translation-language-container"/);
+assert.match(sidepanelHtml, /id="collapsible-theme-icon"/);
+assert.match(sidepanelHtml, /id="collapsible-theme-container"/);
+assert.match(sidepanelHtml, /<input type="checkbox" id="use-dark-theme" \/>/);
 assert.match(
   sidepanelHtml,
   /id="collapsible-translation-language-container"[\s\S]*class="collapsible-container leethub-setting-panel"/,
@@ -126,7 +129,7 @@ assert.match(sidepanelHtml, /id="leethub_top_tags"/);
 assert.match(leethubCss, /#title\s*\{[^}]*font-weight: 500;/);
 assert.match(leethubCss, /\.leethub-difficulty-donut\s*\{[\s\S]*width: 190px;/);
 assert.match(leethubCss, /\.leethub-difficulty-donut::after\s*\{[\s\S]*inset: 24px;/);
-assert.match(leethubCss, /\.leethub-donut-value\s*\{[\s\S]*color: #ff6c0a;/);
+assert.match(leethubCss, /\.leethub-donut-value\s*\{[\s\S]*color: var\(--lh-brand\);/);
 assert.match(leethubCss, /\.leethub-donut-value\s*\{[\s\S]*font-size: 44px;/);
 assert.match(leethubCss, /\.leethub-activity-grid\s*\{[\s\S]*width: 100%;/);
 assert.match(leethubCss, /\.leethub-activity-grid\s*\{[\s\S]*grid-auto-columns: minmax\(0, 1fr\);/);
@@ -141,6 +144,10 @@ assert.match(sidepanelJs, /text: 'Open on LeetCode'/);
 assert.doesNotMatch(sidepanelJs, /Go to \$\{problem\.title\}/);
 assert.match(sidepanelJs, /function renderCustomTemplateCreateForm/);
 assert.match(sidepanelJs, /function createCustomTopicTemplate/);
+assert.match(sidepanelJs, /function applySidepanelTheme/);
+assert.match(sidepanelJs, /function initializeThemeControls/);
+assert.match(sidepanelJs, /useDarkTheme/);
+assert.match(sidepanelJs, /document\.body\.dataset\.theme/);
 assert.match(sidepanelJs, /class: 'topic-template-edit-btn'/);
 assert.match(sidepanelJs, /shouldRefreshTopicOnFocus = true/);
 assert.match(sidepanelJs, /window\.addEventListener\('focus', refreshTopicOnFocus\)/);
@@ -157,7 +164,7 @@ assert.match(
 assert.match(sidepanelCss, /\.description-card\s*\{[\s\S]*padding: 12px 12px;/);
 assert.match(sidepanelCss, /\.description-example-group\s*\{[^}]*display: grid;[^}]*gap: 6px;/);
 assert.doesNotMatch(sidepanelCss, /\.description-card-example \+ \.description-card-example/);
-assert.match(sidepanelCss, /\.scratchpad-input\s*\{[\s\S]*background: #ffffff;/);
+assert.match(sidepanelCss, /\.scratchpad-input\s*\{[\s\S]*background: var\(--lh-bg\);/);
 assert.match(sidepanelCss, /\.topic-readme-edit-btn\s*\{[\s\S]*width: 26px;[\s\S]*height: 26px;/);
 assert.match(sidepanelCss, /\.topic-template-edit-btn\s*\{[\s\S]*width: 26px;[\s\S]*height: 26px;/);
 assert.match(
@@ -169,11 +176,16 @@ assert.match(sidepanelCss, /\.topic-template-block pre\s*\{[\s\S]*margin-top: 4p
 assert.match(sidepanelCss, /\.topic-template-create-toolbar\s*\{[\s\S]*justify-content: center;/);
 assert.match(
   sidepanelCss,
-  /\.topic-template-create-btn\s*\{[\s\S]*width: 100%;[\s\S]*border-color: #ffcf9f;/,
+  /\.topic-template-create-btn\s*\{[\s\S]*width: 100%;[\s\S]*border-color: var\(--lh-brand-soft\);/,
 );
 assert.match(sidepanelCss, /\.topic-template-create-form\s*\{[\s\S]*display: grid;/);
 assert.match(sidepanelCss, /\.topic-template-create-actions\s*\{[\s\S]*justify-content: center;/);
 assert.match(sidepanelCss, /\.sidepanel-tabs\[hidden\]\s*\{[\s\S]*display: none !important;/);
+assert.match(sidepanelCss, /--lh-brand: #551e9f;/);
+assert.match(sidepanelCss, /--lh-success: #44bd32;/);
+assert.match(sidepanelCss, /--lh-error: #e84118;/);
+assert.match(sidepanelCss, /body\[data-theme='dark'\]\s*\{[\s\S]*--lh-bg: #1a1a1a;/);
+assert.match(sidepanelCss, /body\s*\{[\s\S]*background-color: var\(--lh-bg\) !important;/);
 assert.doesNotMatch(sidepanelHtml, /id="editorial-tab"/);
 assert.doesNotMatch(sidepanelHtml, /id="translate-retry-btn"/);
 assert.doesNotMatch(sidepanelHtml, /id="show-source-toggle"/);

@@ -23,14 +23,14 @@ export function createDifficultyStatItems(stats = {}) {
 
 export function createDifficultyDonutStyle(stats = {}) {
   const items = [
-    { value: stats.easy ?? 0, color: '#00b8a3' },
+    { value: stats.easy ?? 0, color: '#44bd32' },
     { value: stats.medium ?? 0, color: '#ffc01e' },
-    { value: stats.hard ?? 0, color: '#ff375f' },
+    { value: stats.hard ?? 0, color: '#e84118' },
   ];
   const total = items.reduce((sum, item) => sum + item.value, 0);
 
   if (!total) {
-    return 'conic-gradient(#ebedf0 0% 100%)';
+    return 'conic-gradient(var(--lh-border) 0% 100%)';
   }
 
   let cursor = 0;

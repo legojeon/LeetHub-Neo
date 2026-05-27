@@ -46,7 +46,24 @@ assert.equal(DEFAULT_TEMPLATE_LANGUAGE, 'python');
 assert.equal(DEFAULT_SHOW_TOPIC_TEMPLATES, true);
 assert.equal(
   createTemplateReadme('Array'),
-  '# Array\n\nUse this page as your personal algorithm playbook.\n\nWrite freely in Markdown: concepts, mental models, gotchas, links, snippets, or your own tips. Keep what helps you recognize this topic faster next time.\n\nThis README works well with GitHub, Obsidian, Notion, or any Markdown-friendly notes app.\n',
+  [
+    '# Array',
+    '',
+    'Use this page as your personal algorithm playbook.',
+    '',
+    'Write freely in Markdown: concepts, mental models, gotchas, links, snippets, or your own tips. Keep what helps you recognize this topic faster next time.',
+    '',
+    '## Code Notes',
+    '',
+    '```python',
+    '# You can write a short example for this topic here.',
+    'def example():',
+    '    pass',
+    '```',
+    '',
+    'This README works well with GitHub, Obsidian, Notion, or any Markdown-friendly notes app.',
+    '',
+  ].join('\n'),
 );
 assert.equal(normalizeTemplateLanguage('javascript', catalog), 'javascript');
 assert.equal(normalizeTemplateLanguage('Python', catalog), 'python');
