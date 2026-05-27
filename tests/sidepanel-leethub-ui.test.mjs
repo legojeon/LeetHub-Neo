@@ -199,6 +199,10 @@ assert.match(
   leethubCss,
   /\.leethub-settings-view \.ui\.checkbox label\s*\{[\s\S]*color: var\(--lh-heading\) !important;/,
 );
+assert.match(
+  leethubCss,
+  /\.leethub-settings-view \.ui\.toggle\.checkbox input:checked ~ label,[\s\S]*color: var\(--lh-heading\) !important;/,
+);
 assert.match(leethubCss, /\.commit-variable\s*\{[\s\S]*color: var\(--lh-heading\);/);
 assert.match(leethubCss, /#custom-commit-msg\s*\{[\s\S]*color: var\(--lh-heading\);/);
 assert.match(sidepanelCss, /--lh-brand: #ff6c0a;/);

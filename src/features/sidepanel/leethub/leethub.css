@@ -447,7 +447,12 @@
 }
 
 .leethub-settings-view .ui.checkbox label:hover,
-.leethub-settings-view .ui.checkbox input:focus ~ label {
+.leethub-settings-view .ui.checkbox input:focus ~ label,
+.leethub-settings-view .ui.checkbox input:checked ~ label,
+.leethub-settings-view .ui.toggle.checkbox input:checked ~ label,
+.leethub-settings-view .ui.toggle.checkbox input:focus:checked ~ label,
+.leethub-settings-view .ui.checkbox input[disabled] ~ label,
+.leethub-settings-view .ui.checkbox input[readonly] ~ label {
   color: var(--lh-heading) !important;
 }
 
