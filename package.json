@@ -1,6 +1,6 @@
 {
   "name": "leethub-neo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "private": true,
   "description": "Sync LeetCode submissions to GitHub with side panel tools and repository templates",

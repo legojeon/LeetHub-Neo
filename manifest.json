@@ -3,7 +3,7 @@
   "name": "LeetHub-Neo",
   "description": "Sync LeetCode submissions to GitHub with side panel tools and repository templates",
   "homepage_url": "https://github.com/legojeon/LeetHub-Neo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "legojeon",
   "action": {
     "default_icon": "assets/thumbnail.png",
