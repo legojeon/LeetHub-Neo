@@ -27,6 +27,7 @@ const {
   buildTopicReadmePath,
   createRepositoryStructureMigrationPlan,
   createTopicReadme,
+  findProblemRepositoryFile,
   findProblemSolutionFile,
   mergeProblemIntoTopicProblemsContent,
   mergeTopicUpdates,
@@ -184,6 +185,47 @@ assert.deepEqual(
     }),
   ),
   { type: 'blob', path: '0001-two-sum/0001-two-sum.py', sha: 'root-sha' },
+);
+
+assert.deepEqual(
+  serialize(
+    findProblemSolutionFile({
+      treeFiles: [
+        {
+          type: 'blob',
+          path: 'Topics/array/0001-two-sum-05-01-2026-12-00-00.py',
+          sha: 'topic-sha',
+        },
+        {
+          type: 'blob',
+          path: 'Easy/0001-two-sum/Python3/0001-two-sum-05-01-2026-12-00-00.py',
+          sha: 'timestamp-sha',
+        },
+        { type: 'blob', path: 'Easy/0001-two-sum/README.md', sha: 'readme-sha' },
+      ],
+      problemName: '0001-two-sum',
+      filename: '0001-two-sum.py',
+    }),
+  ),
+  {
+    type: 'blob',
+    path: 'Easy/0001-two-sum/Python3/0001-two-sum-05-01-2026-12-00-00.py',
+    sha: 'timestamp-sha',
+  },
+);
+
+assert.deepEqual(
+  serialize(
+    findProblemRepositoryFile({
+      treeFiles: [
+        { type: 'blob', path: 'Easy/0001-two-sum/README.md', sha: 'easy-readme-sha' },
+        { type: 'blob', path: 'Topics/array/0001-two-sum/README.md', sha: 'topic-readme-sha' },
+      ],
+      problemName: '0001-two-sum',
+      filename: 'README.md',
+    }),
+  ),
+  { type: 'blob', path: 'Easy/0001-two-sum/README.md', sha: 'easy-readme-sha' },
 );
 
 const syncedAt = '2026-05-12T10:30:00.000Z';

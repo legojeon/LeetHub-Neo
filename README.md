@@ -229,6 +229,8 @@ after you have solved the problem and want a review.
   settings controls.
 - Changed scratchpad syncing to upload `memo.txt` inside each problem folder
   instead of embedding scratchpad text into solution code comments.
+- Updated the accepted submissions sync API flow to support syncing up to 5,000
+  submission records.
 - Added a code-note example block to the default topic notes template.
 - Polished side panel layout so the panel fits the browser height and scrolls
   inside the active view.

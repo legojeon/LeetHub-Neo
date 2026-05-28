@@ -30,6 +30,14 @@ function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function getPathFilename(path) {
+  return (
+    String(path ?? '')
+      .split('/')
+      .pop() || ''
+  );
+}
+
 function requestScratchpadContentForUpload() {
   return new Promise(resolve => {
     let settled = false;
@@ -139,6 +147,25 @@ query Submissions($offset: Int!, $limit: Int!, $lastKey: String, $questionSlug: 
       timestamp
       url
     }
+  }
+}`;
+
+const RECENT_ACCEPTED_SUBMISSIONS_QUERY = `
+query recentAcSubmissions($username: String!, $limit: Int!) {
+  matchedUser(username: $username) {
+    submitStatsGlobal {
+      acSubmissionNum {
+        difficulty
+        count
+        submissions
+      }
+    }
+  }
+  recentAcSubmissionList(username: $username, limit: $limit) {
+    id
+    title
+    titleSlug
+    timestamp
   }
 }`;
 
@@ -276,7 +303,38 @@ async function ensureLeetCodeAccountCanSync({ confirmMismatch = true } = {}) {
   };
 }
 
-async function fetchAcceptedSubmissions({
+const PROFILE_ACCEPTED_SUBMISSIONS_LIMIT = 5000;
+
+function normalizeRecentAcceptedSubmission(submission) {
+  return {
+    ...submission,
+    statusDisplay: 'Accepted',
+  };
+}
+
+async function fetchProfileAcceptedSubmissions({ username, limit = 50 } = {}) {
+  if (!username) {
+    throw new Error('LeetCode username is required to fetch accepted submissions.');
+  }
+
+  const data = await fetchLeetCodeGraphQL(
+    RECENT_ACCEPTED_SUBMISSIONS_QUERY,
+    {
+      username,
+      limit: Math.max(limit, PROFILE_ACCEPTED_SUBMISSIONS_LIMIT),
+    },
+    'recentAcSubmissions',
+  );
+  const submissions = data?.recentAcSubmissionList;
+
+  if (!Array.isArray(submissions)) {
+    throw new Error('LeetCode response did not include recentAcSubmissionList');
+  }
+
+  return submissions.map(normalizeRecentAcceptedSubmission);
+}
+
+async function fetchSubmissionListAcceptedSubmissions({
   limit = 50,
   offset = 0,
   maxPages = null,
@@ -327,6 +385,45 @@ async function fetchAcceptedSubmissions({
   console.info('[LeetHub-Neo] Accepted submissions fetched:', acceptedSubmissions);
 
   return acceptedSubmissions;
+}
+
+async function fetchAcceptedSubmissions(options = {}) {
+  const { username } = options;
+
+  if (options.questionSlug) {
+    return fetchSubmissionListAcceptedSubmissions(options);
+  }
+
+  const account = username
+    ? { username, site: getLeetCodeAccountSite() }
+    : await fetchCurrentLeetCodeAccount();
+
+  if (account.site !== 'leetcode.cn' && account.username) {
+    try {
+      const acceptedSubmissions = await fetchProfileAcceptedSubmissions({
+        ...options,
+        username: account.username,
+      });
+
+      console.table(
+        acceptedSubmissions.map(submission => ({
+          id: submission.id,
+          title: submission.title,
+          titleSlug: submission.titleSlug,
+          timestamp: submission.timestamp,
+        })),
+      );
+      console.info('[LeetHub-Neo] Profile accepted submissions fetched:', acceptedSubmissions);
+
+      return acceptedSubmissions;
+    } catch (error) {
+      console.warn(
+        `[LeetHub-Neo] Profile accepted submissions failed, falling back to submissionList: ${error.message}`,
+      );
+    }
+  }
+
+  return fetchSubmissionListAcceptedSubmissions(options);
 }
 
 async function fetchSubmissionDetailsById(submissionId) {
@@ -526,7 +623,6 @@ async function uploadLeetCodeV2Submission(leetCode, suffix, { updateSummary = tr
   }
 
   const problemName = leetCode.getProblemNameSlug();
-  const alreadyCompleted = await checkAlreadyCompleted(problemName);
 
   const language = leetCode.getLanguageExtension();
   if (!language) {
@@ -588,8 +684,10 @@ async function uploadLeetCodeV2Submission(leetCode, suffix, { updateSummary = tr
     fileName = suffix ? `${problemName}${suffix}${language}` : `${problemName}${language}`;
   }
 
+  const existingSolutionRecord = await getExistingSolutionRecord(problemName, fileName);
+  const alreadyCompleted = Boolean(existingSolutionRecord);
   const updateCode = alreadyCompleted
-    ? getExistingSolutionRecord(problemName, fileName)
+    ? existingSolutionRecord
     : leetCode.findAndUploadCode(problemName, fileName, commitMsg, 'upload');
   const [solutionRecord] = await Promise.all([updateCode, updateReadMe, updateNotes, updateMemo]);
   const updatedTopics = await safeUpdateTopicIndexesForProblem({
@@ -653,9 +751,13 @@ async function syncPreviousAcceptedSubmissions({
   try {
     solutionLookupTreePromise = null;
     onProgress('Checking LeetCode account...');
-    await ensureLeetCodeAccountCanSync();
+    const currentAccount = await ensureLeetCodeAccountCanSync();
     onProgress('Fetching accepted submissions...');
-    const acceptedSubmissions = await fetchAcceptedSubmissions({ limit, maxPages });
+    const acceptedSubmissions = await fetchAcceptedSubmissions({
+      limit,
+      maxPages,
+      username: currentAccount.username,
+    });
     const latestSubmissions = getLatestAcceptedSubmissionByProblem(acceptedSubmissions);
     const results = [];
     let syncedTopics = [];
@@ -1105,42 +1207,54 @@ async function recordSolvedProblemStats(leetCode, problemName, options = {}) {
   return nextStats;
 }
 
-const checkAlreadyCompleted = async problemName => {
-  const { stats } = await chrome.storage.local.get('stats');
-  return stats?.shas?.[problemName] ?? false;
-};
-
 async function getExistingSolutionRecord(problemName, filename) {
   const { stats } = await chrome.storage.local.get('stats');
   const path = stats?.solutionPaths?.[problemName]?.[filename];
   const sha = stats?.shas?.[problemName]?.[filename];
-
-  if (!sha) {
-    return path
+  const localRecord =
+    sha || path
       ? {
           filename,
-          path,
-          sha: '',
+          path: path || '',
+          sha: sha || '',
         }
       : null;
-  }
 
   const scannedRecord = await findExistingSolutionRecordInRepo(problemName, filename, path);
   if (scannedRecord) {
-    const nextStats = await getAndInitializeStats(problemName);
-    nextStats.solutionPaths[problemName][filename] = scannedRecord.path;
-    await chrome.storage.local.set({ stats: nextStats });
+    await rememberExistingSolutionRecord(problemName, scannedRecord);
 
     return scannedRecord;
   }
 
-  return path
-    ? {
-        filename,
-        path,
-        sha: sha || '',
-      }
-    : null;
+  return localRecord;
+}
+
+async function rememberExistingSolutionRecord(problemName, solutionRecord) {
+  return rememberExistingProblemFileRecord(problemName, solutionRecord, { trackSolution: true });
+}
+
+async function rememberExistingProblemFileRecord(
+  problemName,
+  fileRecord,
+  { trackSolution = false } = {},
+) {
+  if (!fileRecord?.filename) {
+    return null;
+  }
+
+  const nextStats = await getAndInitializeStats(problemName);
+
+  if (fileRecord.sha) {
+    nextStats.shas[problemName][fileRecord.filename] = fileRecord.sha;
+  }
+
+  if (trackSolution && fileRecord.path) {
+    nextStats.solutionPaths[problemName][fileRecord.filename] = fileRecord.path;
+  }
+
+  await chrome.storage.local.set({ stats: nextStats });
+  return nextStats;
 }
 
 async function requestGitHubJson(token, url, options = {}) {
@@ -1315,6 +1429,17 @@ async function getRepositoryTreeForSolutionLookup(token, hook) {
 }
 
 async function findExistingSolutionRecordInRepo(problemName, filename, preferredPath = '') {
+  return findExistingProblemFileRecordInRepo(problemName, filename, preferredPath, {
+    allowSolutionFilenameFallback: true,
+  });
+}
+
+async function findExistingProblemFileRecordInRepo(
+  problemName,
+  filename,
+  preferredPath = '',
+  { allowSolutionFilenameFallback = false } = {},
+) {
   try {
     const { leethub_token: token, leethub_hook: hook } = await chrome.storage.local.get([
       'leethub_token',
@@ -1326,11 +1451,12 @@ async function findExistingSolutionRecordInRepo(problemName, filename, preferred
     }
 
     const tree = await getRepositoryTreeForSolutionLookup(token, hook);
-    const match = topicIndexUtils.findProblemSolutionFile({
+    const match = topicIndexUtils.findProblemRepositoryFile({
       treeFiles: tree.tree ?? [],
       problemName,
       filename,
       preferredPath,
+      allowSolutionFilenameFallback,
     });
 
     if (!match) {
@@ -1338,12 +1464,12 @@ async function findExistingSolutionRecordInRepo(problemName, filename, preferred
     }
 
     return {
-      filename,
+      filename: getPathFilename(match.path) || filename,
       path: match.path,
       sha: match.sha || '',
     };
   } catch (error) {
-    console.log(`Failed to scan existing solution path for ${problemName}: ${error.message}`);
+    console.log(`Failed to scan existing repository file for ${problemName}: ${error.message}`);
     return null;
   }
 }
@@ -1447,10 +1573,21 @@ function uploadGit(
       useLanguageFolder = result.useLanguageFolder || false;
       return chrome.storage.local.get('stats');
     })
-    .then(({ stats }) => {
+    .then(async ({ stats }) => {
       if (action === 'upload') {
         /* Get SHA, if it exists */
-        const sha = stats?.shas?.[problemName]?.[fileName] ?? '';
+        let sha = stats?.shas?.[problemName]?.[fileName] ?? '';
+
+        if (!sha) {
+          const existingRecord = await findExistingProblemFileRecordInRepo(problemName, fileName);
+
+          if (existingRecord?.sha) {
+            sha = existingRecord.sha;
+            await rememberExistingProblemFileRecord(problemName, existingRecord, {
+              trackSolution: isSolutionUpload(existingRecord.filename),
+            });
+          }
+        }
 
         return upload(
           token,
@@ -2833,7 +2970,6 @@ const loader = (leetCode, suffix) => {
       }
 
       const problemName = leetCode.getProblemNameSlug();
-      const alreadyCompleted = await checkAlreadyCompleted(problemName);
       const language = leetCode.getLanguageExtension();
       if (!language) {
         throw new Error('Could not find language');
@@ -2898,8 +3034,10 @@ const loader = (leetCode, suffix) => {
       }
 
       /* Upload code to Git */
+      const existingSolutionRecord = await getExistingSolutionRecord(problemName, fileName);
+      const alreadyCompleted = Boolean(existingSolutionRecord);
       const updateCode = alreadyCompleted
-        ? getExistingSolutionRecord(problemName, fileName)
+        ? existingSolutionRecord
         : leetCode.findAndUploadCode(problemName, fileName, commitMsg, 'upload');
 
       const [solutionRecord] = await Promise.all([

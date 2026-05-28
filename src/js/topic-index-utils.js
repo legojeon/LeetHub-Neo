@@ -574,6 +574,27 @@
     );
   }
 
+  function getFilenameExtension(filename) {
+    const match = String(filename ?? '').match(/(\.[^.]+)$/);
+    return match ? match[1].toLowerCase() : '';
+  }
+
+  function isProblemSolutionFilename(actualFilename, problemName, expectedFilename) {
+    const actual = String(actualFilename ?? '');
+    const expected = String(expectedFilename ?? '');
+    const expectedExtension = getFilenameExtension(expected);
+
+    if (actual === expected) {
+      return true;
+    }
+
+    return (
+      expectedExtension &&
+      getFilenameExtension(actual) === expectedExtension &&
+      actual.startsWith(`${problemName}-`)
+    );
+  }
+
   function hasProblemSegment(path, problemName) {
     return String(path ?? '')
       .split('/')
@@ -601,21 +622,52 @@
     );
   }
 
-  function findProblemSolutionFile({ treeFiles = [], problemName, filename, preferredPath = '' }) {
+  function findProblemRepositoryFile({
+    treeFiles = [],
+    problemName,
+    filename,
+    preferredPath = '',
+    allowSolutionFilenameFallback = false,
+  }) {
     const candidates = treeFiles
       .filter(
         file =>
           file?.type === 'blob' &&
           hasProblemSegment(file.path, problemName) &&
-          getPathFilename(file.path) === filename &&
+          (allowSolutionFilenameFallback
+            ? isProblemSolutionFilename(getPathFilename(file.path), problemName, filename)
+            : getPathFilename(file.path) === filename) &&
           isProblemRepositoryPath(file.path),
       )
-      .sort(
-        (a, b) =>
-          getProblemPathRank(a.path, preferredPath) - getProblemPathRank(b.path, preferredPath),
-      );
+      .sort((a, b) => {
+        const filenameDiff =
+          getProblemFilenameRank(getPathFilename(a.path), filename) -
+          getProblemFilenameRank(getPathFilename(b.path), filename);
+
+        if (filenameDiff !== 0) {
+          return filenameDiff;
+        }
+
+        return (
+          getProblemPathRank(a.path, preferredPath) - getProblemPathRank(b.path, preferredPath)
+        );
+      });
 
     return candidates[0] ?? null;
+  }
+
+  function findProblemSolutionFile({ treeFiles = [], problemName, filename, preferredPath = '' }) {
+    return findProblemRepositoryFile({
+      treeFiles,
+      problemName,
+      filename,
+      preferredPath,
+      allowSolutionFilenameFallback: true,
+    });
+  }
+
+  function getProblemFilenameRank(actualFilename, expectedFilename) {
+    return actualFilename === expectedFilename ? 0 : 1;
   }
 
   function isProblemRepositoryPath(path) {
@@ -953,6 +1005,7 @@
     createRepositoryStructureMigrationPlan,
     createEmptyTopicProblems,
     createTopicReadme,
+    findProblemRepositoryFile,
     findProblemSolutionFile,
     mergeProblemIntoTopicProblems,
     mergeProblemIntoTopicProblemsContent,
