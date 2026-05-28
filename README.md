@@ -6,13 +6,13 @@
   <a href="https://github.com/legojeon/LeetHub-Neo/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license"/>
   </a>
-</p>
-
-<div align="center">
   <a href="https://chromewebstore.google.com/detail/leethub-neo/egbdcojidgchchkfmglgcahhmlncfcbj?hl=ko">
-    <img src="https://user-images.githubusercontent.com/53124886/111952712-34f12300-8aee-11eb-9fdd-ad579a1eb235.png" alt="Available in the Chrome Web Store">
+    <img src="https://img.shields.io/chrome-web-store/v/egbdcojidgchchkfmglgcahhmlncfcbj.svg" alt="chrome web store version"/>
   </a>
-</div>
+  <a href="https://chromewebstore.google.com/detail/leethub-neo/egbdcojidgchchkfmglgcahhmlncfcbj?hl=ko">
+    <img src="https://img.shields.io/chrome-web-store/d/egbdcojidgchchkfmglgcahhmlncfcbj.svg" alt="chrome web store users"/>
+  </a>
+</p>
 
 ## What is LeetHub-Neo?
 
@@ -27,41 +27,6 @@ LeetHub-Neo supports both [LeetCode.com](https://leetcode.com/) and
 LeetHub-Neo is a fork of
 [LeetHub-3.0](https://github.com/raphaelheinz/LeetHub-3.0), with additional
 features and maintenance for this project.
-
-## Features
-
-- **Automatic GitHub sync**: push accepted LeetCode submissions to your selected
-  GitHub repository.
-- **LeetCode side panel**: open LeetHub-Neo beside the problem page without
-  leaving your current solve flow.
-- **Problem description translation**: translate English problem descriptions
-  with Chrome's built-in Translator API in supported Chrome versions.
-- **Scratchpad**: keep solve notes in the side panel and sync them as `memo.txt`
-  inside each problem folder.
-- **Topic workspace**: browse a problem's topic tags, create topic notes, and
-  keep related solved problems grouped under `Topics/`.
-- **Reusable templates**: seed topic folders with algorithm and data-structure
-  templates for C++, Java, JavaScript, Lua, Python, and Ruby.
-- **Previous submission sync**: import accepted submissions that were solved
-  before installing or configuring LeetHub-Neo.
-- **Repository organization options**: choose difficulty folders, language
-  folders, timestamped filenames, custom commit messages, and automatic
-  `Solution.md` uploads for published solution posts.
-- **Progress dashboard**: review solved counts, difficulty distribution, recent
-  activity, streaks, and top tags from the LeetHub panel.
-
-## What's New in 1.0.1
-
-- Published LeetHub-Neo on the Chrome Web Store.
-- Added a side panel dark theme with matching code mockup styles and clearer
-  settings controls.
-- Changed scratchpad syncing to upload `memo.txt` inside each problem folder
-  instead of embedding scratchpad text into solution code comments.
-- Added a code-note example block to the default topic notes template.
-- Aligned Easy, Medium, and Hard colors across difficulty chips and the solved
-  problem donut chart.
-- Polished side panel layout so the panel fits the browser height and scrolls
-  inside the active view.
 
 ## Screenshots
 
@@ -94,6 +59,29 @@ dashboard progress, solve notes, topic workspaces, and sync settings.
     </td>
   </tr>
 </table>
+
+## Features
+
+- **Automatic GitHub sync**: push accepted LeetCode submissions to your selected
+  GitHub repository.
+- **LeetCode side panel**: open LeetHub-Neo beside the problem page without
+  leaving your current solve flow.
+- **Problem description translation**: translate English problem descriptions
+  with Chrome's built-in Translator API in supported Chrome versions.
+- **Scratchpad**: keep solve notes in the side panel and sync them as `memo.txt`
+  inside each problem folder.
+- **Topic workspace**: browse a problem's topic tags, create topic notes, and
+  keep related solved problems grouped under `Topics/`.
+- **Reusable templates**: seed topic folders with algorithm and data-structure
+  templates for C++, Java, JavaScript, Lua, Python, and Ruby.
+- **Previous submission sync**: import accepted submissions that were solved
+  before installing or configuring LeetHub-Neo.
+- **Repository organization options**: choose difficulty folders, language
+  folders, timestamped filenames, custom commit messages, and automatic
+  `Solution.md` uploads for published solution posts.
+- **Progress dashboard**: review solved counts, difficulty distribution, solved
+  study days, recent activity, streaks, graphs, and top tags from the LeetHub
+  panel.
 
 ## Installation
 
@@ -204,20 +192,21 @@ Topics/
 The root `README.md` in your synced repository can also be updated with a
 generated summary of solved problems by topic.
 
-## Roadmap
+## Future Ideas
 
-- **Better translations**: LeetHub-Neo currently uses Chrome's built-in
-  Translator API. The goal is to make translated problem statements read more
-  naturally while keeping the feature lightweight and local to the browser when
-  possible.
-- **Notion and Obsidian workflows**: topic notes already live as Markdown files.
-  Future work may expand this into smoother Notion and Obsidian workflows, such
-  as automatic hooks, actions, or repository-to-knowledge-base automation.
-- **Scratchpad whiteboard**: today's scratchpad is text-first. A future version
-  may add drawing tools for data structures, diagrams, and explanation sketches,
-  integrated with the existing scratchpad workflow.
-- **Big-O notation helper**: a complexity helper could estimate or display time
-  and space complexity while developing a solution.
+- [ ] **Better translations**: LeetHub-Neo currently uses Chrome's built-in
+      Translator API. The goal is to make translated problem statements read
+      more naturally while keeping the feature lightweight and local to the
+      browser when possible.
+- [ ] **Notion and Obsidian workflows**: topic notes already live as Markdown
+      files. Future work may expand this into smoother Notion and Obsidian
+      workflows, such as automatic hooks, actions, or repository-to-knowledge
+      base automation.
+- [ ] **Scratchpad whiteboard**: today's scratchpad is text-first. A future
+      version may add drawing tools for data structures, diagrams, and
+      explanation sketches, integrated with the existing scratchpad workflow.
+- [ ] **Big-O notation helper**: a complexity helper could estimate or display
+      time and space complexity while developing a solution.
 
 ## Project Direction: AI and Platforms
 
@@ -232,6 +221,17 @@ become a shortcut that weakens that learning loop. When AI help is useful, the
 recommended workflow is to first struggle with the problem yourself, then use
 tools such as ChatGPT, Gemini, or another AI assistant after you are stuck or
 after you have solved the problem and want a review.
+
+## What's New in 1.0.1
+
+- Published LeetHub-Neo on the Chrome Web Store.
+- Added a side panel dark theme with matching code mockup styles and clearer
+  settings controls.
+- Changed scratchpad syncing to upload `memo.txt` inside each problem folder
+  instead of embedding scratchpad text into solution code comments.
+- Added a code-note example block to the default topic notes template.
+- Polished side panel layout so the panel fits the browser height and scrolls
+  inside the active view.
 
 ## Supported LeetCode UI
 
