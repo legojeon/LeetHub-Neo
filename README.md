@@ -8,6 +8,12 @@
   </a>
 </p>
 
+<div align="center">
+  <a href="https://chromewebstore.google.com/detail/leethub-neo/egbdcojidgchchkfmglgcahhmlncfcbj?hl=ko">
+    <img src="https://user-images.githubusercontent.com/53124886/111952712-34f12300-8aee-11eb-9fdd-ad579a1eb235.png" alt="Available in the Chrome Web Store">
+  </a>
+</div>
+
 ## What is LeetHub-Neo?
 
 LeetHub-Neo is a Chrome extension for keeping your LeetCode practice organized in
@@ -30,8 +36,8 @@ features and maintenance for this project.
   leaving your current solve flow.
 - **Problem description translation**: translate English problem descriptions
   with Chrome's built-in Translator API in supported Chrome versions.
-- **Scratchpad**: keep solve notes in the side panel and optionally append them
-  to synced code as language-aware comments.
+- **Scratchpad**: keep solve notes in the side panel and sync them as `memo.txt`
+  inside each problem folder.
 - **Topic workspace**: browse a problem's topic tags, create topic notes, and
   keep related solved problems grouped under `Topics/`.
 - **Reusable templates**: seed topic folders with algorithm and data-structure
@@ -43,6 +49,19 @@ features and maintenance for this project.
   `Solution.md` uploads for published solution posts.
 - **Progress dashboard**: review solved counts, difficulty distribution, recent
   activity, streaks, and top tags from the LeetHub panel.
+
+## What's New in 1.0.1
+
+- Published LeetHub-Neo on the Chrome Web Store.
+- Added a side panel dark theme with matching code mockup styles and clearer
+  settings controls.
+- Changed scratchpad syncing to upload `memo.txt` inside each problem folder
+  instead of embedding scratchpad text into solution code comments.
+- Added a code-note example block to the default topic notes template.
+- Aligned Easy, Medium, and Hard colors across difficulty chips and the solved
+  problem donut chart.
+- Polished side panel layout so the panel fits the browser height and scrolls
+  inside the active view.
 
 ## Screenshots
 
@@ -78,19 +97,52 @@ dashboard progress, solve notes, topic workspaces, and sync settings.
 
 ## Installation
 
-LeetHub-Neo has not been published to the Chrome Web Store yet. Store
-installation is planned; for now, install it as an unpacked extension from this
-repository.
+Install LeetHub-Neo from the Chrome Web Store:
+
+<p>
+  <a href="https://chromewebstore.google.com/detail/leethub-neo/egbdcojidgchchkfmglgcahhmlncfcbj?hl=ko">
+    <img src="https://user-images.githubusercontent.com/53124886/111952712-34f12300-8aee-11eb-9fdd-ad579a1eb235.png" alt="Available in the Chrome Web Store">
+  </a>
+</p>
+
+You can also install it manually as an unpacked extension from this repository.
 
 ### Manual installation
 
-1. Clone this repository or download [Release](https://github.com/legojeon/LeetHub-Neo/releases/tag/v1.0.0) as a ZIP.
+1. Clone this repository or download a ZIP from
+   [Releases](https://github.com/legojeon/LeetHub-Neo/releases).
 2. Open `chrome://extensions`.
 3. Enable **Developer mode**.
 4. Click **Load unpacked**.
 5. Select the root `LeetHub-Neo` folder.
 
 No build step is required for a local unpacked install.
+
+## How to Use
+
+1. Install LeetHub-Neo and open the extension or side panel.
+2. Authenticate with GitHub.
+3. Link an existing repository or create a new one.
+4. Open a LeetCode problem and solve it normally. After an accepted submission,
+   wait for LeetHub-Neo to finish syncing before changing the editor or leaving
+   the page.
+5. Use **Sync Previous** in LeetHub settings if you want to import accepted
+   submissions that were solved before installing or configuring LeetHub-Neo.
+6. Use the side panel tabs while solving:
+   - **Description**: view the problem statement and optional translation.
+   - **Scratchpad**: write free-form solve notes; synced scratchpad content is
+     saved as `memo.txt` in the problem folder.
+   - **Topics**: browse topic notes, related solved problems, and reusable
+     templates.
+   - **LeetHub**: review progress, sync previous submissions, and change
+     repository settings.
+
+### Translation language
+
+Open LeetHub settings and expand **Translation Language** to choose the language
+used by the Description tab. Translation uses Chrome's built-in Translator API,
+so availability depends on your Chrome version, profile, language pair, and
+local model availability.
 
 ### Optional local development setup
 
@@ -119,16 +171,6 @@ Then update the OAuth constants in:
 - `src/js/oauth2.js`
 
 Do not commit real client secrets from a personal OAuth app.
-
-## Setup
-
-1. Open the extension and authenticate with GitHub.
-2. Link LeetHub-Neo to an existing repository or create a new one.
-3. Open a LeetCode problem and solve it as usual.
-4. After an accepted submission, let LeetHub-Neo finish syncing before changing
-   the editor or switching pages.
-5. Use the side panel for translations, scratchpad notes, topic notes,
-   templates, previous submission sync, and repository settings.
 
 ## Translation Requirements
 
@@ -161,6 +203,35 @@ Topics/
 
 The root `README.md` in your synced repository can also be updated with a
 generated summary of solved problems by topic.
+
+## Roadmap
+
+- **Better translations**: LeetHub-Neo currently uses Chrome's built-in
+  Translator API. The goal is to make translated problem statements read more
+  naturally while keeping the feature lightweight and local to the browser when
+  possible.
+- **Notion and Obsidian workflows**: topic notes already live as Markdown files.
+  Future work may expand this into smoother Notion and Obsidian workflows, such
+  as automatic hooks, actions, or repository-to-knowledge-base automation.
+- **Scratchpad whiteboard**: today's scratchpad is text-first. A future version
+  may add drawing tools for data structures, diagrams, and explanation sketches,
+  integrated with the existing scratchpad workflow.
+- **Big-O notation helper**: a complexity helper could estimate or display time
+  and space complexity while developing a solution.
+
+## Project Direction: AI and Platforms
+
+LeetHub-Neo is focused on LeetCode. LeetCode already has a large problem set,
+high-quality editorial and community material, and a strong user base, so there
+are no current plans to expand LeetHub-Neo to other coding platforms.
+
+The project is also intentionally cautious about adding an AI chatbot directly
+into the solving flow. Algorithm practice is valuable because it builds logic,
+patience, and independent problem-solving skill. A built-in chatbot can easily
+become a shortcut that weakens that learning loop. When AI help is useful, the
+recommended workflow is to first struggle with the problem yourself, then use
+tools such as ChatGPT, Gemini, or another AI assistant after you are stuck or
+after you have solved the problem and want a review.
 
 ## Supported LeetCode UI
 
