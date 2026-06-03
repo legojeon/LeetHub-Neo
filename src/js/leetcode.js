@@ -12,11 +12,25 @@ const readmeFilename = repositoryFiles.ROOT_README_FILENAME;
 const defaultRepoReadme = rootReadmeTemplate.DEFAULT_ROOT_README;
 const topicIndexUtils = globalThis.LeetHubTopicIndexUtils;
 const leetCodeAccountUtils = globalThis.LeetHubLeetCodeAccountUtils;
+const AUTO_UPDATE_ROOT_README_STORAGE_KEY = 'autoUpdateRootReadme';
 
-// SubFolder
-const basePath = '';
 const rootReadmeSummaryCommitMessage = rootReadmeTemplate.ROOT_README_SUMMARY_COMMIT_MESSAGE;
 let solutionLookupTreePromise = null;
+
+async function getRepositoryBasePath() {
+  const storageKey = repositoryFiles.LEETHUB_BASE_PATH_STORAGE_KEY;
+  const values = await chrome.storage.local.get(storageKey);
+  return repositoryFiles.normalizeRepositoryBasePath(values[storageKey]);
+}
+
+function withRepositoryBasePath(basePath, path) {
+  return repositoryFiles.withRepositoryBasePath(basePath, path);
+}
+
+async function isRootReadmeAutoUpdateEnabled() {
+  const values = await chrome.storage.local.get({ [AUTO_UPDATE_ROOT_README_STORAGE_KEY]: true });
+  return values[AUTO_UPDATE_ROOT_README_STORAGE_KEY] !== false;
+}
 
 function encodeContent(content) {
   return btoa(unescape(encodeURIComponent(content)));
@@ -820,11 +834,13 @@ async function migrateRepositoryStructure({ onProgress = () => {} } = {}) {
     }
 
     onProgress('Scanning repository...');
+    const basePath = await getRepositoryBasePath();
     const repositoryState = await getRepositoryState(token, hook);
     const topicDocuments = await getTopicProblemsDocuments(
       token,
       hook,
       repositoryState.tree.tree ?? [],
+      basePath,
     );
 
     if (!topicDocuments.length) {
@@ -1069,6 +1085,7 @@ const getCustomCommitMessage = problemContext => {
 const upload = (
   token,
   hook,
+  repositoryBasePath,
   code,
   problem,
   filename,
@@ -1080,7 +1097,7 @@ const upload = (
 ) => {
   // const URL = `https://api.github.com/repos/${hook}/contents/${problem}/${filename}`;
   const uploadPath = buildGitHubContentPath({
-    basePath,
+    basePath: repositoryBasePath,
     difficulty,
     problem,
     filename,
@@ -1175,6 +1192,19 @@ function isSolutionUpload(filename) {
   return repositoryFiles.isSolutionUpload(filename);
 }
 
+function isRepositoryPathInBasePath(path, basePath) {
+  const normalizedBasePath = repositoryFiles.normalizeRepositoryBasePath(basePath);
+
+  if (!normalizedBasePath) {
+    return true;
+  }
+
+  const normalizedPath = repositoryFiles.joinRepositoryPath(path);
+  return (
+    normalizedPath === normalizedBasePath || normalizedPath.startsWith(`${normalizedBasePath}/`)
+  );
+}
+
 function buildSolvedProblemStatsEntry(leetCode, problemName) {
   const topicTags = topicIndexUtils.normalizeTopicTags(
     leetCode.questionDetails?.topicTags,
@@ -1208,11 +1238,12 @@ async function recordSolvedProblemStats(leetCode, problemName, options = {}) {
 }
 
 async function getExistingSolutionRecord(problemName, filename) {
+  const basePath = await getRepositoryBasePath();
   const { stats } = await chrome.storage.local.get('stats');
   const path = stats?.solutionPaths?.[problemName]?.[filename];
   const sha = stats?.shas?.[problemName]?.[filename];
   const localRecord =
-    sha || path
+    (sha || path) && isRepositoryPathInBasePath(path, basePath)
       ? {
           filename,
           path: path || '',
@@ -1297,9 +1328,10 @@ async function getRepositoryState(token, hook) {
   };
 }
 
-async function getTopicProblemsDocuments(token, hook, treeFiles) {
+async function getTopicProblemsDocuments(token, hook, treeFiles, basePath = '') {
+  const topicsBasePath = withRepositoryBasePath(basePath, repositoryFiles.TOPICS_BASE_PATH);
   const topicProblemsPathPattern = new RegExp(
-    `^${escapeRegExp(repositoryFiles.TOPICS_BASE_PATH)}/[^/]+/${escapeRegExp(
+    `^${escapeRegExp(topicsBasePath)}/[^/]+/${escapeRegExp(
       repositoryFiles.TOPIC_PROBLEMS_FILENAME,
     )}$`,
   );
@@ -1450,9 +1482,13 @@ async function findExistingProblemFileRecordInRepo(
       return null;
     }
 
+    const basePath = await getRepositoryBasePath();
     const tree = await getRepositoryTreeForSolutionLookup(token, hook);
+    const treeFiles = (tree.tree ?? []).filter(file =>
+      isRepositoryPathInBasePath(file.path, basePath),
+    );
     const match = topicIndexUtils.findProblemRepositoryFile({
-      treeFiles: tree.tree ?? [],
+      treeFiles,
       problemName,
       filename,
       preferredPath,
@@ -1481,6 +1517,7 @@ async function findExistingProblemFileRecordInRepo(
 const update = (
   token,
   hook,
+  repositoryBasePath,
   addition,
   problem,
   filename,
@@ -1491,7 +1528,15 @@ const update = (
   useLanguageFolder,
 ) => {
   let responseSHA;
-  return getUpdatedData(token, hook, problem, filename, useDifficultyFolder, useLanguageFolder)
+  return getUpdatedData(
+    token,
+    hook,
+    repositoryBasePath,
+    problem,
+    filename,
+    useDifficultyFolder,
+    useLanguageFolder,
+  )
     .then(data => {
       responseSHA = data.sha;
       return decodeURIComponent(escape(atob(data.content)));
@@ -1511,6 +1556,7 @@ const update = (
       upload(
         token,
         hook,
+        repositoryBasePath,
         newContent,
         problem,
         filename,
@@ -1540,6 +1586,7 @@ function uploadGit(
 
   let token;
   let hook;
+  let repositoryBasePath = '';
   let useDifficultyFolder = false;
   let useLanguageFolder = false;
 
@@ -1563,6 +1610,10 @@ function uploadGit(
       if (!hook) {
         throw new Error('leethub hook not defined');
       }
+      return getRepositoryBasePath();
+    })
+    .then(basePath => {
+      repositoryBasePath = basePath;
       return chrome.storage.local.get('useDifficultyFolder');
     })
     .then(result => {
@@ -1592,6 +1643,7 @@ function uploadGit(
         return upload(
           token,
           hook,
+          repositoryBasePath,
           code,
           problemName,
           fileName,
@@ -1605,6 +1657,7 @@ function uploadGit(
         return update(
           token,
           hook,
+          repositoryBasePath,
           code,
           problemName,
           fileName,
@@ -1621,6 +1674,7 @@ function uploadGit(
         return getUpdatedData(
           token,
           hook,
+          repositoryBasePath,
           problemName,
           fileName,
           useDifficultyFolder,
@@ -1638,6 +1692,7 @@ function uploadGit(
         ? upload(
             token,
             hook,
+            repositoryBasePath,
             code,
             problemName,
             fileName,
@@ -1655,6 +1710,7 @@ function uploadGit(
 async function getUpdatedData(
   token,
   hook,
+  repositoryBasePath,
   problem,
   filename,
   useDifficultyFolder,
@@ -1662,7 +1718,7 @@ async function getUpdatedData(
 ) {
   const URL = constructGitHubPath(
     hook,
-    basePath,
+    repositoryBasePath,
     difficulty,
     problem,
     filename,
@@ -1752,8 +1808,8 @@ async function putGeneratedFileWithRetry(token, hook, path, content, message, sh
   }
 }
 
-async function ensureTopicReadme(token, hook, topic) {
-  const path = topicIndexUtils.buildTopicReadmePath(topic.slug);
+async function ensureTopicReadme(token, hook, basePath, topic) {
+  const path = topicIndexUtils.buildTopicReadmePath(topic.slug, basePath);
   const existing = await getGitHubContentByPath(token, hook, path);
 
   if (existing) {
@@ -1769,8 +1825,8 @@ async function ensureTopicReadme(token, hook, topic) {
   );
 }
 
-async function updateTopicProblemsJson(token, hook, topic, problemEntry, syncedAt) {
-  const path = topicIndexUtils.buildTopicProblemsPath(topic.slug);
+async function updateTopicProblemsJson(token, hook, basePath, topic, problemEntry, syncedAt) {
+  const path = topicIndexUtils.buildTopicProblemsPath(topic.slug, basePath);
   const existing = await getGitHubContentByPath(token, hook, path);
   let content = topicIndexUtils.mergeProblemIntoTopicProblemsContent(
     existing?.content ? decodeContent(existing.content) : '',
@@ -1819,6 +1875,7 @@ async function updateTopicProblemsJson(token, hook, topic, problemEntry, syncedA
 
 function buildTopicProblemEntry({
   leetCode,
+  basePath,
   problemName,
   language,
   extension,
@@ -1861,10 +1918,12 @@ function buildTopicProblemEntry({
 }
 
 async function getFolderOptions() {
+  const basePath = await getRepositoryBasePath();
   const { useDifficultyFolder = false } = await chrome.storage.local.get('useDifficultyFolder');
   const { useLanguageFolder = false } = await chrome.storage.local.get('useLanguageFolder');
 
   return {
+    basePath,
     useDifficultyFolder,
     useLanguageFolder,
   };
@@ -1899,6 +1958,7 @@ async function updateTopicIndexesForProblem({
   const syncedAt = new Date().toISOString();
   const problemEntry = buildTopicProblemEntry({
     leetCode,
+    basePath: leetCode.folderOptions.basePath,
     problemName,
     language,
     extension,
@@ -1910,10 +1970,11 @@ async function updateTopicIndexesForProblem({
 
   for (const topic of topics) {
     try {
-      await ensureTopicReadme(leethub_token, leethub_hook, topic);
+      await ensureTopicReadme(leethub_token, leethub_hook, leetCode.folderOptions.basePath, topic);
       const result = await updateTopicProblemsJson(
         leethub_token,
         leethub_hook,
+        leetCode.folderOptions.basePath,
         topic,
         problemEntry,
         syncedAt,
@@ -1930,8 +1991,12 @@ async function updateTopicIndexesForProblem({
   return updatedTopics;
 }
 
-async function listTopicDirectories(token, hook) {
-  const contents = await getGitHubContentByPath(token, hook, topicIndexUtils.TOPICS_BASE_PATH);
+async function listTopicDirectories(token, hook, basePath) {
+  const contents = await getGitHubContentByPath(
+    token,
+    hook,
+    withRepositoryBasePath(basePath, topicIndexUtils.TOPICS_BASE_PATH),
+  );
 
   if (!Array.isArray(contents)) {
     return [];
@@ -1945,9 +2010,9 @@ async function listTopicDirectories(token, hook) {
     }));
 }
 
-async function collectTopicSummaries(token, hook, fallbackTopics = []) {
+async function collectTopicSummaries(token, hook, basePath, fallbackTopics = []) {
   const summaries = [];
-  const topicDirectories = await listTopicDirectories(token, hook);
+  const topicDirectories = await listTopicDirectories(token, hook, basePath);
   const fallbackBySlug = new Map(fallbackTopics.map(topic => [topic.slug, topic]));
   const topicsToRead = topicDirectories.length
     ? topicDirectories.map(topic => fallbackBySlug.get(topic.slug) || topic)
@@ -1955,7 +2020,7 @@ async function collectTopicSummaries(token, hook, fallbackTopics = []) {
 
   for (const topic of topicsToRead) {
     try {
-      const path = topicIndexUtils.buildTopicProblemsPath(topic.slug);
+      const path = topicIndexUtils.buildTopicProblemsPath(topic.slug, basePath);
       const data = await getGitHubContentByPath(token, hook, path);
       const document = data?.content ? JSON.parse(decodeContent(data.content)) : null;
       summaries.push({
@@ -1989,16 +2054,23 @@ async function updateRootReadmeSummary(updatedTopics = []) {
     throw new Error('Missing GitHub token or hook for root README summary update');
   }
 
+  const basePath = await getRepositoryBasePath();
+  const readmePath = withRepositoryBasePath(basePath, readmeFilename);
   let readme = defaultRepoReadme;
   let sha;
-  const existing = await getGitHubContentByPath(leethub_token, leethub_hook, readmeFilename);
+  const existing = await getGitHubContentByPath(leethub_token, leethub_hook, readmePath);
 
   if (existing?.content) {
     readme = decodeContent(existing.content);
     sha = existing.sha;
   }
 
-  const topicSummaries = await collectTopicSummaries(leethub_token, leethub_hook, updatedTopics);
+  const topicSummaries = await collectTopicSummaries(
+    leethub_token,
+    leethub_hook,
+    basePath,
+    updatedTopics,
+  );
   const summary = topicIndexUtils.renderRootReadmeSummary({
     stats: stats || {},
     topics: topicSummaries,
@@ -2008,7 +2080,7 @@ async function updateRootReadmeSummary(updatedTopics = []) {
   return putGeneratedFileWithRetry(
     leethub_token,
     leethub_hook,
-    readmeFilename,
+    readmePath,
     nextReadme,
     rootReadmeSummaryCommitMessage,
     sha,
@@ -2026,6 +2098,10 @@ async function safeUpdateTopicIndexesForProblem(options) {
 
 async function safeUpdateRootReadmeSummary(updatedTopics = []) {
   try {
+    if (!(await isRootReadmeAutoUpdateEnabled())) {
+      return null;
+    }
+
     return await updateRootReadmeSummary(updatedTopics);
   } catch (error) {
     console.log(`Failed to update root README summary: ${error.message}`);

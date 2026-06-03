@@ -29,7 +29,12 @@
     return response.json();
   }
 
-  async function seedCuratedTopicTemplates({ token, hook, onProgress = () => {} } = {}) {
+  async function seedCuratedTopicTemplates({
+    token,
+    hook,
+    basePath = '',
+    onProgress = () => {},
+  } = {}) {
     if (!token || !hook) {
       throw new Error('Missing GitHub token or hook');
     }
@@ -40,7 +45,7 @@
 
     const updatedAt = new Date().toISOString();
     const entries = catalog.topics.flatMap(topic =>
-      seedUtils.createTopicSeedFileEntries(topic, updatedAt),
+      seedUtils.createTopicSeedFileEntries(topic, updatedAt, basePath),
     );
     const summary = {
       topics: catalog.topics.length,

@@ -10,7 +10,10 @@ const repositoryName = () => {
 const templateUtils = globalThis.LeetHubTopicTemplateUtils;
 const templateCatalog = globalThis.LeetHubTopicTemplateCatalog;
 const translationLanguageUtils = globalThis.LeetHubTranslationLanguageUtils;
+const repositoryFiles = globalThis.LeetHubRepositoryFiles;
 const INITIAL_SYNC_AFTER_HOOK_STORAGE_KEY = 'syncAcceptedSubmissionsAfterHook';
+const LEETHUB_BASE_PATH_STORAGE_KEY =
+  repositoryFiles?.LEETHUB_BASE_PATH_STORAGE_KEY ?? 'leethub_base_path';
 
 const renderWelcomeTemplateLanguageOptions = selectedLanguage => {
   const select = $('#topic-template-language');
@@ -108,6 +111,29 @@ const saveSelectedTranslationLanguage = async () => {
   });
 };
 
+const selectedRepositoryBasePath = () => {
+  return repositoryFiles?.normalizeRepositoryBasePath
+    ? repositoryFiles.normalizeRepositoryBasePath($('#repository-base-path').val())
+    : String($('#repository-base-path').val() ?? '').trim();
+};
+
+const initializeRepositoryBasePath = () => {
+  chrome.storage.local.get(LEETHUB_BASE_PATH_STORAGE_KEY, values => {
+    $('#repository-base-path').val(values[LEETHUB_BASE_PATH_STORAGE_KEY] ?? '');
+  });
+};
+
+const saveSelectedRepositoryBasePath = async () => {
+  await chrome.storage.local.set({
+    [LEETHUB_BASE_PATH_STORAGE_KEY]: selectedRepositoryBasePath(),
+  });
+};
+
+const formatRepositoryTarget = hook => {
+  const basePath = selectedRepositoryBasePath();
+  return basePath ? `${hook}/${basePath}` : hook;
+};
+
 const selectedInitialSyncEnabled = () => {
   return $('#sync-accepted-submissions-after-hook').is(':checked');
 };
@@ -130,6 +156,7 @@ const saveSelectedInitialSyncOption = async () => {
 initializeWelcomeTemplateLanguage();
 initializeWelcomeTranslationLanguage();
 initializeInitialSyncOption();
+initializeRepositoryBasePath();
 
 const syncPreviousAfterInitialHook = () => {
   chrome.runtime.sendMessage({ action: 'syncPreviousAfterInitialHook' });
@@ -152,6 +179,7 @@ const seedCuratedTopicTemplatesAfterHook = async (token, hook) => {
     const result = await seedCuratedTopicTemplates({
       token,
       hook,
+      basePath: selectedRepositoryBasePath(),
       onProgress: progress => {
         if (progress.current === 1 || progress.current % 50 === 0) {
           $('#success').find('.topic-seed-progress').remove();
@@ -234,13 +262,19 @@ const statusCode = (res, status, name, token) => {
         document.getElementById('commit_mode').style.display = 'inherit';
 
         /* Set Repo Hook */
-        chrome.storage.local.set({ leethub_hook: res.full_name }, async () => {
-          console.log('Successfully set new repo hook');
-          await seedCuratedTopicTemplatesAfterHook(token, res.full_name);
-          if (selectedInitialSyncEnabled()) {
-            syncPreviousAfterInitialHook();
-          }
-        });
+        chrome.storage.local.set(
+          {
+            leethub_hook: res.full_name,
+            [LEETHUB_BASE_PATH_STORAGE_KEY]: selectedRepositoryBasePath(),
+          },
+          async () => {
+            console.log('Successfully set new repo hook');
+            await seedCuratedTopicTemplatesAfterHook(token, res.full_name);
+            if (selectedInitialSyncEnabled()) {
+              syncPreviousAfterInitialHook();
+            }
+          },
+        );
       });
 
       break;
@@ -408,14 +442,17 @@ const linkRepo = (token, name, seedTemplates = false) => {
           chrome.storage.local.set({ mode_type: 'commit', repo: res.html_url }, () => {
             $('#error').hide();
             $('#success').html(
-              `Successfully linked <a target="blank" href="${res.html_url}">${name}</a> to LeetHub-Neo. Start <a href="http://leetcode.com">LeetCoding</a> now!`,
+              `Successfully linked <a target="blank" href="${res.html_url}">${formatRepositoryTarget(res.full_name)}</a> to LeetHub-Neo. Start <a href="http://leetcode.com">LeetCoding</a> now!`,
             );
             $('#success').show();
             $('#unlink').show();
 
             /* Set Repo Hook */
             chrome.storage.local
-              .set({ leethub_hook: res.full_name })
+              .set({
+                leethub_hook: res.full_name,
+                [LEETHUB_BASE_PATH_STORAGE_KEY]: selectedRepositoryBasePath(),
+              })
               .then(async () => {
                 console.log('Successfully set new repo hook');
                 if (seedTemplates) {
@@ -460,6 +497,9 @@ const unlinkRepo = () => {
   /* Set Repo Hook to NONE */
   chrome.storage.local.set({ leethub_hook: null }, () => {
     console.log('Setting repo hook to NONE');
+  });
+  chrome.storage.local.set({ [LEETHUB_BASE_PATH_STORAGE_KEY]: '' }, () => {
+    console.log('Cleared repo base path');
   });
 
   /* Hide accordingly */
@@ -514,6 +554,7 @@ $('#hook_button').on('click', () => {
         await saveSelectedTemplateLanguage();
         await saveSelectedTranslationLanguage();
         await saveSelectedInitialSyncOption();
+        await saveSelectedRepositoryBasePath();
 
         if (option() === 'new') {
           createRepo(token, repositoryName());
@@ -596,8 +637,10 @@ $('#sync_counts').on('click', async () => {
     const MEDIUM = 'medium';
     const HARD = 'hard';
     const EASY = 'easy';
+    const basePath = selectedRepositoryBasePath();
+    const contentsPath = basePath ? `/${basePath}` : '';
     try {
-      const response = await fetch(`https://api.github.com/repos/${repo}/contents`, {
+      const response = await fetch(`https://api.github.com/repos/${repo}/contents${contentsPath}`, {
         headers: {
           Authorization: `token ${token}`,
           Accept: 'application/vnd.github.v3+json',

@@ -107,12 +107,20 @@
     return `${buildRepoPath({ ...options, filename: '' })}/`;
   }
 
-  function buildTopicReadmePath(topicSlug) {
-    return `${TOPICS_BASE_PATH}/${topicSlug}/${TOPIC_README_FILENAME}`;
+  function buildTopicReadmePath(topicSlug, basePath = '') {
+    return buildRepoPath({
+      basePath,
+      problemName: TOPICS_BASE_PATH,
+      filename: `${topicSlug}/${TOPIC_README_FILENAME}`,
+    });
   }
 
-  function buildTopicProblemsPath(topicSlug) {
-    return `${TOPICS_BASE_PATH}/${topicSlug}/${TOPIC_PROBLEMS_FILENAME}`;
+  function buildTopicProblemsPath(topicSlug, basePath = '') {
+    return buildRepoPath({
+      basePath,
+      problemName: TOPICS_BASE_PATH,
+      filename: `${topicSlug}/${TOPIC_PROBLEMS_FILENAME}`,
+    });
   }
 
   function createTopicReadme(topicName) {
@@ -349,6 +357,7 @@
     const changedProblemNames = new Set();
     const conflictedProblemNames = new Set();
     const problemByName = collectProblemsByName(topicDocuments);
+    const basePath = repositoryFiles.normalizeRepositoryBasePath(folderOptions.basePath);
     const useDifficultyFolder = Boolean(folderOptions.useDifficultyFolder);
     const useLanguageFolder = Boolean(folderOptions.useLanguageFolder);
 
@@ -413,6 +422,7 @@
         const filename = solution.filename || getPathFilename(solution.path);
         const sourceFile = findProblemFile(blobFiles, solution.path, problemName, filename);
         const targetPath = buildRepoPath({
+          basePath,
           difficulty: problem.difficulty,
           problemName,
           filename,
@@ -443,6 +453,7 @@
       for (const filename of PROBLEM_METADATA_FILENAMES) {
         const sourceFiles = findProblemMetadataFiles(blobFiles, problemName, filename);
         const targetPath = buildRepoPath({
+          basePath,
           difficulty: problem.difficulty,
           problemName,
           filename,
@@ -482,12 +493,14 @@
           const nextProblem = {
             ...problem,
             folderPath: buildProblemFolderPath({
+              basePath,
               difficulty: problem.difficulty,
               problemName: problem.problemName,
               useDifficultyFolder,
               useLanguageFolder: false,
             }),
             readmePath: buildRepoPath({
+              basePath,
               difficulty: problem.difficulty,
               problemName: problem.problemName,
               filename: TOPIC_README_FILENAME,
@@ -673,7 +686,7 @@
   function isProblemRepositoryPath(path) {
     const segments = String(path ?? '').split('/');
 
-    return segments[0] !== TOPICS_BASE_PATH;
+    return !segments.includes(TOPICS_BASE_PATH);
   }
 
   function getProblemPathRank(path, preferredPath) {

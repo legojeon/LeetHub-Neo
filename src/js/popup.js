@@ -1,6 +1,7 @@
 /* global oAuth2 */
 
 let action = false;
+const repositoryFiles = globalThis.LeetHubRepositoryFiles;
 const LEETHUB_CONTENT_SCRIPT_FILES = [
   'src/core/config/repository-files.js',
   'src/core/config/leetcode-languages.js',
@@ -11,6 +12,21 @@ const LEETHUB_CONTENT_SCRIPT_FILES = [
   'src/js/leetcode-account-utils.js',
   'src/js/leetcode.js',
 ];
+
+async function getRepositoryBasePath() {
+  const storageKey = repositoryFiles?.LEETHUB_BASE_PATH_STORAGE_KEY ?? 'leethub_base_path';
+  const values = await chrome.storage.local.get(storageKey);
+  return repositoryFiles?.normalizeRepositoryBasePath
+    ? repositoryFiles.normalizeRepositoryBasePath(values[storageKey])
+    : String(values[storageKey] ?? '').trim();
+}
+
+function encodeGitHubPath(path) {
+  return String(path)
+    .split('/')
+    .map(segment => encodeURIComponent(segment))
+    .join('/');
+}
 
 function isLeetCodeUrl(url) {
   try {
@@ -313,13 +329,18 @@ chrome.storage.local.get('leethub_token', data => {
             if (data2 && data2.mode_type === 'commit') {
               $('#commit_mode').show();
               /* Get problem stats and repo link */
-              chrome.storage.local.get(['stats', 'leethub_hook'], data3 => {
+              chrome.storage.local.get(['stats', 'leethub_hook'], async data3 => {
                 const { stats } = data3;
                 updateDisplayedStats(stats);
                 const leethubHook = data3.leethub_hook;
                 if (leethubHook) {
+                  const basePath = await getRepositoryBasePath();
+                  const href = basePath
+                    ? `https://github.com/${leethubHook}/tree/HEAD/${encodeGitHubPath(basePath)}`
+                    : `https://github.com/${leethubHook}`;
+                  const label = basePath ? `${leethubHook}/${basePath}` : leethubHook;
                   $('#repo_url').html(
-                    `<a target="blank" style="color: cadetblue !important; font-size:0.8em;" href="https://github.com/${leethubHook}">${leethubHook}</a>`,
+                    `<a target="blank" style="color: cadetblue !important; font-size:0.8em;" href="${href}">${label}</a>`,
                   );
                 }
               });

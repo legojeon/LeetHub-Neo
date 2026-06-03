@@ -131,21 +131,25 @@
     };
   }
 
-  function createTopicSeedFileEntries(topic, updatedAt = new Date().toISOString()) {
-    const basePath = `${repositoryFiles.TOPICS_BASE_PATH}/${topic.slug}`;
+  function createTopicSeedFileEntries(topic, updatedAt = new Date().toISOString(), basePath = '') {
+    const topicBasePath = repositoryFiles.joinRepositoryPath(
+      basePath,
+      repositoryFiles.TOPICS_BASE_PATH,
+      topic.slug,
+    );
     const entries = [
       {
-        path: `${basePath}/${repositoryFiles.PROBLEM_README_FILENAME}`,
+        path: `${topicBasePath}/${repositoryFiles.PROBLEM_README_FILENAME}`,
         content: createTemplateReadme(topic.name),
         message: `Create ${topic.name} topic notes`,
       },
       {
-        path: `${basePath}/${repositoryFiles.TOPIC_PROBLEMS_FILENAME}`,
+        path: `${topicBasePath}/${repositoryFiles.TOPIC_PROBLEMS_FILENAME}`,
         content: `${JSON.stringify(createEmptyProblemsJson(topic, updatedAt), null, 2)}\n`,
         message: `Create ${topic.name} topic problems`,
       },
       {
-        path: `${basePath}/${repositoryFiles.TOPIC_TEMPLATES_FILENAME}`,
+        path: `${topicBasePath}/${repositoryFiles.TOPIC_TEMPLATES_FILENAME}`,
         content: `${JSON.stringify(createTemplatesJson(topic, updatedAt), null, 2)}\n`,
         message: `Create ${topic.name} topic templates`,
       },
@@ -154,7 +158,7 @@
     for (const template of topic.templates ?? []) {
       for (const file of Object.values(template.files)) {
         entries.push({
-          path: `${basePath}/${file.targetPath}`,
+          path: `${topicBasePath}/${file.targetPath}`,
           sourcePath: file.sourcePath,
           message: `Create ${topic.name} template ${file.targetPath}`,
         });
