@@ -26,6 +26,7 @@ const topicTemplateCatalog = globalThis.LeetHubTopicTemplateCatalog;
 const translationLanguageUtils = globalThis.LeetHubTranslationLanguageUtils;
 const repositoryFiles = globalThis.LeetHubRepositoryFiles;
 const THEME_STORAGE_KEY = 'useDarkTheme';
+const AUTO_UPDATE_ROOT_README_STORAGE_KEY = 'autoUpdateRootReadme';
 const LEETHUB_CONTENT_SCRIPT_FILES = [
   'src/core/config/repository-files.js',
   'src/core/config/leetcode-languages.js',
@@ -65,6 +66,21 @@ async function getSelectedTranslationLanguage() {
     translationLanguageUtils?.TRANSLATION_LANGUAGE_STORAGE_KEY ?? 'translationLanguage';
   const data = await chrome.storage.local.get(storageKey);
   return normalizeTranslationLanguage(data[storageKey]);
+}
+
+async function getRepositoryBasePath() {
+  const storageKey = repositoryFiles.LEETHUB_BASE_PATH_STORAGE_KEY;
+  const values = await chrome.storage.local.get(storageKey);
+  return repositoryFiles.normalizeRepositoryBasePath(values[storageKey]);
+}
+
+function buildTopicRepositoryPath(basePath, topicSlug, path = '') {
+  return repositoryFiles.joinRepositoryPath(
+    basePath,
+    repositoryFiles.TOPICS_BASE_PATH,
+    topicSlug,
+    path,
+  );
 }
 
 function updateDisplayedStats(stats) {
@@ -289,6 +305,20 @@ function initializeLeetHubControls() {
     chrome.storage.local.set({ autoCommitSolutionPost: $(this).is(':checked') });
   });
 
+  $('#collapsible-root-readme-icon').click(() => {
+    $('#collapsible-root-readme-icon').toggleClass('open');
+    $('#collapsible-root-readme-container').toggle();
+    chrome.storage.local.get({ [AUTO_UPDATE_ROOT_README_STORAGE_KEY]: true }, data => {
+      $('#auto-update-root-readme').prop('checked', data[AUTO_UPDATE_ROOT_README_STORAGE_KEY]);
+    });
+  });
+
+  $('#auto-update-root-readme').change(function () {
+    chrome.storage.local.set({
+      [AUTO_UPDATE_ROOT_README_STORAGE_KEY]: $(this).is(':checked'),
+    });
+  });
+
   globalThis.LeetHubTopicTemplateSettings?.initializeTopicTemplateSettingsPanel();
   globalThis.LeetHubTranslationLanguageSettings?.initializeTranslationLanguageSettingsPanel();
 
@@ -429,12 +459,18 @@ function initializeLeetHubMode() {
         chrome.storage.local.get('mode_type', data2 => {
           if (data2 && data2.mode_type === 'commit') {
             $('#commit_mode').show();
-            chrome.storage.local.get(['stats', 'leethub_hook'], data3 => {
+            chrome.storage.local.get(['stats', 'leethub_hook'], async data3 => {
               updateDisplayedStats(data3.stats);
               if (data3.leethub_hook) {
-                $('#repo_url').html(
-                  `<a target="blank" href="https://github.com/${data3.leethub_hook}">${data3.leethub_hook}</a>`,
-                );
+                const basePath = await getRepositoryBasePath();
+                const branch = basePath
+                  ? await getGitHubDefaultBranch(token, data3.leethub_hook)
+                  : '';
+                const href = basePath
+                  ? `https://github.com/${data3.leethub_hook}/tree/${encodeURIComponent(branch)}/${encodeGitHubPath(basePath)}`
+                  : `https://github.com/${data3.leethub_hook}`;
+                const label = basePath ? `${data3.leethub_hook}/${basePath}` : data3.leethub_hook;
+                $('#repo_url').html(`<a target="blank" href="${href}">${label}</a>`);
               }
             });
           } else {
@@ -706,7 +742,12 @@ async function ensureGitHubTopicEntry(token, hook, entry) {
 }
 
 async function ensureGitHubTopicFiles(token, hook, topic, existingFiles) {
-  const seedEntries = topicTemplateUtils.createTopicSeedFileEntries(getTopicSeedSource(topic));
+  const basePath = await getRepositoryBasePath();
+  const seedEntries = topicTemplateUtils.createTopicSeedFileEntries(
+    getTopicSeedSource(topic),
+    undefined,
+    basePath,
+  );
   const entriesByPath = new Map(seedEntries.map(entry => [entry.path, entry]));
   const nextFiles = { ...existingFiles };
 
@@ -777,7 +818,8 @@ async function openSelectedTopicReadmeInGitHub() {
     }
 
     const branch = await getGitHubDefaultBranch(token, hook);
-    const paths = topicPanelUtils.createTopicGithubPaths(topic.slug);
+    const basePath = await getRepositoryBasePath();
+    const paths = topicPanelUtils.createTopicGithubPaths(topic.slug, basePath);
     chrome.tabs.create({
       url: createGitHubEditUrl(hook, branch, paths.readme),
     });
@@ -807,7 +849,8 @@ async function openTopicTemplateInGitHub(entry) {
     }
 
     const branch = await getGitHubDefaultBranch(token, hook);
-    const path = `${repositoryFiles.TOPICS_BASE_PATH}/${topic.slug}/${entry.path}`;
+    const basePath = await getRepositoryBasePath();
+    const path = buildTopicRepositoryPath(basePath, topic.slug, entry.path);
     shouldRefreshTopicOnFocus = true;
     chrome.tabs.create({
       url: createGitHubEditUrl(hook, branch, path),
@@ -1028,7 +1071,8 @@ async function createCustomTopicTemplate(templateName) {
 
   try {
     setTopicPanelStatus(`Creating ${baseEntry.title} template...`);
-    const paths = topicPanelUtils.createTopicGithubPaths(topic.slug);
+    const basePath = await getRepositoryBasePath();
+    const paths = topicPanelUtils.createTopicGithubPaths(topic.slug, basePath);
     const templateFile = await getGitHubTextFileData(token, hook, paths.templates);
     const templatesDocument = parseJsonDocument(templateFile?.content) || {
       version: 1,
@@ -1044,7 +1088,7 @@ async function createCustomTopicTemplate(templateName) {
       templatesDocument,
       settings.topicTemplateLanguage,
     );
-    const templatePath = `${repositoryFiles.TOPICS_BASE_PATH}/${topic.slug}/${entry.path}`;
+    const templatePath = buildTopicRepositoryPath(basePath, topic.slug, entry.path);
     const templateContent = topicTemplateUtils.createCustomTemplateContent(
       entry.title,
       settings.topicTemplateLanguage,
@@ -1131,7 +1175,8 @@ async function loadSelectedTopic() {
   const topic = topicPanelState.topics.find(
     item => item.slug === topicPanelState.selectedTopicSlug,
   );
-  const paths = topicPanelUtils.createTopicGithubPaths(topic.slug);
+  const basePath = await getRepositoryBasePath();
+  const paths = topicPanelUtils.createTopicGithubPaths(topic.slug, basePath);
   const { leethub_token: token, leethub_hook: hook } = await chrome.storage.local.get([
     'leethub_token',
     'leethub_hook',
@@ -1205,7 +1250,7 @@ async function loadSelectedTopic() {
         const githubContent = await getGitHubTextFile(
           token,
           hook,
-          `${repositoryFiles.TOPICS_BASE_PATH}/${topic.slug}/${entry.path}`,
+          buildTopicRepositoryPath(basePath, topic.slug, entry.path),
         );
         if (githubContent !== null) {
           templateTexts.set(entry.id, githubContent);
@@ -1213,9 +1258,9 @@ async function loadSelectedTopic() {
         }
 
         const seedEntry = ensuredTopic.entriesByPath.get(
-          `${repositoryFiles.TOPICS_BASE_PATH}/${topic.slug}/${entry.path}`,
+          buildTopicRepositoryPath(basePath, topic.slug, entry.path),
         ) ?? {
-          path: `${repositoryFiles.TOPICS_BASE_PATH}/${topic.slug}/${entry.path}`,
+          path: buildTopicRepositoryPath(basePath, topic.slug, entry.path),
           sourcePath: catalogFile?.sourcePath,
           message: `Create ${topic.name} template ${entry.path}`,
         };

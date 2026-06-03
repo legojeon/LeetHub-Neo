@@ -441,6 +441,40 @@
               </div>
             </section>
 
+            <!-- Root README summary setting -->
+            <section class="leethub-setting-block">
+              <div class="leethub-setting-row">
+                <div class="leethub-setting-copy">
+                  <h3>Auto-Update Repository README</h3>
+                  <p>Update the generated progress summary in the synced README.</p>
+                </div>
+                <button
+                  id="collapsible-root-readme-icon"
+                  class="leethub-disclosure-btn collapsible-icon"
+                  type="button"
+                  aria-label="Toggle repository README settings"
+                >
+                  &#9654;
+                </button>
+              </div>
+              <div
+                id="collapsible-root-readme-container"
+                class="collapsible-container leethub-setting-panel"
+                style="display: none"
+              >
+                <p>
+                  Turn this off before editing the synced repository README by hand. Problem files,
+                  topics, and stats still sync.
+                </p>
+                <div class="centered-toggle">
+                  <div class="ui toggle checkbox">
+                    <input type="checkbox" id="auto-update-root-readme" checked />
+                    <label for="auto-update-root-readme"></label>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             <!-- Topic template settings -->
             <section class="leethub-setting-block">
               <div class="leethub-setting-row">

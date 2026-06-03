@@ -44,8 +44,12 @@
     return topics;
   }
 
-  function createTopicGithubPaths(topicSlug) {
-    const basePath = `${TOPICS_BASE_PATH}/${topicSlug}`;
+  function createTopicGithubPaths(topicSlug, repositoryBasePath = '') {
+    const basePath = repositoryFiles.joinRepositoryPath(
+      repositoryBasePath,
+      TOPICS_BASE_PATH,
+      topicSlug,
+    );
 
     return {
       readme: `${basePath}/${repositoryFiles.PROBLEM_README_FILENAME}`,
