@@ -355,6 +355,9 @@ body {
 .translation-status {
   min-height: 10px;
   margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   color: var(--lh-muted-strong);
   font-size: 12px;
   line-height: 1.45;
@@ -362,6 +365,29 @@ body {
 
 .translation-status:empty {
   display: none;
+}
+
+.translation-status-spinner {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  border: 2px solid var(--lh-border);
+  border-top-color: var(--lh-brand);
+  border-radius: 50%;
+  animation: translation-status-spin 0.8s linear infinite;
+}
+
+@keyframes translation-status-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .translation-status-spinner {
+    animation: none;
+  }
 }
 
 .topic-panel-status {
@@ -517,6 +543,66 @@ body {
   margin: 10px 0;
 }
 
+.translation-content img {
+  width: auto !important;
+  max-width: min(100%, 420px);
+  height: auto !important;
+  max-height: none;
+  aspect-ratio: auto;
+  object-fit: contain;
+  display: block;
+  margin: 6px auto 10px;
+  border-radius: 0;
+  background: transparent;
+}
+
+.translation-review-actions {
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--lh-border-soft);
+  text-align: center;
+}
+
+.translation-review-actions[hidden] {
+  display: none !important;
+}
+
+.translation-review-btn {
+  min-height: 34px;
+  max-width: 260px;
+  width: 100%;
+  border: 1px solid var(--lh-border);
+  border-radius: 999px;
+  background: var(--lh-control-bg);
+  color: var(--lh-muted-strong);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.translation-review-btn:hover:not(:disabled) {
+  border-color: var(--lh-brand);
+  color: var(--lh-brand);
+  background: var(--lh-brand-soft);
+}
+
+.translation-review-btn:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.translation-review-status {
+  min-height: 10px;
+  margin: 8px 0 0;
+  color: var(--lh-muted-strong);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.translation-review-status:empty {
+  display: none;
+}
+
 .problem-difficulty-chip,
 .problem-topic-chip {
   min-height: 26px;
@@ -570,11 +656,19 @@ body {
 }
 
 .description-card-title {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   color: var(--lh-heading);
   font-size: 12px;
   font-weight: 600;
   line-height: 16px;
+}
+
+.description-card-media {
+  margin: 0 -4px 8px;
+}
+
+.description-card-media img {
+  margin: 0 auto;
 }
 
 .description-card-body > :last-child {

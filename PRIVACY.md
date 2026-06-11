@@ -39,8 +39,8 @@ LeetHub-Neo uses data only to provide the extension's core features:
 - Syncing accepted LeetCode submissions and related problem metadata.
 - Displaying the side panel, scratchpad, topic workspace, templates, repository
   settings, and progress dashboard.
-- Translating problem descriptions with Chrome's built-in Translator API when
-  supported by the user's browser and selected by the user.
+- Translating problem descriptions with the LeetTranslate API, with Chrome's
+  built-in Translator API as a fallback when supported by the user's browser.
 - Caching extension settings, progress data, and translated descriptions locally
   so the extension can work reliably over time.
 
@@ -66,11 +66,15 @@ user:
   and update files in the user's selected repository.
 - LeetCode receives requests needed to read problem, account, submission, and
   problem metadata from the LeetCode pages and APIs the user is using.
+- LeetTranslate receives problem description HTML, problem identifiers, and the
+  selected target language so it can return a stored translation when one
+  exists.
 - Chrome's built-in Translator API may process problem description text locally
   or through Chrome-managed functionality depending on Chrome's implementation
   and availability for the user's browser profile.
 
-LeetHub-Neo does not send user data to a custom LeetHub-Neo server.
+LeetHub-Neo does not send GitHub tokens, repository contents, scratchpad notes,
+or submitted solution code to LeetTranslate.
 
 ## Security
 

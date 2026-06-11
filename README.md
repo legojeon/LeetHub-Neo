@@ -14,12 +14,17 @@
   </a>
 </p>
 
+<p align="center">
+  <strong>English</strong> | <a href="README.ko.md">한국어</a>
+</p>
+
 ## What is LeetHub-Neo?
 
 LeetHub-Neo is a Chrome extension for keeping your LeetCode practice organized in
 GitHub. It syncs accepted submissions automatically, gives you a side panel while
 you solve problems, and helps turn solved problems into a searchable study space
-with notes, topic indexes, templates, and optional translated problem statements.
+with notes, topic indexes, templates, repository folder settings, optional README
+automation, and translated problem statements.
 
 LeetHub-Neo supports both [LeetCode.com](https://leetcode.com/) and
 [LeetCode.cn](https://leetcode.cn/).
@@ -28,10 +33,24 @@ LeetHub-Neo is a fork of
 [LeetHub-3.0](https://github.com/raphaelheinz/LeetHub-3.0), with additional
 features and maintenance for this project.
 
+## What's New in 1.1.0
+
+- Added a sync folder setting so LeetHub-Neo can write all generated files under
+  a selected repository folder.
+- Added an option to turn off automatic root `README.md` updates while keeping
+  problem and topic syncing enabled.
+- Added improved problem statement translation with LeetTranslate lookup,
+  Chrome Translator fallback, selectable target languages, loading feedback, and
+  translation review requests.
+- Added image-safe description rendering so problem diagrams keep their order and
+  aspect ratio in the Description tab.
+- Updated the release documentation with English and Korean README files.
+
 ## Screenshots
 
 The side panel brings the main study workflow into the LeetCode problem page:
-dashboard progress, solve notes, topic workspaces, and sync settings.
+dashboard progress, solve notes, topic workspaces, sync settings, and translated
+problem descriptions.
 
 <table>
   <tr>
@@ -55,7 +74,7 @@ dashboard progress, solve notes, topic workspaces, and sync settings.
     <td align="center">
       <img src="assets/extension/settings.png" alt="LeetHub-Neo repository settings" width="420">
       <br>
-      <sub>Repository sync settings</sub>
+      <sub>Repository settings</sub>
     </td>
   </tr>
 </table>
@@ -64,10 +83,17 @@ dashboard progress, solve notes, topic workspaces, and sync settings.
 
 - **Automatic GitHub sync**: push accepted LeetCode submissions to your selected
   GitHub repository.
+- **Sync folder setting**: choose a repository folder such as `LeetCode/` or
+  `algorithm/leetcode/` and keep LeetHub-Neo files inside that path.
+- **README sync control**: turn off automatic root `README.md` updates if you
+  want LeetHub-Neo to sync solutions without rewriting the repository summary.
 - **LeetCode side panel**: open LeetHub-Neo beside the problem page without
   leaving your current solve flow.
 - **Problem description translation**: translate English problem descriptions
-  with Chrome's built-in Translator API in supported Chrome versions.
+  into 39 selectable languages with a LeetTranslate server lookup first and
+  Chrome's built-in Translator API as fallback.
+- **Translation review request**: if a translated statement feels awkward, use
+  **Request translation review** in the Description tab to send a review request.
 - **Scratchpad**: keep solve notes in the side panel and sync them as `memo.txt`
   inside each problem folder.
 - **Topic workspace**: browse a problem's topic tags, create topic notes, and
@@ -95,7 +121,7 @@ Install LeetHub-Neo from the Chrome Web Store:
 
 You can also install it manually as an unpacked extension from this repository.
 
-### Manual installation
+### Manual Installation
 
 1. Clone this repository or download a ZIP from
    [Releases](https://github.com/legojeon/LeetHub-Neo/releases).
@@ -111,13 +137,16 @@ No build step is required for a local unpacked install.
 1. Install LeetHub-Neo and open the extension or side panel.
 2. Authenticate with GitHub.
 3. Link an existing repository or create a new one.
-4. Open a LeetCode problem and solve it normally. After an accepted submission,
+4. Optionally set a sync folder if you want LeetHub-Neo files inside a specific
+   repository path.
+5. Open a LeetCode problem and solve it normally. After an accepted submission,
    wait for LeetHub-Neo to finish syncing before changing the editor or leaving
    the page.
-5. Use **Sync Previous** in LeetHub settings if you want to import accepted
+6. Use **Sync Previous** in LeetHub settings if you want to import accepted
    submissions that were solved before installing or configuring LeetHub-Neo.
-6. Use the side panel tabs while solving:
-   - **Description**: view the problem statement and optional translation.
+7. Use the side panel tabs while solving:
+   - **Description**: view the problem statement, optional translation, diagrams,
+     and translation review request button.
    - **Scratchpad**: write free-form solve notes; synced scratchpad content is
      saved as `memo.txt` in the problem folder.
    - **Topics**: browse topic notes, related solved problems, and reusable
@@ -125,56 +154,89 @@ No build step is required for a local unpacked install.
    - **LeetHub**: review progress, sync previous submissions, and change
      repository settings.
 
-### Translation language
+### Sync Folder
 
-Open LeetHub settings and expand **Translation Language** to choose the language
-used by the Description tab. Translation uses Chrome's built-in Translator API,
-so availability depends on your Chrome version, profile, language pair, and
-local model availability.
+Use the sync folder setting when you want LeetHub-Neo to write inside a dedicated
+repository path instead of the repository root. For example, setting the folder
+to `LeetCode` keeps generated files under `LeetCode/`.
 
-### Optional local development setup
+<p align="center">
+  <img src="assets/extension/set_sync.png" alt="LeetHub-Neo sync folder setting" width="640">
+  <br>
+  <sub>Sync folder setup in LeetHub settings</sub>
+</p>
 
-Install npm dependencies only if you want to run formatting, linting, or tests:
+Example layout:
 
-```bash
-npm run setup
+```text
+LeetCode/
+  README.md
+  Easy/
+    0001-two-sum/
+      README.md
+      two-sum.py
+      memo.txt
+  Medium/
+    0002-add-two-numbers/
+      README.md
+      add-two-numbers.py
+      memo.txt
+      Solution.md
+  Topics/
+    array/
+      README.md
+      problems.json
+      templates.json
+      templates/
+        python/
+          prefix_sum.py
 ```
 
-### Optional GitHub OAuth setup
+The exact problem folder structure depends on your difficulty folder, language
+folder, timestamp, and solution post settings.
 
-The unpacked extension can be loaded without creating a new OAuth app. If you
-are preparing your own fork or replacing the GitHub OAuth app used by the
-extension, create an OAuth app at
-[github.com/settings/applications/new](https://github.com/settings/applications/new).
+### README Sync Off
 
-Use these values:
+If **Auto update root README** is off, LeetHub-Neo will keep syncing accepted
+solutions, scratchpad notes, topic files, and problem metadata, but it will not
+rewrite the generated root `README.md` summary. Use this when you maintain a
+custom repository README by hand.
 
-- **Application name**: any name you want, such as `LeetHub-Neo Local`
-- **Homepage URL**: `https://github.com/legojeon/LeetHub-Neo`
-- **Authorization callback URL**: `https://github.com/`
+### Translation Language
 
-Then update the OAuth constants in:
+Open LeetHub settings and expand **Translation Language** to choose the language
+used by the Description tab. LeetHub-Neo supports 39 selectable target languages.
+Translation first requests the LeetTranslate API for a stored translation, then
+falls back to Chrome's built-in Translator API if the server is unavailable or
+does not have the translation yet.
 
-- `src/js/authorize.js`
-- `src/js/oauth2.js`
+If a translated statement feels awkward, click **Request translation review** in
+the Description tab. The request is sent to the LeetTranslate review queue so the
+translation can be inspected later.
 
-Do not commit real client secrets from a personal OAuth app.
+<p align="center">
+  <img src="assets/extension/req_review.png" alt="LeetHub-Neo translation review request" width="640">
+  <br>
+  <sub>Request translation review from the Description tab</sub>
+</p>
 
 ## Translation Requirements
 
-Problem translation uses Chrome's built-in Translator API. It does not send text
-through a custom LeetHub-Neo translation server. Chrome 138+ desktop is expected
-for this feature.
+Problem translation sends LeetCode problem description HTML to
+`https://leettranslate.coco.io.kr/` so the server can return a stored
+translation when one exists. If that server is unavailable or does not have a
+stored translation yet, LeetHub-Neo falls back to Chrome's built-in Translator
+API when supported by the user's browser.
 
-Translation availability depends on your Chrome version, profile, language pair,
-and local model availability. If Chrome reports that translation is unavailable,
-LeetHub-Neo reports the limitation in the side panel while the rest of the
-extension remains usable.
+Chrome fallback availability depends on your Chrome version, profile, language
+pair, and local model availability. If both server translation and Chrome
+fallback are unavailable, LeetHub-Neo reports the limitation in the side panel
+while the rest of the extension remains usable.
 
 ## Repository Layout
 
 LeetHub-Neo can keep the original LeetHub-style problem folders, or organize
-submissions with optional difficulty and language folders.
+submissions with optional sync folder, difficulty folders, and language folders.
 
 Topic features create a study-oriented structure like this:
 
@@ -189,15 +251,11 @@ Topics/
         prefix_sum.py
 ```
 
-The root `README.md` in your synced repository can also be updated with a
-generated summary of solved problems by topic.
+The generated root `README.md` can summarize solved problems by topic unless
+README sync is turned off.
 
 ## Future Ideas
 
-- [ ] **Better translations**: LeetHub-Neo currently uses Chrome's built-in
-      Translator API. The goal is to make translated problem statements read
-      more naturally while keeping the feature lightweight and local to the
-      browser when possible.
 - [ ] **Notion and Obsidian workflows**: topic notes already live as Markdown
       files. Future work may expand this into smoother Notion and Obsidian
       workflows, such as automatic hooks, actions, or repository-to-knowledge
@@ -222,19 +280,6 @@ recommended workflow is to first struggle with the problem yourself, then use
 tools such as ChatGPT, Gemini, or another AI assistant after you are stuck or
 after you have solved the problem and want a review.
 
-## What's New in 1.0.1
-
-- Published LeetHub-Neo on the Chrome Web Store.
-- Added a side panel dark theme with matching code mockup styles and clearer
-  settings controls.
-- Changed scratchpad syncing to upload `memo.txt` inside each problem folder
-  instead of embedding scratchpad text into solution code comments.
-- Updated the accepted submissions sync API flow to support syncing up to 5,000
-  submission records.
-- Added a code-note example block to the default topic notes template.
-- Polished side panel layout so the panel fits the browser height and scrolls
-  inside the active view.
-
 ## Supported LeetCode UI
 
 LeetHub-Neo is designed for LeetCode's old layout and the newer dynamic layout.
@@ -252,6 +297,26 @@ npm run lint          # Lint and fix JavaScript
 npm run lint-test     # Check lint rules
 npm run test:unit     # Run unit tests
 ```
+
+## Optional GitHub OAuth Setup
+
+The unpacked extension can be loaded without creating a new OAuth app. If you
+are preparing your own fork or replacing the GitHub OAuth app used by the
+extension, create an OAuth app at
+[github.com/settings/applications/new](https://github.com/settings/applications/new).
+
+Use these values:
+
+- **Application name**: any name you want, such as `LeetHub-Neo Local`
+- **Homepage URL**: `https://github.com/legojeon/LeetHub-Neo`
+- **Authorization callback URL**: `https://github.com/`
+
+Then update the OAuth constants in:
+
+- `src/js/authorize.js`
+- `src/js/oauth2.js`
+
+Do not commit real client secrets from a personal OAuth app.
 
 ## Acknowledgements
 

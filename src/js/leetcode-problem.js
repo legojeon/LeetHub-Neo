@@ -8,10 +8,93 @@ function getCurrentProblemSlug() {
   return match?.[1] ?? null;
 }
 
+function getCurrentLeetCodeSite() {
+  return window.location.hostname.includes('leetcode.cn') ? 'leetcode.cn' : 'leetcode.com';
+}
+
 function htmlToPlainText(html) {
   const template = document.createElement('template');
   template.innerHTML = html ?? '';
   return template.content.textContent.replace(/\s+\n/g, '\n').replace(/\n\s+/g, '\n').trim();
+}
+
+function toAbsoluteLeetCodeUrl(value) {
+  const source = String(value ?? '').trim();
+  if (!source) {
+    return '';
+  }
+
+  try {
+    return new URL(source, getLeetHubNeoBaseUrl()).href;
+  } catch {
+    return source;
+  }
+}
+
+function normalizeSrcset(srcset) {
+  return String(srcset ?? '')
+    .split(',')
+    .map(candidate => {
+      const parts = candidate.trim().split(/\s+/);
+      if (!parts[0]) {
+        return '';
+      }
+
+      return [toAbsoluteLeetCodeUrl(parts[0]), ...parts.slice(1)].join(' ');
+    })
+    .filter(Boolean)
+    .join(', ');
+}
+
+function removeImageSizingStyles(image) {
+  image.removeAttribute('width');
+  image.removeAttribute('height');
+
+  const style = image.getAttribute('style');
+  if (!style) {
+    return;
+  }
+
+  const nextStyle = style
+    .split(';')
+    .map(rule => rule.trim())
+    .filter(rule => rule && !/^width\s*:/i.test(rule) && !/^height\s*:/i.test(rule))
+    .join('; ');
+
+  if (nextStyle) {
+    image.setAttribute('style', nextStyle);
+  } else {
+    image.removeAttribute('style');
+  }
+}
+
+function normalizeDescriptionHtml(html) {
+  const template = document.createElement('template');
+  template.innerHTML = html ?? '';
+
+  for (const image of template.content.querySelectorAll('img')) {
+    const source =
+      image.getAttribute('src') ||
+      image.getAttribute('data-src') ||
+      image.getAttribute('data-original') ||
+      image.getAttribute('data-actualsrc');
+    const srcset = image.getAttribute('srcset') || image.getAttribute('data-srcset');
+
+    if (source) {
+      image.setAttribute('src', toAbsoluteLeetCodeUrl(source));
+    }
+    if (srcset) {
+      image.setAttribute('srcset', normalizeSrcset(srcset));
+    }
+    if (!image.getAttribute('alt')) {
+      image.setAttribute('alt', '');
+    }
+    removeImageSizingStyles(image);
+    image.setAttribute('decoding', 'async');
+    image.setAttribute('loading', 'lazy');
+  }
+
+  return template.innerHTML;
 }
 
 async function fetchProblemBySlug(slug) {
@@ -57,14 +140,17 @@ query questionDetail($titleSlug: String!) {
     throw new Error('LeetCode did not return question data.');
   }
 
+  const descriptionHtml = normalizeDescriptionHtml(question.content ?? '');
+
   return {
+    site: getCurrentLeetCodeSite(),
     slug: question.titleSlug,
     title: question.title,
     frontendId: question.questionFrontendId,
     difficulty: question.difficulty,
     topicTags: question.topicTags ?? [],
-    descriptionHtml: question.content ?? '',
-    descriptionText: htmlToPlainText(question.content ?? ''),
+    descriptionHtml,
+    descriptionText: htmlToPlainText(descriptionHtml),
   };
 }
 
@@ -77,6 +163,7 @@ function getProblemFromDomFallback(slug) {
   }
 
   return {
+    site: getCurrentLeetCodeSite(),
     slug,
     title: pageTitle,
     frontendId: '',

@@ -3,7 +3,7 @@
   "name": "LeetHub-Neo",
   "description": "Sync LeetCode submissions to GitHub with side panel tools and repository templates",
   "homepage_url": "https://github.com/legojeon/LeetHub-Neo",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "author": "legojeon",
   "action": {
     "default_icon": "assets/thumbnail.png",
@@ -21,7 +21,12 @@
     "service_worker": "src/js/background.js"
   },
   "permissions": ["activeTab", "scripting", "sidePanel", "tabs", "unlimitedStorage", "storage"],
-  "host_permissions": ["https://leetcode.com/*", "https://leetcode.cn/*"],
+  "host_permissions": [
+    "https://leetcode.com/*",
+    "https://leetcode.cn/*",
+    "https://assets.leetcode.com/*",
+    "https://leettranslate.coco.io.kr/*"
+  ],
   "content_scripts": [
     {
       "matches": ["https://leetcode.com/*", "https://leetcode.cn/*", "https://github.com/*"],
@@ -51,7 +56,7 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
+    "extension_pages": "script-src 'self'; object-src 'self'; img-src 'self' data: https://leetcode.com https://leetcode.cn https://assets.leetcode.com"
   },
   "web_accessible_resources": [
     {

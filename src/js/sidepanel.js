@@ -4,8 +4,16 @@ import {
   isLeetCodeProblemTabUrl,
   isLeetCodeUrl,
 } from '../core/translation/translation-utils.js';
+import {
+  requestProblemTranslation,
+  requestProblemTranslationReview,
+} from '../core/translation/translation-server-client.js';
 import { translateDescriptionHtml } from '../features/sidepanel/description/description-translation.js';
-import { renderStructuredDescriptionHtml } from '../features/sidepanel/description/description-section-utils.js';
+import {
+  createDescriptionBlocks,
+  createDescriptionSections,
+  renderStructuredDescriptionHtml,
+} from '../features/sidepanel/description/description-section-utils.js';
 import {
   applyLeetHubSubview,
   createActivityGridItems,
@@ -40,6 +48,7 @@ const LEETHUB_CONTENT_SCRIPT_FILES = [
 
 let action = false;
 let activeProblem = null;
+let activeTranslation = null;
 let topicPanelState = {
   problem: null,
   topics: [],
@@ -493,12 +502,42 @@ function initializeLeetHubMode() {
   });
 }
 
-function setTranslationStatus(message) {
-  $('#translation-status').text(message);
+function setTranslationStatus(message, { loading = false } = {}) {
+  const status = $('#translation-status');
+  status.empty();
+  status.toggleClass('loading', Boolean(message && loading));
+
+  if (!message) {
+    return;
+  }
+
+  if (loading) {
+    status.append(
+      $('<span>', {
+        class: 'translation-status-spinner',
+        'aria-hidden': 'true',
+      }),
+    );
+  }
+
+  status.append(
+    $('<span>', {
+      class: 'translation-status-text',
+      text: message,
+    }),
+  );
 }
 
 function setTranslationActionsVisible(isVisible) {
   $('#translation-actions').prop('hidden', !isVisible);
+}
+
+function setTranslationReviewActionsVisible(isVisible) {
+  $('#translation-review-actions').prop('hidden', !isVisible);
+}
+
+function setTranslationReviewStatus(message) {
+  $('#translation-review-status').text(message);
 }
 
 function setActiveView(viewName) {
@@ -522,9 +561,12 @@ function setProblemTabsVisible(isVisible) {
 
 function showLeetHubOnly() {
   activeProblem = null;
+  activeTranslation = null;
   setProblemTabsVisible(false);
   setTranslationActionsVisible(false);
+  setTranslationReviewActionsVisible(false);
   setTranslationStatus('');
+  setTranslationReviewStatus('');
   setTopicPanelStatus('');
   setActiveView('leethub');
   applyLeetHubSubview($, 'home');
@@ -1340,6 +1382,31 @@ async function setCachedTranslation(cacheKey, translatedHtml) {
   });
 }
 
+function withDescriptionPayload(problem) {
+  const descriptionHtml = String(problem?.descriptionHtml ?? '');
+  return {
+    ...problem,
+    description: {
+      html: descriptionHtml,
+      blocks: createDescriptionBlocks(descriptionHtml),
+      sections: createDescriptionSections(descriptionHtml),
+    },
+  };
+}
+
+function rememberActiveTranslation(problem, targetLanguage, translatedHtml) {
+  activeTranslation = {
+    problem: withDescriptionPayload(problem),
+    targetLanguage,
+    translatedHtml,
+    translatedDescription: {
+      html: String(translatedHtml ?? ''),
+      blocks: createDescriptionBlocks(translatedHtml),
+      sections: createDescriptionSections(translatedHtml),
+    },
+  };
+}
+
 async function createEnglishTranslator(targetLanguage) {
   if (!('Translator' in globalThis)) {
     throw new Error('Chrome Translator API is not available. Use Chrome 138+ desktop.');
@@ -1364,14 +1431,27 @@ async function createEnglishTranslator(targetLanguage) {
     monitor(monitor) {
       monitor.addEventListener('downloadprogress', event => {
         const percent = Math.round(event.loaded * 100);
-        setTranslationStatus(`Downloading translation model... ${percent}%`);
+        setTranslationStatus(`Downloading translation model... ${percent}%`, { loading: true });
       });
     },
   });
 }
 
+async function translateProblemDescriptionWithChrome(problem, targetLanguage, targetLanguageName) {
+  setTranslationStatus(`Preparing ${targetLanguageName} translation fallback...`, {
+    loading: true,
+  });
+  const translator = await createEnglishTranslator(targetLanguage);
+
+  setTranslationStatus('Translating description with Chrome fallback...', { loading: true });
+  return translateDescriptionHtml(problem.descriptionHtml, text => translator.translate(text), {
+    targetLanguage,
+  });
+}
+
 async function translateProblemDescription(problem, { forceRefresh = false } = {}) {
   activeProblem = problem;
+  activeTranslation = null;
   const targetLanguage = await getSelectedTranslationLanguage();
   const targetLanguageName = getTranslationLanguageName(targetLanguage);
   const cacheKey = await buildTranslationCacheKey(
@@ -1383,6 +1463,8 @@ async function translateProblemDescription(problem, { forceRefresh = false } = {
   renderProblemHeader(problem);
   $('#problem_translation_mode').prop('hidden', false);
   setTranslationActionsVisible(true);
+  setTranslationReviewActionsVisible(false);
+  setTranslationReviewStatus('');
 
   if (!forceRefresh) {
     const cachedTranslation = await getCachedTranslation(cacheKey);
@@ -1390,6 +1472,8 @@ async function translateProblemDescription(problem, { forceRefresh = false } = {
       $('#translated-description').html(
         renderStructuredDescriptionHtml(cachedTranslation.translatedHtml),
       );
+      rememberActiveTranslation(problem, targetLanguage, cachedTranslation.translatedHtml);
+      setTranslationReviewActionsVisible(targetLanguage !== 'en');
       setTranslationStatus('');
       return;
     }
@@ -1402,22 +1486,53 @@ async function translateProblemDescription(problem, { forceRefresh = false } = {
   if (targetLanguage === 'en') {
     $('#translated-description').html(renderStructuredDescriptionHtml(problem.descriptionHtml));
     await setCachedTranslation(cacheKey, problem.descriptionHtml);
+    rememberActiveTranslation(problem, targetLanguage, problem.descriptionHtml);
     setTranslationStatus('');
     return;
   }
 
-  setTranslationStatus(`Preparing ${targetLanguageName} translation...`);
-  const translator = await createEnglishTranslator(targetLanguage);
+  let translatedHtml;
+  try {
+    setTranslationStatus(`Requesting ${targetLanguageName} translation...`, { loading: true });
+    const serverTranslation = await requestProblemTranslation(withDescriptionPayload(problem), {
+      targetLanguage,
+    });
+    translatedHtml = serverTranslation.translatedHtml;
+  } catch (error) {
+    console.warn('LeetTranslate server request failed; using Chrome Translator fallback.', error);
+    translatedHtml = await translateProblemDescriptionWithChrome(
+      problem,
+      targetLanguage,
+      targetLanguageName,
+    );
+  }
 
-  setTranslationStatus('Translating description...');
-  const translatedHtml = await translateDescriptionHtml(
-    problem.descriptionHtml,
-    text => translator.translate(text),
-    { targetLanguage },
-  );
   $('#translated-description').html(renderStructuredDescriptionHtml(translatedHtml));
   await setCachedTranslation(cacheKey, translatedHtml);
+  rememberActiveTranslation(problem, targetLanguage, translatedHtml);
+  setTranslationReviewActionsVisible(true);
   setTranslationStatus('');
+}
+
+async function requestActiveTranslationReview() {
+  if (!activeTranslation) {
+    throw new Error('No translated description is available to review.');
+  }
+
+  $('#translation-review-request-btn').prop('disabled', true);
+  setTranslationReviewStatus('Sending review request...');
+
+  try {
+    await requestProblemTranslationReview(activeTranslation.problem, {
+      targetLanguage: activeTranslation.targetLanguage,
+      translatedHtml: activeTranslation.translatedHtml,
+      translatedDescription: activeTranslation.translatedDescription,
+      reason: 'bad_translation',
+    });
+    setTranslationReviewStatus('Review request sent.');
+  } finally {
+    $('#translation-review-request-btn').prop('disabled', false);
+  }
 }
 
 function requestProblemFromTab(tab) {
@@ -1434,7 +1549,7 @@ function requestProblemFromTab(tab) {
 
   setProblemTabsVisible(true);
   setActiveView('description');
-  setTranslationStatus('Loading LeetCode problem description...');
+  setTranslationStatus('Loading LeetCode problem description...', { loading: true });
 
   chrome.tabs.sendMessage(tab.id, { action: 'getCurrentLeetCodeProblem' }, response => {
     if (chrome.runtime.lastError) {
@@ -1495,6 +1610,10 @@ function initializeTranslationPanel() {
         setTranslationStatus(error.message),
       );
     }
+  });
+
+  $('#translation-review-request-btn').on('click', () => {
+    requestActiveTranslationReview().catch(error => setTranslationReviewStatus(error.message));
   });
 
   queryActiveTab(requestProblemFromTab);

@@ -20,15 +20,27 @@ function getBlockLabel(blockHtml) {
 }
 
 function splitTopLevelBlocks(html) {
+  const source = String(html ?? '');
   const blocks = [];
-  const blockPattern = /<(p|pre|ul|ol)\b[^>]*>[\s\S]*?<\/\1>/gi;
+  const blockPattern = /<(p|pre|ul|ol)\b[^>]*>[\s\S]*?<\/\1>|<img\b[^>]*>/gi;
   let match;
+  let lastIndex = 0;
 
-  while ((match = blockPattern.exec(String(html ?? '')))) {
-    blocks.push(match[0]);
+  function pushIfContent(block) {
+    if (stripHtml(block) || /<img\b/i.test(block)) {
+      blocks.push(block);
+    }
   }
 
-  return blocks.length ? blocks : [String(html ?? '')].filter(Boolean);
+  while ((match = blockPattern.exec(source))) {
+    pushIfContent(source.slice(lastIndex, match.index));
+    blocks.push(match[0]);
+    lastIndex = blockPattern.lastIndex;
+  }
+
+  pushIfContent(source.slice(lastIndex));
+
+  return blocks.length ? blocks : [source].filter(Boolean);
 }
 
 function normalizeFieldKey(label) {
@@ -88,48 +100,158 @@ function parseExamplePre(preHtml) {
   }));
 }
 
+function createExampleContentBlock(block) {
+  if (/^<pre\b/i.test(block)) {
+    return {
+      type: 'example_io',
+      fields: parseExamplePre(block),
+      html: block,
+    };
+  }
+
+  if (/^<img\b/i.test(block)) {
+    return {
+      type: 'image',
+      html: block,
+    };
+  }
+
+  return {
+    type: 'example_extra',
+    html: block,
+  };
+}
+
+function cloneExampleBlockForSections(block) {
+  if (block.type === 'example_io') {
+    return { type: 'fields', fields: block.fields };
+  }
+  if (block.type === 'image') {
+    return { type: 'image', html: block.html };
+  }
+
+  return { type: 'html', html: block.html };
+}
+
+export function createDescriptionBlocks(sourceHtml) {
+  const sourceBlocks = splitTopLevelBlocks(sourceHtml);
+  const descriptionBlocks = [];
+  let mode = 'problem';
+  let exampleIndex = -1;
+
+  for (const block of sourceBlocks) {
+    const label = getBlockLabel(block);
+
+    if (EXAMPLE_LABEL_PATTERN.test(label)) {
+      exampleIndex += 1;
+      mode = 'example';
+      descriptionBlocks.push({
+        type: 'example_title',
+        exampleIndex,
+        title: label,
+        html: block,
+      });
+      continue;
+    }
+
+    if (CONSTRAINTS_LABEL_PATTERN.test(label)) {
+      mode = 'constraints';
+      descriptionBlocks.push({
+        type: 'constraints_title',
+        title: label,
+        html: block,
+      });
+      continue;
+    }
+
+    if (mode === 'example') {
+      descriptionBlocks.push({
+        ...createExampleContentBlock(block),
+        exampleIndex,
+      });
+      continue;
+    }
+
+    if (mode === 'constraints') {
+      descriptionBlocks.push({
+        type: 'constraints',
+        html: block,
+      });
+      continue;
+    }
+
+    descriptionBlocks.push({
+      type: 'problem',
+      html: block,
+    });
+  }
+
+  return descriptionBlocks.length
+    ? descriptionBlocks
+    : [
+        {
+          type: 'problem',
+          html: String(sourceHtml ?? ''),
+        },
+      ];
+}
+
 export function createDescriptionSections(sourceHtml) {
-  const blocks = splitTopLevelBlocks(sourceHtml);
+  const blocks = createDescriptionBlocks(sourceHtml);
   const sections = {
     problemHtml: '',
     examples: [],
     constraintsHtml: '',
     fallbackHtml: String(sourceHtml ?? ''),
   };
-  let mode = 'problem';
   let currentExample = null;
 
   for (const block of blocks) {
-    const label = getBlockLabel(block);
-
-    if (EXAMPLE_LABEL_PATTERN.test(label)) {
-      currentExample = { title: label, fields: [], extraHtml: '' };
+    if (block.type === 'example_title') {
+      currentExample = { title: block.title, fields: [], extraHtml: '' };
+      Object.defineProperty(currentExample, 'contentBlocks', {
+        value: [],
+        enumerable: false,
+      });
       sections.examples.push(currentExample);
-      mode = 'example';
       continue;
     }
 
-    if (CONSTRAINTS_LABEL_PATTERN.test(label)) {
+    if (block.type === 'constraints_title') {
       currentExample = null;
-      mode = 'constraints';
       continue;
     }
 
-    if (mode === 'example' && currentExample) {
-      if (/^<pre\b/i.test(block)) {
-        currentExample.fields.push(...parseExamplePre(block));
+    if (block.type === 'example_io' && currentExample) {
+      currentExample.fields.push(...block.fields);
+      currentExample.contentBlocks.push(cloneExampleBlockForSections(block));
+      continue;
+    }
+
+    if ((block.type === 'image' || block.type === 'example_extra') && currentExample) {
+      currentExample.extraHtml += block.html;
+      currentExample.contentBlocks.push(cloneExampleBlockForSections(block));
+      continue;
+    }
+
+    if (block.type === 'constraints') {
+      sections.constraintsHtml += block.html;
+      continue;
+    }
+
+    if (block.type === 'problem') {
+      sections.problemHtml += block.html;
+      continue;
+    }
+
+    if (block.html) {
+      if (currentExample) {
+        currentExample.extraHtml += block.html;
+        currentExample.contentBlocks.push({ type: 'html', html: block.html });
       } else {
-        currentExample.extraHtml += block;
+        sections.problemHtml += block.html;
       }
-      continue;
     }
-
-    if (mode === 'constraints') {
-      sections.constraintsHtml += block;
-      continue;
-    }
-
-    sections.problemHtml += block;
   }
 
   return sections;
@@ -141,6 +263,17 @@ function renderExampleField(field) {
   }
 
   return `<div class="example-field example-field-${field.key}"><span class="example-field-label">${field.label}</span><span class="example-field-value">${field.html}</span></div>`;
+}
+
+function renderExampleContentBlock(block) {
+  if (block.type === 'fields') {
+    return block.fields.map(renderExampleField).join('');
+  }
+  if (block.type === 'image') {
+    return block.html ? `<div class="description-card-media">${block.html}</div>` : '';
+  }
+
+  return block.html ? `<div class="description-card-body">${block.html}</div>` : '';
 }
 
 export function renderStructuredDescriptionHtml(sourceHtml) {
@@ -155,12 +288,13 @@ export function renderStructuredDescriptionHtml(sourceHtml) {
   }
 
   for (const example of sections.examples) {
-    const fieldsHtml = example.fields.map(renderExampleField).join('');
-    const extraHtml = example.extraHtml
-      ? `<div class="description-card-body">${example.extraHtml}</div>`
-      : '';
+    const orderedContentHtml = example.contentBlocks.length
+      ? example.contentBlocks.map(renderExampleContentBlock).join('')
+      : `${example.fields.map(renderExampleField).join('')}${
+          example.extraHtml ? `<div class="description-card-body">${example.extraHtml}</div>` : ''
+        }`;
     exampleCards.push(
-      `<section class="description-card description-card-example"><h3 class="description-card-title">${example.title}</h3>${fieldsHtml}${extraHtml}</section>`,
+      `<section class="description-card description-card-example"><h3 class="description-card-title">${example.title}</h3>${orderedContentHtml}</section>`,
     );
   }
 
