@@ -46,69 +46,6 @@ features and maintenance for this project.
   aspect ratio in the Description tab.
 - Updated the release documentation with English and Korean README files.
 
-## Screenshots
-
-The side panel brings the main study workflow into the LeetCode problem page:
-dashboard progress, solve notes, topic workspaces, sync settings, and translated
-problem descriptions.
-
-<table>
-  <tr>
-    <td align="center">
-      <img src="assets/extension/home.png" alt="LeetHub-Neo side panel dashboard" width="420">
-      <br>
-      <sub>Dashboard and recent progress</sub>
-    </td>
-    <td align="center">
-      <img src="assets/extension/notes.png" alt="LeetHub-Neo user notes" width="420">
-      <br>
-      <sub>User notes</sub>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src="assets/extension/topics.png" alt="LeetHub-Neo topic workspace" width="420">
-      <br>
-      <sub>Topic workspace and templates</sub>
-    </td>
-    <td align="center">
-      <img src="assets/extension/settings.png" alt="LeetHub-Neo repository settings" width="420">
-      <br>
-      <sub>Repository settings</sub>
-    </td>
-  </tr>
-</table>
-
-## Features
-
-- **Automatic GitHub sync**: push accepted LeetCode submissions to your selected
-  GitHub repository.
-- **Sync folder setting**: choose a repository folder such as `LeetCode/` or
-  `algorithm/leetcode/` and keep LeetHub-Neo files inside that path.
-- **README sync control**: turn off automatic root `README.md` updates if you
-  want LeetHub-Neo to sync solutions without rewriting the repository summary.
-- **LeetCode side panel**: open LeetHub-Neo beside the problem page without
-  leaving your current solve flow.
-- **Problem description translation**: translate English problem descriptions
-  into 39 selectable languages with a LeetTranslate server lookup first and
-  Chrome's built-in Translator API as fallback.
-- **Translation review request**: if a translated statement feels awkward, use
-  **Request translation review** in the Description tab to send a review request.
-- **Scratchpad**: keep solve notes in the side panel and sync them as `memo.txt`
-  inside each problem folder.
-- **Topic workspace**: browse a problem's topic tags, create topic notes, and
-  keep related solved problems grouped under `Topics/`.
-- **Reusable templates**: seed topic folders with algorithm and data-structure
-  templates for C++, Java, JavaScript, Lua, Python, and Ruby.
-- **Previous submission sync**: import accepted submissions that were solved
-  before installing or configuring LeetHub-Neo.
-- **Repository organization options**: choose difficulty folders, language
-  folders, timestamped filenames, custom commit messages, and automatic
-  `Solution.md` uploads for published solution posts.
-- **Progress dashboard**: review solved counts, difficulty distribution, solved
-  study days, recent activity, streaks, graphs, and top tags from the LeetHub
-  panel.
-
 ## Installation
 
 Install LeetHub-Neo from the Chrome Web Store:
@@ -219,6 +156,69 @@ translation can be inspected later.
   <br>
   <sub>Request translation review from the Description tab</sub>
 </p>
+
+## Screenshots
+
+The side panel brings the main study workflow into the LeetCode problem page:
+dashboard progress, solve notes, topic workspaces, sync settings, and translated
+problem descriptions.
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="assets/extension/home.png" alt="LeetHub-Neo side panel dashboard" width="420">
+      <br>
+      <sub>Dashboard and recent progress</sub>
+    </td>
+    <td align="center">
+      <img src="assets/extension/notes.png" alt="LeetHub-Neo user notes" width="420">
+      <br>
+      <sub>User notes</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="assets/extension/topics.png" alt="LeetHub-Neo topic workspace" width="420">
+      <br>
+      <sub>Topic workspace and templates</sub>
+    </td>
+    <td align="center">
+      <img src="assets/extension/settings.png" alt="LeetHub-Neo repository settings" width="420">
+      <br>
+      <sub>Repository settings</sub>
+    </td>
+  </tr>
+</table>
+
+## Features
+
+- **Automatic GitHub sync**: push accepted LeetCode submissions to your selected
+  GitHub repository.
+- **Sync folder setting**: choose a repository folder such as `LeetCode/` or
+  `algorithm/leetcode/` and keep LeetHub-Neo files inside that path.
+- **README sync control**: turn off automatic root `README.md` updates if you
+  want LeetHub-Neo to sync solutions without rewriting the repository summary.
+- **LeetCode side panel**: open LeetHub-Neo beside the problem page without
+  leaving your current solve flow.
+- **Problem description translation**: translate English problem descriptions
+  into 39 selectable languages with a LeetTranslate server lookup first and
+  Chrome's built-in Translator API as fallback.
+- **Translation review request**: if a translated statement feels awkward, use
+  **Request translation review** in the Description tab to send a review request.
+- **Scratchpad**: keep solve notes in the side panel and sync them as `memo.txt`
+  inside each problem folder.
+- **Topic workspace**: browse a problem's topic tags, create topic notes, and
+  keep related solved problems grouped under `Topics/`.
+- **Reusable templates**: seed topic folders with algorithm and data-structure
+  templates for C++, Java, JavaScript, Lua, Python, and Ruby.
+- **Previous submission sync**: import accepted submissions that were solved
+  before installing or configuring LeetHub-Neo.
+- **Repository organization options**: choose difficulty folders, language
+  folders, timestamped filenames, custom commit messages, and automatic
+  `Solution.md` uploads for published solution posts.
+- **Progress dashboard**: review solved counts, difficulty distribution, solved
+  study days, recent activity, streaks, graphs, and top tags from the LeetHub
+  panel.
 
 ## Translation Requirements
 

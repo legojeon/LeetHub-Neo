@@ -45,67 +45,6 @@ LeetHub-Neo는 [LeetHub-3.0](https://github.com/raphaelheinz/LeetHub-3.0)을
   렌더링을 개선했습니다.
 - 영어/한국어 README 문서를 업데이트했습니다.
 
-## 스크린샷
-
-사이드 패널은 LeetCode 문제 페이지 안에서 주요 학습 흐름을 제공합니다:
-진행 상황 대시보드, 풀이 노트, 토픽 작업 공간, 동기화 설정, 번역된 문제
-설명을 확인할 수 있습니다.
-
-<table>
-  <tr>
-    <td align="center">
-      <img src="assets/extension/home.png" alt="LeetHub-Neo 사이드 패널 대시보드" width="420">
-      <br>
-      <sub>대시보드와 최근 진행 상황</sub>
-    </td>
-    <td align="center">
-      <img src="assets/extension/notes.png" alt="LeetHub-Neo 사용자 노트" width="420">
-      <br>
-      <sub>사용자 노트</sub>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src="assets/extension/topics.png" alt="LeetHub-Neo 토픽 작업 공간" width="420">
-      <br>
-      <sub>토픽 작업 공간과 템플릿</sub>
-    </td>
-    <td align="center">
-      <img src="assets/extension/settings.png" alt="LeetHub-Neo 저장소 설정" width="420">
-      <br>
-      <sub>저장소 설정</sub>
-    </td>
-  </tr>
-</table>
-
-## 기능
-
-- **GitHub 자동 동기화**: Accepted LeetCode 제출을 선택한 GitHub 저장소로
-  업로드합니다.
-- **동기화 폴더 설정**: `LeetCode/` 또는 `algorithm/leetcode/` 같은 저장소
-  경로를 지정해 LeetHub-Neo 파일을 해당 폴더 아래에 정리할 수 있습니다.
-- **README 동기화 제어**: 저장소 요약 README를 직접 관리하고 싶다면 루트
-  `README.md` 자동 업데이트를 끌 수 있습니다.
-- **LeetCode 사이드 패널**: 문제 풀이 흐름을 벗어나지 않고 문제 페이지 옆에서
-  LeetHub-Neo를 사용할 수 있습니다.
-- **문제 설명 번역**: LeetTranslate 서버 조회를 먼저 시도하고 Chrome 내장
-  Translator API를 fallback으로 사용해 영어 문제 설명을 39개 선택 가능 언어로
-  번역합니다.
-- **번역 검토 요청**: 번역이 어색하면 Description 탭의
-  **Request translation review** 버튼으로 검토 요청을 보낼 수 있습니다.
-- **Scratchpad**: 사이드 패널에서 풀이 노트를 작성하고 각 문제 폴더의
-  `memo.txt`로 동기화할 수 있습니다.
-- **토픽 작업 공간**: 문제의 토픽 태그를 보고, 토픽 노트를 만들고, 관련 풀이
-  문제를 `Topics/` 아래에 모을 수 있습니다.
-- **재사용 가능한 템플릿**: C++, Java, JavaScript, Lua, Python, Ruby용 알고리즘
-  및 자료구조 템플릿으로 토픽 폴더를 시작할 수 있습니다.
-- **이전 제출 동기화**: LeetHub-Neo 설치 또는 설정 전에 해결한 Accepted
-  제출도 가져올 수 있습니다.
-- **저장소 구성 옵션**: 난이도 폴더, 언어 폴더, 타임스탬프 파일명, 커스텀
-  커밋 메시지, 공개 Solution 글의 `Solution.md` 업로드를 설정할 수 있습니다.
-- **진행 상황 대시보드**: solved 수, 난이도 분포, 풀이 날짜, 최근 활동,
-  streak, 그래프, 상위 태그를 LeetHub 패널에서 확인할 수 있습니다.
-
 ## 설치
 
 Chrome Web Store에서 LeetHub-Neo를 설치하세요:
@@ -210,6 +149,67 @@ LeetHub 설정에서 **Translation Language**를 펼쳐 Description 탭에서 �
   <br>
   <sub>Description 탭에서 번역 검토 요청 보내기</sub>
 </p>
+
+## 스크린샷
+
+사이드 패널은 LeetCode 문제 페이지 안에서 주요 학습 흐름을 제공합니다:
+진행 상황 대시보드, 풀이 노트, 토픽 작업 공간, 동기화 설정, 번역된 문제
+설명을 확인할 수 있습니다.
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="assets/extension/home.png" alt="LeetHub-Neo 사이드 패널 대시보드" width="420">
+      <br>
+      <sub>대시보드와 최근 진행 상황</sub>
+    </td>
+    <td align="center">
+      <img src="assets/extension/notes.png" alt="LeetHub-Neo 사용자 노트" width="420">
+      <br>
+      <sub>사용자 노트</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="assets/extension/topics.png" alt="LeetHub-Neo 토픽 작업 공간" width="420">
+      <br>
+      <sub>토픽 작업 공간과 템플릿</sub>
+    </td>
+    <td align="center">
+      <img src="assets/extension/settings.png" alt="LeetHub-Neo 저장소 설정" width="420">
+      <br>
+      <sub>저장소 설정</sub>
+    </td>
+  </tr>
+</table>
+
+## 기능
+
+- **GitHub 자동 동기화**: Accepted LeetCode 제출을 선택한 GitHub 저장소로
+  업로드합니다.
+- **동기화 폴더 설정**: `LeetCode/` 또는 `algorithm/leetcode/` 같은 저장소
+  경로를 지정해 LeetHub-Neo 파일을 해당 폴더 아래에 정리할 수 있습니다.
+- **README 동기화 제어**: 저장소 요약 README를 직접 관리하고 싶다면 루트
+  `README.md` 자동 업데이트를 끌 수 있습니다.
+- **LeetCode 사이드 패널**: 문제 풀이 흐름을 벗어나지 않고 문제 페이지 옆에서
+  LeetHub-Neo를 사용할 수 있습니다.
+- **문제 설명 번역**: LeetTranslate 서버 조회를 먼저 시도하고 Chrome 내장
+  Translator API를 fallback으로 사용해 영어 문제 설명을 39개 선택 가능 언어로
+  번역합니다.
+- **번역 검토 요청**: 번역이 어색하면 Description 탭의
+  **Request translation review** 버튼으로 검토 요청을 보낼 수 있습니다.
+- **Scratchpad**: 사이드 패널에서 풀이 노트를 작성하고 각 문제 폴더의
+  `memo.txt`로 동기화할 수 있습니다.
+- **토픽 작업 공간**: 문제의 토픽 태그를 보고, 토픽 노트를 만들고, 관련 풀이
+  문제를 `Topics/` 아래에 모을 수 있습니다.
+- **재사용 가능한 템플릿**: C++, Java, JavaScript, Lua, Python, Ruby용 알고리즘
+  및 자료구조 템플릿으로 토픽 폴더를 시작할 수 있습니다.
+- **이전 제출 동기화**: LeetHub-Neo 설치 또는 설정 전에 해결한 Accepted
+  제출도 가져올 수 있습니다.
+- **저장소 구성 옵션**: 난이도 폴더, 언어 폴더, 타임스탬프 파일명, 커스텀
+  커밋 메시지, 공개 Solution 글의 `Solution.md` 업로드를 설정할 수 있습니다.
+- **진행 상황 대시보드**: solved 수, 난이도 분포, 풀이 날짜, 최근 활동,
+  streak, 그래프, 상위 태그를 LeetHub 패널에서 확인할 수 있습니다.
 
 ## 번역 요구 사항
 
