@@ -4,6 +4,7 @@
   const NOTES_FILENAME = 'NOTES.md';
   const SOLUTION_POST_FILENAME = 'Solution.md';
   const SCRATCHPAD_MEMO_FILENAME = 'memo.txt';
+  const SCRATCHPAD_SKETCH_FILENAME = 'sketch.svg';
   const TOPICS_BASE_PATH = 'Topics';
   const TOPIC_PROBLEMS_FILENAME = 'problems.json';
   const TOPIC_TEMPLATES_FILENAME = 'templates.json';
@@ -14,10 +15,14 @@
     NOTES_FILENAME,
     SOLUTION_POST_FILENAME,
     SCRATCHPAD_MEMO_FILENAME,
+    SCRATCHPAD_SKETCH_FILENAME,
   ];
 
   function isProblemMetadataFile(filename) {
-    return PROBLEM_METADATA_FILENAMES.includes(filename);
+    return (
+      PROBLEM_METADATA_FILENAMES.includes(filename) ||
+      /^sketch-(?:[2-9]|[1-9]\d+)\.svg$/.test(filename)
+    );
   }
 
   function isSolutionUpload(filename) {
@@ -57,6 +62,7 @@
     PROBLEM_README_FILENAME,
     ROOT_README_FILENAME,
     SCRATCHPAD_MEMO_FILENAME,
+    SCRATCHPAD_SKETCH_FILENAME,
     SOLUTION_POST_FILENAME,
     TOPICS_BASE_PATH,
     TOPIC_PROBLEMS_FILENAME,

@@ -100,7 +100,7 @@
   }
 
   function isProblemMetadataFile(filename) {
-    return PROBLEM_METADATA_FILENAMES.includes(filename);
+    return repositoryFiles.isProblemMetadataFile(filename);
   }
 
   function buildProblemFolderPath(options) {
@@ -450,7 +450,15 @@
         }
       }
 
-      for (const filename of PROBLEM_METADATA_FILENAMES) {
+      const metadataFilenames = new Set(PROBLEM_METADATA_FILENAMES);
+      for (const file of blobFiles) {
+        const filename = getPathFilename(file.path);
+        if (hasProblemSegment(file.path, problemName) && isProblemMetadataFile(filename)) {
+          metadataFilenames.add(filename);
+        }
+      }
+
+      for (const filename of metadataFilenames) {
         const sourceFiles = findProblemMetadataFiles(blobFiles, problemName, filename);
         const targetPath = buildRepoPath({
           basePath,

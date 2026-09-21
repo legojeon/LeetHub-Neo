@@ -20,6 +20,33 @@
     return value === undefined ? DEFAULT_SHOW_TOPIC_TEMPLATES : Boolean(value);
   }
 
+  function normalizeProblemTemplateLanguage(
+    language,
+    catalog = globalObject.LeetHubTopicTemplateCatalog,
+  ) {
+    const value = String(language ?? '')
+      .trim()
+      .toLowerCase();
+    let normalizedLanguage = '';
+
+    if (/^(?:gnu\s*)?c\+\+|^cpp/.test(value)) {
+      normalizedLanguage = 'cpp';
+    } else if (value.includes('javascript') || /^(?:js|node\.js)\b/.test(value)) {
+      normalizedLanguage = 'javascript';
+    } else if (/^java\b/.test(value)) {
+      normalizedLanguage = 'java';
+    } else if (/^(?:python|python3|pandas)\b/.test(value)) {
+      normalizedLanguage = 'python';
+    } else if (/^lua\b/.test(value)) {
+      normalizedLanguage = 'lua';
+    } else if (/^ruby\b/.test(value)) {
+      normalizedLanguage = 'ruby';
+    }
+
+    const languages = Array.isArray(catalog?.languages) ? catalog.languages : [];
+    return languages.some(item => item.slug === normalizedLanguage) ? normalizedLanguage : '';
+  }
+
   function createTemplateSettings(
     storageValues = {},
     catalog = globalObject.LeetHubTopicTemplateCatalog,
@@ -179,6 +206,7 @@
     createTemplateSettings,
     createTemplatesJson,
     createTopicSeedFileEntries,
+    normalizeProblemTemplateLanguage,
     normalizeTemplateLanguage,
     normalizeTemplateVisibility,
   };

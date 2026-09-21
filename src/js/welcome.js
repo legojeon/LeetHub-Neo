@@ -12,6 +12,7 @@ const templateCatalog = globalThis.LeetHubTopicTemplateCatalog;
 const translationLanguageUtils = globalThis.LeetHubTranslationLanguageUtils;
 const repositoryFiles = globalThis.LeetHubRepositoryFiles;
 const INITIAL_SYNC_AFTER_HOOK_STORAGE_KEY = 'syncAcceptedSubmissionsAfterHook';
+const INITIAL_SYNC_STATUS_STORAGE_KEY = 'initialSyncStatus';
 const LEETHUB_BASE_PATH_STORAGE_KEY =
   repositoryFiles?.LEETHUB_BASE_PATH_STORAGE_KEY ?? 'leethub_base_path';
 
@@ -159,7 +160,22 @@ initializeInitialSyncOption();
 initializeRepositoryBasePath();
 
 const syncPreviousAfterInitialHook = () => {
-  chrome.runtime.sendMessage({ action: 'syncPreviousAfterInitialHook' });
+  appendSuccessLine('Initial submission sync queued...');
+  chrome.runtime.sendMessage({ action: 'syncPreviousAfterInitialHook' }, response => {
+    if (chrome.runtime.lastError) {
+      appendSuccessLine('Initial sync is pending. Open LeetCode to continue.');
+      return;
+    }
+
+    if (response?.synced) {
+      const solved = response.result?.counts?.solved ?? response.result?.totalProblems ?? 0;
+      appendSuccessLine(`Initial sync complete. ${solved} solved problems found.`);
+    } else if (response?.reason === 'NO_LEETCODE_TAB') {
+      appendSuccessLine('Initial sync is pending. It will start when you open LeetCode.');
+    } else if (!response?.ok) {
+      appendSuccessLine(`Initial sync failed: ${response?.error || 'Please retry later.'}`);
+    }
+  });
 };
 
 const appendSuccessLine = message => {
@@ -272,6 +288,8 @@ const statusCode = (res, status, name, token) => {
             await seedCuratedTopicTemplatesAfterHook(token, res.full_name);
             if (selectedInitialSyncEnabled()) {
               syncPreviousAfterInitialHook();
+            } else {
+              await chrome.storage.local.remove(INITIAL_SYNC_STATUS_STORAGE_KEY);
             }
           },
         );
@@ -460,6 +478,8 @@ const linkRepo = (token, name, seedTemplates = false) => {
                 }
                 if (selectedInitialSyncEnabled()) {
                   syncPreviousAfterInitialHook();
+                } else {
+                  await chrome.storage.local.remove(INITIAL_SYNC_STATUS_STORAGE_KEY);
                 }
                 return chrome.storage.local.get('stats');
               })

@@ -56,15 +56,33 @@
 
     languageSelect.change(function () {
       const topicTemplateLanguage = utils.normalizeTemplateLanguage($(this).val(), catalog);
-      chrome.storage.local.set({ [utils.TEMPLATE_LANGUAGE_STORAGE_KEY]: topicTemplateLanguage });
-      status.text('Template language saved.');
+      status.text('Saving template language...');
+      chrome.storage.local.set(
+        { [utils.TEMPLATE_LANGUAGE_STORAGE_KEY]: topicTemplateLanguage },
+        () => {
+          status.text(
+            chrome.runtime.lastError
+              ? 'Could not save template language.'
+              : 'Template language saved. Topics update automatically.',
+          );
+        },
+      );
     });
 
     showTemplatesToggle.change(function () {
-      chrome.storage.local.set({
-        [utils.SHOW_TEMPLATES_STORAGE_KEY]: $(this).is(':checked'),
-      });
-      status.text('Template visibility saved.');
+      status.text('Saving template visibility...');
+      chrome.storage.local.set(
+        {
+          [utils.SHOW_TEMPLATES_STORAGE_KEY]: $(this).is(':checked'),
+        },
+        () => {
+          status.text(
+            chrome.runtime.lastError
+              ? 'Could not save template visibility.'
+              : 'Template visibility saved. Topics update automatically.',
+          );
+        },
+      );
     });
 
     resetButton.click(() => {

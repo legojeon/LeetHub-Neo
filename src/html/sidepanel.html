@@ -14,14 +14,65 @@
 
   <body>
     <main class="sidepanel-shell">
-      <nav id="sidepanel_tabs" class="sidepanel-tabs" hidden>
-        <button id="description-tab" class="sidepanel-tab active" type="button">Description</button>
-        <button id="scratchpad-tab" class="sidepanel-tab" type="button">Scratchpad</button>
-        <button id="topics-tab" class="sidepanel-tab" type="button">Topics</button>
-        <button id="leethub-tab" class="sidepanel-tab" type="button">LeetHub</button>
+      <nav
+        id="sidepanel_tabs"
+        class="sidepanel-tabs"
+        role="tablist"
+        aria-label="Problem tools"
+        hidden
+      >
+        <button
+          id="description-tab"
+          class="sidepanel-tab active"
+          type="button"
+          role="tab"
+          aria-controls="problem_translation_mode"
+          aria-selected="true"
+        >
+          Problem
+        </button>
+        <button
+          id="scratchpad-tab"
+          class="sidepanel-tab"
+          type="button"
+          role="tab"
+          aria-controls="scratchpad_mode"
+          aria-selected="false"
+          tabindex="-1"
+        >
+          Scratchpad
+        </button>
+        <button
+          id="topics-tab"
+          class="sidepanel-tab"
+          type="button"
+          role="tab"
+          aria-controls="topic_mode"
+          aria-selected="false"
+          tabindex="-1"
+        >
+          Topics
+        </button>
+        <button
+          id="leethub-tab"
+          class="sidepanel-tab"
+          type="button"
+          role="tab"
+          aria-controls="leethub_mode"
+          aria-selected="false"
+          tabindex="-1"
+        >
+          LeetHub
+        </button>
       </nav>
 
-      <section id="problem_translation_mode" class="sidepanel-view description-view" hidden>
+      <section
+        id="problem_translation_mode"
+        class="sidepanel-view description-view"
+        role="tabpanel"
+        aria-labelledby="description-tab"
+        hidden
+      >
         <div class="translation-header">
           <div class="translation-header-main">
             <h2 id="problem-title" class="translation-title">Problem</h2>
@@ -35,7 +86,7 @@
               aria-label="Refresh translation"
               title="Refresh translation"
             >
-              &#8635;
+              <i class="sync alternate icon" aria-hidden="true"></i>
             </button>
           </div>
         </div>
@@ -52,27 +103,223 @@
         </footer>
       </section>
 
-      <section id="scratchpad_mode" class="sidepanel-view scratchpad-view" hidden>
-        <textarea
-          id="scratchpad-input"
-          class="scratchpad-input"
-          aria-label="Scratchpad"
-          placeholder="Freely sketch notes, edge cases, or ideas..."
-          spellcheck="false"
-        ></textarea>
+      <section
+        id="scratchpad_mode"
+        class="sidepanel-view scratchpad-view"
+        role="tabpanel"
+        aria-labelledby="scratchpad-tab"
+        hidden
+      >
+        <div class="scratchpad-text-pane">
+          <textarea
+            id="scratchpad-input"
+            class="scratchpad-input"
+            aria-label="Scratchpad"
+            placeholder="Freely sketch notes, edge cases, or ideas..."
+            spellcheck="false"
+          ></textarea>
+          <div class="scratchpad-floating-actions">
+            <span class="scratchpad-section-title">Notes</span>
+            <span class="scratchpad-actions-spacer"></span>
+            <span id="scratchpad-save-status" class="scratchpad-save-status" role="status"></span>
+            <button
+              id="scratchpad-add-sketch-btn"
+              class="scratchpad-add-sketch-btn"
+              type="button"
+              title="Add a sketch"
+            >
+              <i class="plus icon" aria-hidden="true"></i> Sketch
+            </button>
+          </div>
+        </div>
+
+        <section id="scratchpad-sketch-card" class="scratchpad-sketch-card" hidden>
+          <div
+            id="scratchpad-sketch-resize-handle"
+            class="scratchpad-sketch-resize-handle"
+            role="separator"
+            aria-label="Resize sketch"
+            aria-orientation="horizontal"
+            tabindex="0"
+          ></div>
+
+          <header class="scratchpad-sketch-header">
+            <button
+              id="scratchpad-sketch-toggle-btn"
+              class="scratchpad-sketch-toggle-btn"
+              type="button"
+              aria-expanded="true"
+            >
+              <svg
+                id="scratchpad-sketch-preview"
+                class="scratchpad-sketch-preview"
+                viewBox="0 0 1000 600"
+                aria-hidden="true"
+              ></svg>
+              <span id="scratchpad-sketch-title" class="scratchpad-sketch-title">Sketches</span>
+              <span id="scratchpad-sketch-summary" class="scratchpad-sketch-summary">Empty</span>
+              <span
+                id="scratchpad-sketch-chevron"
+                class="scratchpad-sketch-chevron"
+                aria-hidden="true"
+                >⌄</span
+              >
+            </button>
+            <button
+              id="scratchpad-sketch-rename-btn"
+              class="scratchpad-sketch-header-action"
+              type="button"
+              aria-label="Rename sketch"
+              title="Rename sketch"
+            >
+              <i class="pencil alternate icon" aria-hidden="true"></i>
+            </button>
+            <button
+              id="scratchpad-sketch-delete-btn"
+              class="scratchpad-sketch-header-action scratchpad-sketch-delete-btn"
+              type="button"
+              aria-label="Delete sketch"
+              title="Delete sketch"
+            >
+              <i class="trash alternate outline icon" aria-hidden="true"></i>
+            </button>
+          </header>
+
+          <div id="scratchpad-sketch-editor" class="scratchpad-sketch-editor">
+            <div class="scratchpad-sketch-tabs-row">
+              <div
+                id="scratchpad-sketch-tabs"
+                class="scratchpad-sketch-tabs"
+                role="tablist"
+                aria-label="Sketches"
+              ></div>
+              <button
+                id="scratchpad-sketch-tab-add-btn"
+                class="scratchpad-sketch-tab-add-btn"
+                type="button"
+                aria-label="Add another sketch"
+                title="Add another sketch"
+              >
+                <i class="plus icon" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div class="scratchpad-sketch-toolbar" role="toolbar" aria-label="Sketch tools">
+              <button type="button" data-sketch-tool="pan" title="Pan" aria-label="Pan">
+                <i class="hand paper outline icon" aria-hidden="true"></i>
+              </button>
+              <button type="button" data-sketch-tool="pen" title="Pen" aria-label="Pen">
+                <i class="pencil alternate icon" aria-hidden="true"></i>
+              </button>
+              <button
+                type="button"
+                data-sketch-tool="rect"
+                title="Rectangle"
+                aria-label="Rectangle"
+              >
+                <i class="square outline icon" aria-hidden="true"></i>
+              </button>
+              <button type="button" data-sketch-tool="ellipse" title="Ellipse" aria-label="Ellipse">
+                <i class="circle outline icon" aria-hidden="true"></i>
+              </button>
+              <button type="button" data-sketch-tool="arrow" title="Arrow" aria-label="Arrow">
+                <i class="arrow right icon" aria-hidden="true"></i>
+              </button>
+              <button type="button" data-sketch-tool="text" title="Text" aria-label="Text">
+                T
+              </button>
+              <button type="button" data-sketch-tool="eraser" title="Eraser" aria-label="Eraser">
+                <i class="eraser icon" aria-hidden="true"></i>
+              </button>
+              <span class="scratchpad-sketch-toolbar-spacer"></span>
+              <button id="scratchpad-sketch-undo-btn" type="button" title="Undo" aria-label="Undo">
+                <i class="undo icon" aria-hidden="true"></i>
+              </button>
+              <button id="scratchpad-sketch-redo-btn" type="button" title="Redo" aria-label="Redo">
+                <i class="redo icon" aria-hidden="true"></i>
+              </button>
+              <button
+                id="scratchpad-sketch-clear-btn"
+                class="scratchpad-sketch-clear-btn"
+                type="button"
+                title="Clear sketch"
+                aria-label="Clear sketch"
+              >
+                Clear
+              </button>
+            </div>
+
+            <div id="scratchpad-sketch-surface" class="scratchpad-sketch-surface">
+              <svg
+                id="scratchpad-sketch-canvas"
+                class="scratchpad-sketch-canvas"
+                viewBox="0 0 1000 600"
+                aria-label="Sketch canvas"
+                role="img"
+                tabindex="0"
+              ></svg>
+              <input
+                id="scratchpad-sketch-text-input"
+                class="scratchpad-sketch-text-input"
+                type="text"
+                aria-label="Sketch text"
+                maxlength="120"
+                hidden
+              />
+            </div>
+          </div>
+        </section>
       </section>
 
-      <section id="topic_mode" class="sidepanel-view topic-view" hidden>
+      <section
+        id="topic_mode"
+        class="sidepanel-view topic-view"
+        role="tabpanel"
+        aria-labelledby="topics-tab"
+        hidden
+      >
         <div id="topic-selector" class="topic-selector"></div>
 
-        <div class="topic-subtabs">
-          <button id="topic-notes-tab" class="topic-subtab active" type="button">Notes</button>
-          <button id="topic-templates-tab" class="topic-subtab" type="button">Templates</button>
+        <div id="topic-controls-row" class="topic-controls-row">
+          <div id="topic-subtabs" class="topic-subtabs" role="tablist" aria-label="Topic content">
+            <button
+              id="topic-notes-tab"
+              class="topic-subtab active"
+              type="button"
+              role="tab"
+              aria-controls="topic-notes-panel"
+              aria-selected="true"
+            >
+              Notes
+            </button>
+            <button
+              id="topic-templates-tab"
+              class="topic-subtab"
+              type="button"
+              role="tab"
+              aria-controls="topic-templates-panel"
+              aria-selected="false"
+              tabindex="-1"
+            >
+              Templates
+            </button>
+          </div>
+          <div id="topic-template-language-toolbar" class="topic-template-language-toolbar" hidden>
+            <select
+              id="topic-template-language-inline"
+              class="topic-template-language-select"
+              aria-label="Template language"
+            ></select>
+          </div>
         </div>
 
         <p id="topic-panel-status" class="topic-panel-status" role="status"></p>
 
-        <section id="topic-notes-panel" class="topic-subpanel">
+        <section
+          id="topic-notes-panel"
+          class="topic-subpanel"
+          role="tabpanel"
+          aria-labelledby="topic-notes-tab"
+        >
           <div class="topic-notes-toolbar">
             <button
               id="topic-readme-edit-btn"
@@ -89,12 +336,23 @@
           <section id="topic-related-problems" class="related-problems"></section>
         </section>
 
-        <section id="topic-templates-panel" class="topic-subpanel" hidden>
+        <section
+          id="topic-templates-panel"
+          class="topic-subpanel"
+          role="tabpanel"
+          aria-labelledby="topic-templates-tab"
+          hidden
+        >
           <div id="topic-templates-content" class="topic-templates"></div>
         </section>
       </section>
 
-      <section id="leethub_mode" class="sidepanel-view leethub-panel">
+      <section
+        id="leethub_mode"
+        class="sidepanel-view leethub-panel"
+        role="tabpanel"
+        aria-labelledby="leethub-tab"
+      >
         <div id="leethub_home_view" class="leethub-subview leethub-home-view">
           <div class="ui grid container leethub-grid">
             <div class="sixteen wide center aligned column leethub-home-column">
@@ -130,6 +388,10 @@
               <!-- Commit mode -->
               <div id="commit_mode" hidden>
                 <p id="repo_url" class="leethub-repo-link"></p>
+                <div id="initial-sync-banner" class="initial-sync-banner" role="status" hidden>
+                  <span id="initial-sync-message"></span>
+                  <button id="initial-sync-retry-btn" type="button" hidden>Retry</button>
+                </div>
 
                 <section class="leethub-stat-card" aria-label="Solved problem stats">
                   <p class="leethub-stat-label">Problems Solved</p>
@@ -182,15 +444,26 @@
                   <a id="welcome_URL" href="" target="_blank">
                     <i class="ui grey globe icon"></i>
                   </a>
-                  <button
-                    id="open-leethub-settings-btn"
-                    class="leethub-settings-icon-btn"
-                    type="button"
-                    aria-label="Open LeetHub settings"
-                    title="Settings"
-                  >
-                    <i class="icon cog"></i>
-                  </button>
+                  <div class="leethub-footer-tools">
+                    <button
+                      id="leethub-sync-btn"
+                      class="leethub-footer-icon-btn"
+                      type="button"
+                      aria-label="Sync accepted submissions"
+                      title="Sync accepted submissions"
+                    >
+                      <i class="sync alternate icon" aria-hidden="true"></i>
+                    </button>
+                    <button
+                      id="open-leethub-settings-btn"
+                      class="leethub-footer-icon-btn"
+                      type="button"
+                      aria-label="Open LeetHub settings"
+                      title="Settings"
+                    >
+                      <i class="icon cog" aria-hidden="true"></i>
+                    </button>
+                  </div>
                 </footer>
               </div>
             </div>
@@ -561,6 +834,7 @@
 
     <script src="../js/oauth2.js"></script>
     <script type="text/javascript" src="../core/config/repository-files.js"></script>
+    <script type="text/javascript" src="../core/scratchpad/scratchpad-memo.js"></script>
     <script type="text/javascript" src="../data/topic-template-catalog.generated.js"></script>
     <script type="text/javascript" src="../core/templates/topic-readme-template.js"></script>
     <script type="text/javascript" src="../core/templates/topic-template-utils.js"></script>

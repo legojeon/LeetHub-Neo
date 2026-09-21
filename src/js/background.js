@@ -28,6 +28,8 @@ const LEETHUB_CONTENT_SCRIPT_FILES = [
   'src/js/leetcode-account-utils.js',
   'src/js/leetcode.js',
 ];
+const INITIAL_SYNC_STATUS_STORAGE_KEY = 'initialSyncStatus';
+let initialSyncPromise = null;
 
 const sendMessageToTab = (tabId, message) => {
   return new Promise(resolve => {
@@ -72,8 +74,13 @@ const ensureLeetHubSyncScript = async tabId => {
 };
 
 const syncPreviousOnFirstAvailableLeetCodeTab = async () => {
-  const tabs = await chrome.tabs.query({});
-  const leetCodeTabs = tabs.filter(isLeetCodeTab);
+  const [activeTabs, tabs] = await Promise.all([
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }),
+    chrome.tabs.query({}),
+  ]);
+  const leetCodeTabs = [...activeTabs, ...tabs]
+    .filter(isLeetCodeTab)
+    .filter((tab, index, candidates) => candidates.findIndex(item => item.id === tab.id) === index);
 
   for (const tab of leetCodeTabs) {
     const isReady = await ensureLeetHubSyncScript(tab.id);
@@ -93,11 +100,69 @@ const syncPreviousOnFirstAvailableLeetCodeTab = async () => {
       ok: false,
       synced: false,
       tabId: tab.id,
-      error: syncResponse?.error || 'Initial sync failed.',
+      error: syncResponse?.error || 'Sync failed.',
     };
   }
 
   return { ok: true, synced: false, reason: 'NO_LEETCODE_TAB' };
+};
+
+const setInitialSyncStatus = async (status, details = {}) => {
+  const nextStatus = {
+    status,
+    updatedAt: Date.now(),
+    ...details,
+  };
+  await chrome.storage.local.set({ [INITIAL_SYNC_STATUS_STORAGE_KEY]: nextStatus });
+  return nextStatus;
+};
+
+const runInitialSync = () => {
+  if (initialSyncPromise) {
+    return initialSyncPromise;
+  }
+
+  initialSyncPromise = (async () => {
+    await setInitialSyncStatus('running');
+    const result = await syncPreviousOnFirstAvailableLeetCodeTab();
+
+    if (result.synced) {
+      const counts = result.result?.counts ?? {};
+      await setInitialSyncStatus('completed', {
+        solved: counts.solved ?? result.result?.totalProblems ?? 0,
+        uploaded: result.result?.uploaded ?? 0,
+        skipped: result.result?.skipped ?? 0,
+      });
+    } else if (result.reason === 'NO_LEETCODE_TAB') {
+      await setInitialSyncStatus('pending', { reason: result.reason });
+    } else {
+      await setInitialSyncStatus('failed', {
+        error: result.error || 'Initial sync failed.',
+      });
+    }
+
+    return result;
+  })()
+    .catch(async error => {
+      await setInitialSyncStatus('failed', { error: error.message });
+      return { ok: false, synced: false, error: error.message };
+    })
+    .finally(() => {
+      initialSyncPromise = null;
+    });
+
+  return initialSyncPromise;
+};
+
+const retryPendingInitialSync = async tab => {
+  if (tab && !isLeetCodeTab(tab)) {
+    return;
+  }
+
+  const values = await chrome.storage.local.get(INITIAL_SYNC_STATUS_STORAGE_KEY);
+  if (['pending', 'running'].includes(values[INITIAL_SYNC_STATUS_STORAGE_KEY]?.status)) {
+    await runInitialSync();
+  }
 };
 
 const handleMessage = (request, _sender, sendResponse) => {
@@ -106,8 +171,11 @@ const handleMessage = (request, _sender, sendResponse) => {
     return;
   }
 
-  if (request.action === 'syncPreviousAfterInitialHook') {
-    syncPreviousOnFirstAvailableLeetCodeTab()
+  if (
+    request.action === 'syncPreviousAfterInitialHook' ||
+    request.action === 'runPreviousAcceptedSubmissionsSync'
+  ) {
+    runInitialSync()
       .then(sendResponse)
       .catch(error => sendResponse({ ok: false, synced: false, error: error.message }));
     return true;
@@ -132,6 +200,18 @@ const handleMessage = (request, _sender, sendResponse) => {
 };
 
 chrome.runtime.onMessage.addListener(handleMessage);
+
+chrome.tabs.onUpdated.addListener((_tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && isLeetCodeTab(tab)) {
+    retryPendingInitialSync(tab).catch(error => console.error('Initial sync retry failed.', error));
+  }
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  retryPendingInitialSync().catch(error => console.error('Initial sync retry failed.', error));
+});
+
+retryPendingInitialSync().catch(error => console.error('Initial sync retry failed.', error));
 
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })

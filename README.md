@@ -33,6 +33,20 @@ LeetHub-Neo is a fork of
 [LeetHub-3.0](https://github.com/raphaelheinz/LeetHub-3.0), with additional
 features and maintenance for this project.
 
+## What's New in 1.2.0
+
+- Added optional, multi-tab SVG sketches to Scratchpad with rename, erase, pan,
+  zoom, collapse, and resize controls. Notes and drawings save locally and sync
+  into each problem folder.
+- Refined the side panel navigation and Topics workspace, including separate
+  Notes and Templates views with automatic problem-language selection and a
+  manual language selector.
+- Improved initial and manual synchronization with quick access from the LeetHub
+  dashboard, account checks, complete-history pagination, and safeguards against
+  replacing valid stats with incomplete LeetCode responses.
+- Added a responsive, square-cell activity graph that shows more history as the
+  side panel grows wider.
+
 ## What's New in 1.1.0
 
 - Added a sync folder setting so LeetHub-Neo can write all generated files under
@@ -43,7 +57,7 @@ features and maintenance for this project.
   Chrome Translator fallback, selectable target languages, loading feedback, and
   translation review requests.
 - Added image-safe description rendering so problem diagrams keep their order and
-  aspect ratio in the Description tab.
+  aspect ratio in the Problem tab.
 - Updated the release documentation with English and Korean README files.
 
 ## Installation
@@ -76,16 +90,21 @@ No build step is required for a local unpacked install.
 3. Link an existing repository or create a new one.
 4. Optionally set a sync folder if you want LeetHub-Neo files inside a specific
    repository path.
-5. Open a LeetCode problem and solve it normally. After an accepted submission,
+5. If initial submission sync is enabled while linking GitHub, LeetHub-Neo starts
+   it immediately when a signed-in LeetCode tab is available. Otherwise it stays
+   pending and starts when you next open LeetCode; progress appears in LeetHub.
+6. Open a LeetCode problem and solve it normally. After an accepted submission,
    wait for LeetHub-Neo to finish syncing before changing the editor or leaving
    the page.
-6. Use **Sync Previous** in LeetHub settings if you want to import accepted
+7. Use **Sync Previous** in LeetHub settings if you want to import accepted
    submissions that were solved before installing or configuring LeetHub-Neo.
-7. Use the side panel tabs while solving:
-   - **Description**: view the problem statement, optional translation, diagrams,
+8. Use the side panel tabs while solving:
+   - **Problem**: view the problem statement, optional translation, diagrams,
      and translation review request button.
-   - **Scratchpad**: write free-form solve notes; synced scratchpad content is
-     saved as `memo.txt` in the problem folder.
+   - **Scratchpad**: write problem-specific solve notes and add optional sketch
+     tabs for data structures or diagrams. Double-click a tab to rename it.
+     Drafts save locally, while accepted submissions sync text as `memo.txt` and
+     drawings as `sketch.svg`, `sketch-2.svg`, and so on.
    - **Topics**: browse topic notes, related solved problems, and reusable
      templates.
    - **LeetHub**: review progress, sync previous submissions, and change
@@ -113,6 +132,8 @@ LeetCode/
       README.md
       two-sum.py
       memo.txt
+      sketch.svg
+      sketch-2.svg
   Medium/
     0002-add-two-numbers/
       README.md
@@ -142,19 +163,19 @@ custom repository README by hand.
 ### Translation Language
 
 Open LeetHub settings and expand **Translation Language** to choose the language
-used by the Description tab. LeetHub-Neo supports 39 selectable target languages.
+used by the Problem tab. LeetHub-Neo supports 39 selectable target languages.
 Translation first requests the LeetTranslate API for a stored translation, then
 falls back to Chrome's built-in Translator API if the server is unavailable or
 does not have the translation yet.
 
 If a translated statement feels awkward, click **Request translation review** in
-the Description tab. The request is sent to the LeetTranslate review queue so the
+the Problem tab. The request is sent to the LeetTranslate review queue so the
 translation can be inspected later.
 
 <p align="center">
   <img src="assets/extension/req_review.png" alt="LeetHub-Neo translation review request" width="640">
   <br>
-  <sub>Request translation review from the Description tab</sub>
+  <sub>Request translation review from the Problem tab</sub>
 </p>
 
 ## Screenshots
@@ -204,9 +225,11 @@ problem descriptions.
   into 39 selectable languages with a LeetTranslate server lookup first and
   Chrome's built-in Translator API as fallback.
 - **Translation review request**: if a translated statement feels awkward, use
-  **Request translation review** in the Description tab to send a review request.
-- **Scratchpad**: keep solve notes in the side panel and sync them as `memo.txt`
-  inside each problem folder.
+  **Request translation review** in the Problem tab to send a review request.
+- **Scratchpad**: keep problem-specific solve notes and optional, renameable
+  vector sketch tabs with collapse, resize, pan, and zoom controls. Drafts save
+  locally and sync as `memo.txt`, `sketch.svg`, `sketch-2.svg`, and so on inside
+  each problem folder.
 - **Topic workspace**: browse a problem's topic tags, create topic notes, and
   keep related solved problems grouped under `Topics/`.
 - **Reusable templates**: seed topic folders with algorithm and data-structure
@@ -260,9 +283,9 @@ README sync is turned off.
       files. Future work may expand this into smoother Notion and Obsidian
       workflows, such as automatic hooks, actions, or repository-to-knowledge
       base automation.
-- [ ] **Scratchpad whiteboard**: today's scratchpad is text-first. A future
-      version may add drawing tools for data structures, diagrams, and
-      explanation sketches, integrated with the existing scratchpad workflow.
+- [x] **Scratchpad whiteboard**: problem-specific notes now include optional,
+      renameable SVG sketch tabs for data structures, diagrams, and explanation
+      drawings.
 - [ ] **Big-O notation helper**: a complexity helper could estimate or display
       time and space complexity while developing a solution.
 

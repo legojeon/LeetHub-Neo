@@ -90,9 +90,48 @@
     };
   }
 
+  function getProfileSolvedProblemCount(profileData) {
+    const counts = profileData?.matchedUser?.submitStatsGlobal?.acSubmissionNum;
+    const allProblems = Array.isArray(counts)
+      ? counts.find(item => String(item?.difficulty).toLowerCase() === 'all')
+      : null;
+
+    if (allProblems?.count === null || allProblems?.count === undefined) {
+      return null;
+    }
+
+    const count = Number(allProblems?.count);
+
+    return Number.isInteger(count) && count >= 0 ? count : null;
+  }
+
+  function getAcceptedSubmissionCoverage(submissions, expectedSolvedCount = null) {
+    const problemSlugs = new Set(
+      (Array.isArray(submissions) ? submissions : [])
+        .map(submission => String(submission?.titleSlug ?? '').trim())
+        .filter(Boolean),
+    );
+    const hasExpectedValue =
+      expectedSolvedCount !== null &&
+      expectedSolvedCount !== undefined &&
+      String(expectedSolvedCount).trim() !== '';
+    const expected = hasExpectedValue ? Number(expectedSolvedCount) : Number.NaN;
+    const hasExpectedCount = hasExpectedValue && Number.isInteger(expected) && expected >= 0;
+    const found = problemSlugs.size;
+
+    return {
+      complete: !hasExpectedCount || found >= expected,
+      expected: hasExpectedCount ? expected : null,
+      found,
+      missing: hasExpectedCount ? Math.max(0, expected - found) : 0,
+    };
+  }
+
   globalObject.LeetHubLeetCodeAccountUtils = {
     LEETCODE_ACCOUNT_BY_HOOK_STORAGE_KEY,
     createLeetCodeAccountSyncDecision,
+    getAcceptedSubmissionCoverage,
+    getProfileSolvedProblemCount,
     getStoredLeetCodeAccount,
     normalizeGitHubHook,
     normalizeLeetCodeUsername,

@@ -18,8 +18,8 @@ LeetHub-Neo may handle the following data to provide its user-facing features:
   leetcode.cn.
 - Accepted LeetCode submission code, submission metadata, problem titles,
   problem slugs, difficulty, topic tags, problem descriptions, and problem URLs.
-- User-created content such as scratchpad notes, topic notes, custom commit
-  messages, and solution-related notes.
+- User-created content such as scratchpad notes and sketches, topic notes,
+  custom commit messages, and solution-related notes.
 - Extension settings such as folder organization preferences, template
   language, translation language, and sync options.
 - Progress information such as solved counts, difficulty distribution, recent
@@ -51,11 +51,12 @@ data for unrelated analytics or profiling.
 
 LeetHub-Neo stores extension data in the user's browser using Chrome extension
 storage. This includes the GitHub OAuth token, selected repository, settings,
-progress data, notes-related preferences, and cached translations.
+progress data, problem-specific scratchpad drafts and sketches, notes-related
+preferences, and cached translations.
 
 When the user chooses to sync data to GitHub, LeetHub-Neo sends the relevant
-submission code, notes, topic files, templates, metadata, and repository summary
-files to the GitHub repository selected by the user.
+submission code, notes, sketches, topic files, templates, metadata, and
+repository summary files to the GitHub repository selected by the user.
 
 ## Data Sharing
 

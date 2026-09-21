@@ -25,6 +25,7 @@ import {
   getTopicCodeLanguageForPath,
   highlightTopicCodeBlocks,
 } from '../features/sidepanel/topics/topic-code-highlight.js';
+import { createScratchpadController } from '../features/sidepanel/scratchpad/scratchpad-controller.js';
 
 const $ = window.$;
 const oAuth2 = window.oAuth2;
@@ -33,8 +34,13 @@ const topicTemplateUtils = globalThis.LeetHubTopicTemplateUtils;
 const topicTemplateCatalog = globalThis.LeetHubTopicTemplateCatalog;
 const translationLanguageUtils = globalThis.LeetHubTranslationLanguageUtils;
 const repositoryFiles = globalThis.LeetHubRepositoryFiles;
+const scratchpadController = createScratchpadController();
 const THEME_STORAGE_KEY = 'useDarkTheme';
 const AUTO_UPDATE_ROOT_README_STORAGE_KEY = 'autoUpdateRootReadme';
+const INITIAL_SYNC_STATUS_STORAGE_KEY = 'initialSyncStatus';
+const ACTIVITY_CELL_SIZE = 10;
+const ACTIVITY_CELL_GAP = 3;
+const DEFAULT_ACTIVITY_WEEKS = 18;
 const LEETHUB_CONTENT_SCRIPT_FILES = [
   'src/core/config/repository-files.js',
   'src/core/config/leetcode-languages.js',
@@ -49,13 +55,17 @@ const LEETHUB_CONTENT_SCRIPT_FILES = [
 let action = false;
 let activeProblem = null;
 let activeTranslation = null;
+let activeProblemTab = null;
 let topicPanelState = {
   problem: null,
   topics: [],
   selectedTopicSlug: '',
   selectedSubtab: 'notes',
+  templateLanguage: '',
 };
 let shouldRefreshTopicOnFocus = false;
+let displayedActivityByDate = {};
+let renderedActivityWeeks = 0;
 const githubDefaultBranchCache = new Map();
 
 function normalizeTranslationLanguage(language) {
@@ -92,6 +102,39 @@ function buildTopicRepositoryPath(basePath, topicSlug, path = '') {
   );
 }
 
+function getVisibleActivityWeeks(gridElement) {
+  const availableWidth = gridElement?.clientWidth ?? 0;
+  if (!availableWidth) {
+    return DEFAULT_ACTIVITY_WEEKS;
+  }
+
+  return Math.max(
+    1,
+    Math.floor((availableWidth + ACTIVITY_CELL_GAP) / (ACTIVITY_CELL_SIZE + ACTIVITY_CELL_GAP)),
+  );
+}
+
+function renderActivityGrid({ force = false } = {}) {
+  const activityGrid = $('#leethub_activity_grid');
+  const weeks = getVisibleActivityWeeks(activityGrid[0]);
+  if (!force && weeks === renderedActivityWeeks) {
+    return;
+  }
+
+  renderedActivityWeeks = weeks;
+  activityGrid.empty();
+
+  for (const item of createActivityGridItems(displayedActivityByDate, { weeks })) {
+    activityGrid.append(
+      $('<span>', {
+        class: `leethub-activity-cell level-${item.level}`,
+        title: `${item.date}: ${item.count}`,
+        'aria-label': `${item.date}: ${item.count} solved`,
+      }),
+    );
+  }
+}
+
 function updateDisplayedStats(stats) {
   const safeStats = stats ?? {};
 
@@ -121,18 +164,8 @@ function updateDisplayedStats(stats) {
     difficultyStats.append(pill);
   }
 
-  const activityGrid = $('#leethub_activity_grid');
-  activityGrid.empty();
-
-  for (const item of createActivityGridItems(safeStats.activityByDate ?? {})) {
-    activityGrid.append(
-      $('<span>', {
-        class: `leethub-activity-cell level-${item.level}`,
-        title: `${item.date}: ${item.count}`,
-        'aria-label': `${item.date}: ${item.count} solved`,
-      }),
-    );
-  }
+  displayedActivityByDate = safeStats.activityByDate ?? {};
+  renderActivityGrid({ force: true });
 
   const topTags = $('#leethub_top_tags');
   topTags.empty();
@@ -164,32 +197,109 @@ function updateDisplayedStats(stats) {
 }
 
 function initializeStatsRefresh() {
+  const activityGrid = document.getElementById('leethub_activity_grid');
+  if (activityGrid) {
+    new ResizeObserver(() => renderActivityGrid()).observe(activityGrid);
+  }
+
   chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName !== 'local' || !changes.stats?.newValue) {
+    if (areaName !== 'local') {
       return;
     }
 
-    updateDisplayedStats(changes.stats.newValue);
+    if (changes.stats?.newValue) {
+      updateDisplayedStats(changes.stats.newValue);
+    }
+    if (changes[INITIAL_SYNC_STATUS_STORAGE_KEY]) {
+      renderInitialSyncStatus(changes[INITIAL_SYNC_STATUS_STORAGE_KEY].newValue);
+    }
+
+    const languageChange = changes[topicTemplateUtils.TEMPLATE_LANGUAGE_STORAGE_KEY];
+    const visibilityChange = changes[topicTemplateUtils.SHOW_TEMPLATES_STORAGE_KEY];
+    let languageAlreadySelected = false;
+    if (languageChange) {
+      const nextLanguage = topicTemplateUtils.normalizeTemplateLanguage(
+        languageChange.newValue,
+        topicTemplateCatalog,
+      );
+      languageAlreadySelected = topicPanelState.templateLanguage === nextLanguage;
+      topicPanelState.templateLanguage = nextLanguage;
+    }
+    const topicTemplateSettingsChanged = Boolean(
+      (languageChange && !languageAlreadySelected) || visibilityChange,
+    );
+    if (topicTemplateSettingsChanged && topicPanelState.selectedTopicSlug) {
+      loadSelectedTopic().catch(error => setTopicPanelStatus(error.message));
+    }
   });
 }
 
-function sendSyncPreviousMessage(tabId, syncButton, syncStatus) {
-  chrome.tabs.sendMessage(tabId, { action: 'syncPreviousAcceptedSubmissions' }, response => {
-    syncButton.prop('disabled', false);
+function renderInitialSyncStatus(syncStatus) {
+  const banner = $('#initial-sync-banner');
+  const message = $('#initial-sync-message');
+  const retryButton = $('#initial-sync-retry-btn');
+  const status = syncStatus?.status;
+
+  setPreviousSyncControls(status === 'running');
+
+  if (!status || status === 'completed') {
+    banner.prop('hidden', true);
+    return;
+  }
+
+  const messages = {
+    pending: 'Sync pending. Open a signed-in LeetCode tab to continue.',
+    running: 'Syncing your accepted submissions…',
+    failed: `Sync failed. ${syncStatus.error || 'Please retry.'}`,
+  };
+
+  message.text(messages[status] || 'Initial sync status unavailable.');
+  retryButton.prop('hidden', status !== 'failed');
+  retryButton.prop('disabled', status === 'running');
+  banner.prop('hidden', false);
+}
+
+function setPreviousSyncControls(isSyncing) {
+  $('#sync-previous-btn, #leethub-sync-btn').prop('disabled', isSyncing);
+  $('#leethub-sync-btn').toggleClass('syncing', isSyncing);
+}
+
+function requestPreviousSync() {
+  const syncStatus = $('#sync-previous-status');
+  setPreviousSyncControls(true);
+  renderInitialSyncStatus({ status: 'running' });
+  syncStatus.text('Syncing accepted LeetCode submissions...');
+
+  chrome.runtime.sendMessage({ action: 'runPreviousAcceptedSubmissionsSync' }, response => {
+    setPreviousSyncControls(false);
 
     if (chrome.runtime.lastError) {
-      syncStatus.text('Could not connect to the LeetCode page. Refresh it, then try again.');
+      const error = chrome.runtime.lastError.message;
+      renderInitialSyncStatus({ status: 'failed', error });
+      syncStatus.text(error);
       return;
     }
 
-    if (!response?.ok) {
-      syncStatus.text(response?.error || 'Sync failed.');
+    if (response?.synced) {
+      const { counts, totalProblems } = response.result ?? {};
+      const solved = counts?.solved ?? totalProblems ?? 0;
+      syncStatus.text(`Full sync complete. Solved problems: ${solved}.`);
+      if (counts) {
+        updateDisplayedStats(counts);
+      }
       return;
     }
 
-    const { counts, totalProblems } = response.result;
-    syncStatus.text(`Full sync complete. Solved problems: ${counts?.solved ?? totalProblems}.`);
-    updateDisplayedStats(counts);
+    if (response?.reason === 'NO_LEETCODE_TAB') {
+      syncStatus.text(
+        'Open a signed-in LeetCode tab. Sync will continue when it finishes loading.',
+      );
+      return;
+    }
+
+    const error = response?.error || 'Sync failed.';
+    syncStatus.text(error);
+    renderInitialSyncStatus({ status: 'failed', error });
   });
 }
 
@@ -251,6 +361,7 @@ function initializeLeetHubControls() {
   $('#open-leethub-settings-btn').on('click', () => applyLeetHubSubview($, 'settings'));
   $('#back-leethub-home-btn').on('click', () => applyLeetHubSubview($, 'home'));
   initializeThemeControls();
+  $('#initial-sync-retry-btn').on('click', requestPreviousSync);
 
   $('#collapsible-commit-message-icon').click(() => {
     $('#collapsible-commit-message-icon').toggleClass('open');
@@ -348,49 +459,7 @@ function initializeLeetHubControls() {
     chrome.runtime.sendMessage({ action: 'customCommitMessageUpdated', message: null });
   });
 
-  $('#sync-previous-btn').click(() => {
-    const syncButton = $('#sync-previous-btn');
-    const syncStatus = $('#sync-previous-status');
-
-    syncButton.prop('disabled', true);
-    syncStatus.text('Open https://leetcode.com/ and keep it active while syncing...');
-
-    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-      const activeTab = tabs?.[0];
-
-      if (!activeTab?.id || !isLeetCodeUrl(activeTab.url)) {
-        syncStatus.text(
-          'Open https://leetcode.com/ or https://leetcode.cn/, sign in, then try again.',
-        );
-        syncButton.prop('disabled', false);
-        return;
-      }
-
-      chrome.tabs.sendMessage(activeTab.id, { action: 'pingLeetHubNeoContentScript' }, response => {
-        if (!chrome.runtime.lastError && response?.ok) {
-          sendSyncPreviousMessage(activeTab.id, syncButton, syncStatus);
-          return;
-        }
-
-        syncStatus.text('Preparing LeetHub-Neo on this LeetCode tab...');
-        chrome.scripting.executeScript(
-          {
-            target: { tabId: activeTab.id },
-            files: LEETHUB_CONTENT_SCRIPT_FILES,
-          },
-          () => {
-            if (chrome.runtime.lastError) {
-              syncStatus.text('Refresh the LeetCode page, then try again.');
-              syncButton.prop('disabled', false);
-              return;
-            }
-
-            sendSyncPreviousMessage(activeTab.id, syncButton, syncStatus);
-          },
-        );
-      });
-    });
-  });
+  $('#sync-previous-btn, #leethub-sync-btn').on('click', requestPreviousSync);
 
   $('#migrate-repository-structure-btn').click(() => {
     const migrateButton = $('#migrate-repository-structure-btn');
@@ -468,20 +537,24 @@ function initializeLeetHubMode() {
         chrome.storage.local.get('mode_type', data2 => {
           if (data2 && data2.mode_type === 'commit') {
             $('#commit_mode').show();
-            chrome.storage.local.get(['stats', 'leethub_hook'], async data3 => {
-              updateDisplayedStats(data3.stats);
-              if (data3.leethub_hook) {
-                const basePath = await getRepositoryBasePath();
-                const branch = basePath
-                  ? await getGitHubDefaultBranch(token, data3.leethub_hook)
-                  : '';
-                const href = basePath
-                  ? `https://github.com/${data3.leethub_hook}/tree/${encodeURIComponent(branch)}/${encodeGitHubPath(basePath)}`
-                  : `https://github.com/${data3.leethub_hook}`;
-                const label = basePath ? `${data3.leethub_hook}/${basePath}` : data3.leethub_hook;
-                $('#repo_url').html(`<a target="blank" href="${href}">${label}</a>`);
-              }
-            });
+            chrome.storage.local.get(
+              ['stats', 'leethub_hook', INITIAL_SYNC_STATUS_STORAGE_KEY],
+              async data3 => {
+                updateDisplayedStats(data3.stats);
+                renderInitialSyncStatus(data3[INITIAL_SYNC_STATUS_STORAGE_KEY]);
+                if (data3.leethub_hook) {
+                  const basePath = await getRepositoryBasePath();
+                  const branch = basePath
+                    ? await getGitHubDefaultBranch(token, data3.leethub_hook)
+                    : '';
+                  const href = basePath
+                    ? `https://github.com/${data3.leethub_hook}/tree/${encodeURIComponent(branch)}/${encodeGitHubPath(basePath)}`
+                    : `https://github.com/${data3.leethub_hook}`;
+                  const label = basePath ? `${data3.leethub_hook}/${basePath}` : data3.leethub_hook;
+                  $('#repo_url').html(`<a target="blank" href="${href}">${label}</a>`);
+                }
+              },
+            );
           } else {
             $('#hook_mode').show();
           }
@@ -528,6 +601,25 @@ function setTranslationStatus(message, { loading = false } = {}) {
   );
 }
 
+function refreshProblemTab(tab) {
+  setTranslationStatus('Refreshing the LeetCode page...', { loading: true });
+  chrome.tabs.reload(tab.id, () => {
+    if (!chrome.runtime.lastError) {
+      return;
+    }
+
+    setTranslationStatus('Could not refresh the LeetCode page. Try again.');
+  });
+}
+
+function setProblemRefreshButtonMode(mode) {
+  const refreshPage = mode === 'page';
+  $('#translate-refresh-btn').attr({
+    'aria-label': refreshPage ? 'Refresh LeetCode page' : 'Refresh translation',
+    title: refreshPage ? 'Refresh LeetCode page' : 'Refresh translation',
+  });
+}
+
 function setTranslationActionsVisible(isVisible) {
   $('#translation-actions').prop('hidden', !isVisible);
 }
@@ -545,10 +637,45 @@ function setActiveView(viewName) {
   $('#scratchpad_mode').prop('hidden', viewName !== 'scratchpad');
   $('#topic_mode').prop('hidden', viewName !== 'topics');
   $('#leethub_mode').prop('hidden', viewName !== 'leethub');
-  $('#description-tab').toggleClass('active', viewName === 'description');
-  $('#scratchpad-tab').toggleClass('active', viewName === 'scratchpad');
-  $('#topics-tab').toggleClass('active', viewName === 'topics');
-  $('#leethub-tab').toggleClass('active', viewName === 'leethub');
+  const tabStates = {
+    '#description-tab': viewName === 'description',
+    '#scratchpad-tab': viewName === 'scratchpad',
+    '#topics-tab': viewName === 'topics',
+    '#leethub-tab': viewName === 'leethub',
+  };
+  for (const [selector, isActive] of Object.entries(tabStates)) {
+    $(selector)
+      .toggleClass('active', isActive)
+      .attr('aria-selected', String(isActive))
+      .attr('tabindex', isActive ? '0' : '-1');
+  }
+}
+
+function initializeTabKeyboardNavigation(containerSelector, tabSelector) {
+  $(containerSelector).on('keydown', event => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+      return;
+    }
+
+    const tabs = [...document.querySelectorAll(tabSelector)].filter(tab => !tab.disabled);
+    const currentIndex = tabs.indexOf(event.target);
+    if (currentIndex < 0 || !tabs.length) {
+      return;
+    }
+
+    event.preventDefault();
+    let nextIndex;
+    if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = tabs.length - 1;
+    } else {
+      const direction = event.key === 'ArrowRight' ? 1 : -1;
+      nextIndex = (currentIndex + direction + tabs.length) % tabs.length;
+    }
+    tabs[nextIndex].click();
+    tabs[nextIndex].focus();
+  });
 }
 
 function setProblemTabsVisible(isVisible) {
@@ -560,8 +687,12 @@ function setProblemTabsVisible(isVisible) {
 }
 
 function showLeetHubOnly() {
+  scratchpadController
+    .deactivate()
+    .catch(error => console.error('Could not close the active scratchpad.', error));
   activeProblem = null;
   activeTranslation = null;
+  activeProblemTab = null;
   setProblemTabsVisible(false);
   setTranslationActionsVisible(false);
   setTranslationReviewActionsVisible(false);
@@ -829,6 +960,7 @@ function renderTopicSelector() {
       type: 'button',
       class: `topic-chip${topic.slug === topicPanelState.selectedTopicSlug ? ' active' : ''}`,
       text: topic.name,
+      'aria-pressed': String(topic.slug === topicPanelState.selectedTopicSlug),
     });
     button.on('click', () => {
       topicPanelState.selectedTopicSlug = topic.slug;
@@ -836,6 +968,21 @@ function renderTopicSelector() {
       loadSelectedTopic();
     });
     selector.append(button);
+  }
+}
+
+function renderTopicTemplateLanguageSelect(selectedLanguage) {
+  const select = $('#topic-template-language-inline');
+  select.empty();
+
+  for (const language of topicTemplateCatalog?.languages ?? []) {
+    select.append(
+      $('<option>', {
+        value: language.slug,
+        text: language.name,
+        selected: language.slug === selectedLanguage,
+      }),
+    );
   }
 }
 
@@ -1095,9 +1242,13 @@ async function createCustomTopicTemplate(templateName) {
     topicTemplateUtils.SHOW_TEMPLATES_STORAGE_KEY,
   ]);
   const settings = topicTemplateUtils.createTemplateSettings(settingsValues, topicTemplateCatalog);
+  const templateLanguage = topicTemplateUtils.normalizeTemplateLanguage(
+    topicPanelState.templateLanguage || settings.topicTemplateLanguage,
+    topicTemplateCatalog,
+  );
   const baseEntry = topicTemplateUtils.createCustomTemplateEntry(
     templateName,
-    settings.topicTemplateLanguage,
+    templateLanguage,
     topicTemplateCatalog,
   );
 
@@ -1125,21 +1276,17 @@ async function createCustomTopicTemplate(templateName) {
       source: 'custom',
       templates: [],
     };
-    const entry = createUniqueTemplateEntry(
-      baseEntry,
-      templatesDocument,
-      settings.topicTemplateLanguage,
-    );
+    const entry = createUniqueTemplateEntry(baseEntry, templatesDocument, templateLanguage);
     const templatePath = buildTopicRepositoryPath(basePath, topic.slug, entry.path);
     const templateContent = topicTemplateUtils.createCustomTemplateContent(
       entry.title,
-      settings.topicTemplateLanguage,
+      templateLanguage,
     );
     const nextTemplatesDocument = appendTemplateEntryToDocument(
       templatesDocument,
       topic,
       entry,
-      settings.topicTemplateLanguage,
+      templateLanguage,
     );
 
     await createGitHubTextFile(token, hook, {
@@ -1201,10 +1348,17 @@ function renderTemplateEntries(entries, templateTexts) {
 
 function setTopicSubtab(subtab) {
   topicPanelState.selectedSubtab = subtab;
-  $('#topic-notes-tab').toggleClass('active', subtab === 'notes');
-  $('#topic-templates-tab').toggleClass('active', subtab === 'templates');
+  $('#topic-notes-tab')
+    .toggleClass('active', subtab === 'notes')
+    .attr('aria-selected', String(subtab === 'notes'))
+    .attr('tabindex', subtab === 'notes' ? '0' : '-1');
+  $('#topic-templates-tab')
+    .toggleClass('active', subtab === 'templates')
+    .attr('aria-selected', String(subtab === 'templates'))
+    .attr('tabindex', subtab === 'templates' ? '0' : '-1');
   $('#topic-notes-panel').prop('hidden', subtab !== 'notes');
   $('#topic-templates-panel').prop('hidden', subtab !== 'templates');
+  $('#topic-template-language-toolbar').prop('hidden', subtab !== 'templates');
 }
 
 async function loadSelectedTopic() {
@@ -1252,6 +1406,12 @@ async function loadSelectedTopic() {
       settingsValues,
       topicTemplateCatalog,
     );
+    const templateLanguage = topicTemplateUtils.normalizeTemplateLanguage(
+      topicPanelState.templateLanguage || settings.topicTemplateLanguage,
+      topicTemplateCatalog,
+    );
+    topicPanelState.templateLanguage = templateLanguage;
+    renderTopicTemplateLanguageSelect(templateLanguage);
     const notesMarkdown = topicFiles.readme;
     const problems = topicPanelUtils.normalizePanelProblems(
       parseJsonDocument(topicFiles.problems),
@@ -1267,7 +1427,7 @@ async function loadSelectedTopic() {
         : null);
     const templateEntries = topicPanelUtils.getTemplateEntriesForLanguage(
       templatesDocument,
-      settings.topicTemplateLanguage,
+      templateLanguage,
     );
     const solutionContents = new Map();
     const templateTexts = new Map();
@@ -1284,11 +1444,7 @@ async function loadSelectedTopic() {
 
     if (settings.showTopicTemplates) {
       for (const entry of templateEntries) {
-        const catalogFile = getCatalogTemplateFile(
-          topic.slug,
-          entry.id,
-          settings.topicTemplateLanguage,
-        );
+        const catalogFile = getCatalogTemplateFile(topic.slug, entry.id, templateLanguage);
         const githubContent = await getGitHubTextFile(
           token,
           hook,
@@ -1350,9 +1506,18 @@ function renderTopicPanel(problem) {
     problem,
     topics,
     selectedTopicSlug: topics[0]?.slug ?? '',
+    templateLanguage: topicTemplateUtils.normalizeProblemTemplateLanguage(
+      problem.editorLanguage,
+      topicTemplateCatalog,
+    ),
   };
 
-  $('#topics-tab').prop('disabled', topics.length === 0);
+  if (topicPanelState.templateLanguage) {
+    renderTopicTemplateLanguageSelect(topicPanelState.templateLanguage);
+  }
+
+  $('#topics-tab').prop('disabled', false);
+  $('#topic-controls-row').prop('hidden', topics.length === 0);
 
   if (!topics.length) {
     $('#topic-selector').empty();
@@ -1365,6 +1530,7 @@ function renderTopicPanel(problem) {
   }
 
   renderTopicSelector();
+  setTopicSubtab(topicPanelState.selectedSubtab);
   loadSelectedTopic();
 }
 
@@ -1547,21 +1713,33 @@ function requestProblemFromTab(tab) {
     return;
   }
 
+  activeProblem = null;
+  activeTranslation = null;
+  activeProblemTab = { id: tab.id, url: tab.url };
   setProblemTabsVisible(true);
   setActiveView('description');
+  setTranslationActionsVisible(true);
+  setProblemRefreshButtonMode('page');
   setTranslationStatus('Loading LeetCode problem description...', { loading: true });
 
   chrome.tabs.sendMessage(tab.id, { action: 'getCurrentLeetCodeProblem' }, response => {
     if (chrome.runtime.lastError) {
-      setTranslationStatus('Refresh the LeetCode page, then reopen the side panel.');
+      setTranslationStatus(
+        'LeetHub-Neo needs to reload this problem page. Use the refresh icon above.',
+      );
       return;
     }
 
     if (!response?.ok) {
-      setTranslationStatus(response?.error || 'Could not load the LeetCode problem.');
+      const errorMessage = response?.error || 'Could not load the LeetCode problem.';
+      setTranslationStatus(`${errorMessage} Use the refresh icon above.`);
       return;
     }
 
+    setProblemRefreshButtonMode('translation');
+    scratchpadController
+      .activateProblem(response.problem)
+      .catch(error => console.error('Could not load the problem scratchpad.', error));
     translateProblemDescription(response.problem).catch(error => {
       setTranslationStatus(error.message);
       setTranslationActionsVisible(true);
@@ -1584,15 +1762,23 @@ function queryActiveTab(callback) {
 
 function initializeTranslationPanel() {
   chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-    if (request?.action !== 'getScratchpadContentForUpload') {
+    if (request?.action === 'getScratchpadContentForUpload') {
+      sendResponse({
+        ok: true,
+        content: String($('#scratchpad-input').val() ?? ''),
+      });
       return false;
     }
 
-    sendResponse({
-      ok: true,
-      content: String($('#scratchpad-input').val() ?? ''),
-    });
-    return false;
+    if (request?.action !== 'getScratchpadDraftForUpload') {
+      return false;
+    }
+
+    scratchpadController
+      .getDraftForUpload(request.problemSlug, request.problemSite)
+      .then(payload => sendResponse({ ok: true, ...payload }))
+      .catch(error => sendResponse({ ok: false, error: error.message }));
+    return true;
   });
 
   $('#description-tab').on('click', () => setActiveView('description'));
@@ -1601,6 +1787,16 @@ function initializeTranslationPanel() {
   $('#leethub-tab').on('click', () => setActiveView('leethub'));
   $('#topic-notes-tab').on('click', () => setTopicSubtab('notes'));
   $('#topic-templates-tab').on('click', () => setTopicSubtab('templates'));
+  $('#topic-template-language-inline').on('change', function () {
+    const templateLanguage = topicTemplateUtils.normalizeTemplateLanguage(
+      $(this).val(),
+      topicTemplateCatalog,
+    );
+    topicPanelState.templateLanguage = templateLanguage;
+    loadSelectedTopic().catch(error => setTopicPanelStatus(error.message));
+  });
+  initializeTabKeyboardNavigation('#sidepanel_tabs', '.sidepanel-tab');
+  initializeTabKeyboardNavigation('#topic-subtabs', '.topic-subtab');
   $('#topic-readme-edit-btn').on('click', openSelectedTopicReadmeInGitHub);
   window.addEventListener('focus', refreshTopicOnFocus);
 
@@ -1609,6 +1805,11 @@ function initializeTranslationPanel() {
       translateProblemDescription(activeProblem, { forceRefresh: true }).catch(error =>
         setTranslationStatus(error.message),
       );
+      return;
+    }
+
+    if (activeProblemTab) {
+      refreshProblemTab(activeProblemTab);
     }
   });
 

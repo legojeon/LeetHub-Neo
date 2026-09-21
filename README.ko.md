@@ -33,6 +33,19 @@ LeetHub-Neo는 [LeetHub-3.0](https://github.com/raphaelheinz/LeetHub-3.0)을
 기반으로 한 fork이며, 이 프로젝트를 위한 추가 기능과 유지보수가 포함되어
 있습니다.
 
+## 1.2.0 업데이트
+
+- Scratchpad에 선택적으로 여러 개 추가할 수 있는 SVG sketch 탭을
+  추가했습니다. 이름 변경, 지우개, 이동, 확대·축소, 접기, 높이 조절을
+  지원하며 노트와 그림은 로컬에 저장된 후 문제 폴더로 동기화됩니다.
+- 사이드 패널 탐색과 Topics 작업 공간을 정리하고 Notes와 Templates 화면,
+  문제 언어 자동 선택 및 수동 언어 선택 기능을 추가했습니다.
+- LeetHub 대시보드의 빠른 동기화, 계정 확인, 전체 제출 기록 페이지네이션,
+  불완전한 LeetCode 응답이 정상 통계를 덮어쓰지 못하게 하는 보호 로직으로
+  최초 및 수동 동기화를 개선했습니다.
+- 사이드 패널을 넓힐수록 더 오래된 기록을 표시하는 반응형 정사각형 잔디
+  그래프를 추가했습니다.
+
 ## 1.1.0 업데이트
 
 - LeetHub-Neo가 생성하는 파일을 선택한 저장소 폴더 아래에 모을 수 있도록
@@ -41,7 +54,7 @@ LeetHub-Neo는 [LeetHub-3.0](https://github.com/raphaelheinz/LeetHub-3.0)을
   있는 옵션을 추가했습니다.
 - LeetTranslate 조회, Chrome Translator fallback, 대상 언어 선택, 로딩 표시,
   번역 검토 요청을 포함한 개선된 문제 설명 번역 흐름을 추가했습니다.
-- 문제 다이어그램이 Description 탭에서 원래 순서와 비율을 유지하도록 이미지
+- 문제 다이어그램이 Problem 탭에서 원래 순서와 비율을 유지하도록 이미지
   렌더링을 개선했습니다.
 - 영어/한국어 README 문서를 업데이트했습니다.
 
@@ -75,15 +88,20 @@ Chrome Web Store에서 LeetHub-Neo를 설치하세요:
 2. GitHub로 인증합니다.
 3. 기존 저장소를 연결하거나 새 저장소를 만듭니다.
 4. 필요하다면 LeetHub-Neo 파일을 둘 동기화 폴더를 설정합니다.
-5. LeetCode 문제를 열고 평소처럼 풉니다. Accepted 제출 후에는 LeetHub-Neo
+5. GitHub 연결 시 최초 제출 동기화를 켜면 로그인된 LeetCode 탭이 있을 때 바로
+   시작합니다. 탭이 없다면 대기 상태로 저장되며 다음에 LeetCode를 열 때
+   시작하고, 진행 상태는 LeetHub 화면에 표시됩니다.
+6. LeetCode 문제를 열고 평소처럼 풉니다. Accepted 제출 후에는 LeetHub-Neo
    동기화가 끝날 때까지 에디터를 바꾸거나 페이지를 떠나지 않는 것이 좋습니다.
-6. LeetHub 설정의 **Sync Previous**로 설치/설정 전에 해결한 Accepted 제출을
+7. LeetHub 설정의 **Sync Previous**로 설치/설정 전에 해결한 Accepted 제출을
    가져올 수 있습니다.
-7. 풀이 중 사이드 패널 탭을 활용합니다:
-   - **Description**: 문제 설명, 선택적 번역, 다이어그램, 번역 검토 요청
+8. 풀이 중 사이드 패널 탭을 활용합니다:
+   - **Problem**: 문제 설명, 선택적 번역, 다이어그램, 번역 검토 요청
      버튼을 확인합니다.
-   - **Scratchpad**: 자유롭게 풀이 노트를 작성합니다. 동기화된 scratchpad는
-     문제 폴더의 `memo.txt`로 저장됩니다.
+   - **Scratchpad**: 문제별 풀이 노트를 작성하고 자료구조나 다이어그램을 위한
+     sketch 탭을 선택적으로 여러 개 추가합니다. 탭을 더블클릭하면 이름을 바꿀
+     수 있습니다. 초안은 로컬에 자동 저장되며 Accepted 제출 시 텍스트는
+     `memo.txt`, 그림은 `sketch.svg`, `sketch-2.svg` 등의 파일로 동기화됩니다.
    - **Topics**: 토픽 노트, 관련 solved 문제, 재사용 템플릿을 확인합니다.
    - **LeetHub**: 진행 상황, 이전 제출 동기화, 저장소 설정을 관리합니다.
 
@@ -109,6 +127,8 @@ LeetCode/
       README.md
       two-sum.py
       memo.txt
+      sketch.svg
+      sketch-2.svg
   Medium/
     0002-add-two-numbers/
       README.md
@@ -136,18 +156,18 @@ LeetCode/
 
 ### 번역 언어
 
-LeetHub 설정에서 **Translation Language**를 펼쳐 Description 탭에서 사용할
+LeetHub 설정에서 **Translation Language**를 펼쳐 Problem 탭에서 사용할
 언어를 선택할 수 있습니다. LeetHub-Neo는 39개 대상 언어를 지원합니다.
 번역은 먼저 LeetTranslate API에 저장된 번역을 요청하고, 서버가 사용할 수 없거나
 저장된 번역이 없으면 Chrome 내장 Translator API로 fallback합니다.
 
-번역된 문장이 어색하면 Description 탭의 **Request translation review**를
+번역된 문장이 어색하면 Problem 탭의 **Request translation review**를
 클릭하세요. 요청은 LeetTranslate 검토 큐로 전송되어 나중에 확인할 수 있습니다.
 
 <p align="center">
   <img src="assets/extension/req_review.png" alt="LeetHub-Neo 번역 검토 요청" width="640">
   <br>
-  <sub>Description 탭에서 번역 검토 요청 보내기</sub>
+  <sub>Problem 탭에서 번역 검토 요청 보내기</sub>
 </p>
 
 ## 스크린샷
@@ -196,10 +216,12 @@ LeetHub 설정에서 **Translation Language**를 펼쳐 Description 탭에서 �
 - **문제 설명 번역**: LeetTranslate 서버 조회를 먼저 시도하고 Chrome 내장
   Translator API를 fallback으로 사용해 영어 문제 설명을 39개 선택 가능 언어로
   번역합니다.
-- **번역 검토 요청**: 번역이 어색하면 Description 탭의
+- **번역 검토 요청**: 번역이 어색하면 Problem 탭의
   **Request translation review** 버튼으로 검토 요청을 보낼 수 있습니다.
-- **Scratchpad**: 사이드 패널에서 풀이 노트를 작성하고 각 문제 폴더의
-  `memo.txt`로 동기화할 수 있습니다.
+- **Scratchpad**: 사이드 패널에서 문제별 풀이 노트와 선택적으로 여러 개의 벡터
+  sketch 탭을 작성합니다. 이름 변경·접기·높이 조절·이동·확대를 지원하며,
+  초안은 로컬에 저장되고 문제 폴더의 `memo.txt`, `sketch.svg`,
+  `sketch-2.svg` 등의 파일로 동기화됩니다.
 - **토픽 작업 공간**: 문제의 토픽 태그를 보고, 토픽 노트를 만들고, 관련 풀이
   문제를 `Topics/` 아래에 모을 수 있습니다.
 - **재사용 가능한 템플릿**: C++, Java, JavaScript, Lua, Python, Ruby용 알고리즘
@@ -249,9 +271,8 @@ README 동기화를 끄지 않았다면 생성된 루트 `README.md`가 토픽�
 - [ ] **Notion 및 Obsidian 워크플로우**: 토픽 노트는 이미 Markdown 파일로
       저장됩니다. 앞으로 자동 hook, action, 저장소와 지식 베이스 연동 등으로
       더 자연스러운 Notion/Obsidian 워크플로우를 확장할 수 있습니다.
-- [ ] **Scratchpad whiteboard**: 현재 scratchpad는 텍스트 중심입니다. 향후에는
-      자료구조, 다이어그램, 설명 스케치를 위한 드로잉 도구를 기존 scratchpad
-      흐름과 통합할 수 있습니다.
+- [x] **Scratchpad whiteboard**: 문제별 메모에 자료구조, 다이어그램, 설명
+      그림을 위한 선택적 SVG sketch 탭과 이름 변경 기능이 통합되었습니다.
 - [ ] **Big-O notation helper**: solution을 작성하는 동안 시간/공간 복잡도를
       추정하거나 표시하는 helper를 추가할 수 있습니다.
 

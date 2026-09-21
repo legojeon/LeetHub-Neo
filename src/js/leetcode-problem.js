@@ -12,6 +12,71 @@ function getCurrentLeetCodeSite() {
   return window.location.hostname.includes('leetcode.cn') ? 'leetcode.cn' : 'leetcode.com';
 }
 
+function getCurrentEditorLanguage() {
+  const languageNames = Object.keys(
+    globalThis.LeetHubLeetCodeLanguages?.LEETCODE_LANGUAGE_EXTENSIONS ?? {},
+  );
+  const languageElements = [
+    ...document.querySelectorAll('[data-cy="lang-select"]'),
+    ...document.querySelectorAll('button[id^="headlessui-listbox-button"]'),
+    ...document.querySelectorAll('.ant-select-selection-selected-value, .Select-value-label'),
+  ];
+
+  for (const element of languageElements) {
+    const values = [
+      element.textContent,
+      element.getAttribute('aria-label'),
+      element.getAttribute('title'),
+      element.getAttribute('data-value'),
+    ];
+
+    for (const value of values) {
+      const normalizedValue = String(value ?? '')
+        .trim()
+        .toLowerCase();
+      const language = languageNames.find(name => name.toLowerCase() === normalizedValue);
+      if (language) {
+        return language;
+      }
+    }
+  }
+
+  return '';
+}
+
+function detectCurrentEditorLanguage(timeoutMs = 1200) {
+  const currentLanguage = getCurrentEditorLanguage();
+  if (currentLanguage || !document.documentElement) {
+    return Promise.resolve(currentLanguage);
+  }
+
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = language => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      observer.disconnect();
+      clearTimeout(timeoutId);
+      resolve(language);
+    };
+    const observer = new MutationObserver(() => {
+      const language = getCurrentEditorLanguage();
+      if (language) {
+        finish(language);
+      }
+    });
+    const timeoutId = setTimeout(() => finish(''), timeoutMs);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      characterData: true,
+      childList: true,
+      subtree: true,
+    });
+  });
+}
+
 function htmlToPlainText(html) {
   const template = document.createElement('template');
   template.innerHTML = html ?? '';
@@ -183,12 +248,16 @@ async function getCurrentLeetCodeProblem() {
     };
   }
 
+  const editorLanguagePromise = detectCurrentEditorLanguage();
   try {
     const problem = await fetchProblemBySlug(slug);
+    problem.editorLanguage = await editorLanguagePromise;
     return { ok: true, problem };
   } catch (error) {
     try {
-      return { ok: true, problem: getProblemFromDomFallback(slug) };
+      const problem = getProblemFromDomFallback(slug);
+      problem.editorLanguage = await editorLanguagePromise;
+      return { ok: true, problem };
     } catch {
       return { ok: false, error: error.message };
     }

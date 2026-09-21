@@ -52,57 +52,144 @@ function getPathFilename(path) {
   );
 }
 
-function requestScratchpadContentForUpload() {
+function getScratchpadProblemSlug(leetCode, problemName = '') {
+  const submissionSlug = leetCode?.submissionData?.question?.titleSlug;
+  if (submissionSlug) {
+    return submissionSlug;
+  }
+
+  const pathSlug = window.location.pathname.match(/^\/problems\/([^/]+)(?:\/|$)/)?.[1];
+  if (pathSlug) {
+    return pathSlug;
+  }
+
+  return String(problemName).replace(/^\d+-/, '');
+}
+
+function getScratchpadSite() {
+  return window.location.hostname.includes('leetcode.cn') ? 'leetcode.cn' : 'leetcode.com';
+}
+
+async function getStoredScratchpadDraft(problemSlug, problemSite) {
+  const storageKey = scratchpadMemo?.createScratchpadStorageKey?.(problemSlug, problemSite);
+  if (!storageKey) {
+    return (
+      scratchpadMemo?.normalizeScratchpadDraft?.(null) ?? {
+        text: '',
+        sketches: [],
+      }
+    );
+  }
+
+  const values = await chrome.storage.local.get(storageKey);
+  return scratchpadMemo.normalizeScratchpadDraft(values[storageKey]);
+}
+
+function requestOpenScratchpadDraft(problemSlug, problemSite) {
   return new Promise(resolve => {
     let settled = false;
     const timer = setTimeout(() => {
       if (!settled) {
         settled = true;
-        resolve('');
+        resolve(null);
       }
-    }, 300);
+    }, 700);
 
-    chrome.runtime.sendMessage({ action: 'getScratchpadContentForUpload' }, response => {
-      if (settled) {
-        return;
-      }
+    chrome.runtime.sendMessage(
+      { action: 'getScratchpadDraftForUpload', problemSlug, problemSite },
+      response => {
+        if (settled) {
+          return;
+        }
 
-      settled = true;
-      clearTimeout(timer);
+        settled = true;
+        clearTimeout(timer);
 
-      if (chrome.runtime.lastError || !response?.ok) {
-        resolve('');
-        return;
-      }
+        if (chrome.runtime.lastError || !response?.ok) {
+          resolve(null);
+          return;
+        }
 
-      resolve(String(response.content ?? ''));
-    });
+        resolve({
+          text: String(response.text ?? ''),
+          sketches: Array.isArray(response.sketches)
+            ? response.sketches
+                .map(sketch => ({
+                  filename: String(sketch?.filename ?? ''),
+                  content: String(sketch?.content ?? ''),
+                }))
+                .filter(
+                  sketch =>
+                    /^sketch(?:-(?:[2-9]|[1-9]\d+))?\.svg$/.test(sketch.filename) && sketch.content,
+                )
+            : response.sketchSvg
+              ? [
+                  {
+                    filename: repositoryFiles.SCRATCHPAD_SKETCH_FILENAME,
+                    content: String(response.sketchSvg),
+                  },
+                ]
+              : [],
+        });
+      },
+    );
   });
 }
 
-async function formatScratchpadMemoForUpload() {
-  const scratchpadText = await requestScratchpadContentForUpload();
-
-  return scratchpadMemo?.formatScratchpadMemo
-    ? scratchpadMemo.formatScratchpadMemo(scratchpadText)
-    : '';
-}
-
-async function uploadScratchpadMemoIfAny(problemName) {
-  const memoContent = await formatScratchpadMemoForUpload();
-
-  if (!memoContent) {
-    return undefined;
+async function getScratchpadAssetsForUpload(problemSlug) {
+  const problemSite = getScratchpadSite();
+  const openDraft = await requestOpenScratchpadDraft(problemSlug, problemSite);
+  if (openDraft) {
+    return {
+      memoContent: scratchpadMemo?.formatScratchpadMemo(openDraft.text) ?? '',
+      sketches: openDraft.sketches,
+    };
   }
 
-  return uploadGit(
-    encodeContent(memoContent),
-    problemName,
-    repositoryFiles.SCRATCHPAD_MEMO_FILENAME,
-    `Attach memo : ${problemName}`,
-    'upload',
-    false,
-  );
+  const storedDraft = await getStoredScratchpadDraft(problemSlug, problemSite);
+
+  return {
+    memoContent: scratchpadMemo?.formatScratchpadMemo(storedDraft.text) ?? '',
+    sketches: (storedDraft.sketches ?? [])
+      .map(sketch => ({
+        filename: sketch.filename,
+        content: scratchpadMemo?.serializeSketchToSvg(sketch) ?? '',
+      }))
+      .filter(sketch => sketch.content),
+  };
+}
+
+async function uploadScratchpadMemoIfAny(problemName, problemSlug = '') {
+  const { memoContent, sketches } = await getScratchpadAssetsForUpload(problemSlug);
+  const uploadResults = [];
+
+  if (memoContent) {
+    uploadResults.push(
+      await uploadGit(
+        encodeContent(memoContent),
+        problemName,
+        repositoryFiles.SCRATCHPAD_MEMO_FILENAME,
+        `Attach memo : ${problemName}`,
+        'upload',
+        false,
+      ),
+    );
+  }
+
+  for (const sketch of sketches) {
+    uploadResults.push(
+      await uploadGit(
+        encodeContent(sketch.content),
+        problemName,
+        sketch.filename,
+        `Attach sketch : ${problemName}`,
+        'upload',
+        false,
+      ),
+    );
+  }
+
+  return uploadResults.length ? uploadResults : undefined;
 }
 
 /* Difficulty of most recenty submitted question */
@@ -318,6 +405,7 @@ async function ensureLeetCodeAccountCanSync({ confirmMismatch = true } = {}) {
 }
 
 const PROFILE_ACCEPTED_SUBMISSIONS_LIMIT = 5000;
+const SUBMISSION_LIST_PAGE_LIMIT = 20;
 
 function normalizeRecentAcceptedSubmission(submission) {
   return {
@@ -345,7 +433,10 @@ async function fetchProfileAcceptedSubmissions({ username, limit = 50 } = {}) {
     throw new Error('LeetCode response did not include recentAcSubmissionList');
   }
 
-  return submissions.map(normalizeRecentAcceptedSubmission);
+  return {
+    expectedSolvedCount: leetCodeAccountUtils.getProfileSolvedProblemCount(data),
+    submissions: submissions.map(normalizeRecentAcceptedSubmission),
+  };
 }
 
 async function fetchSubmissionListAcceptedSubmissions({
@@ -355,6 +446,13 @@ async function fetchSubmissionListAcceptedSubmissions({
   questionSlug = undefined,
 } = {}) {
   const acceptedSubmissions = [];
+  const requestedLimit = Number(limit);
+  const pageLimit = Math.min(
+    SUBMISSION_LIST_PAGE_LIMIT,
+    Number.isInteger(requestedLimit) && requestedLimit > 0
+      ? requestedLimit
+      : SUBMISSION_LIST_PAGE_LIMIT,
+  );
   let currentOffset = offset;
   let lastKey = null;
   let hasNext = true;
@@ -365,7 +463,7 @@ async function fetchSubmissionListAcceptedSubmissions({
       SUBMISSION_LIST_QUERY,
       {
         offset: currentOffset,
-        limit,
+        limit: pageLimit,
         lastKey,
         questionSlug,
       },
@@ -377,26 +475,26 @@ async function fetchSubmissionListAcceptedSubmissions({
       throw new Error('LeetCode response did not include submissionList');
     }
 
+    const pageSubmissions = Array.isArray(submissionList.submissions)
+      ? submissionList.submissions
+      : [];
     acceptedSubmissions.push(
-      ...submissionList.submissions.filter(submission => submission.statusDisplay === 'Accepted'),
+      ...pageSubmissions.filter(submission => submission.statusDisplay === 'Accepted'),
     );
 
     hasNext = Boolean(submissionList.hasNext);
     lastKey = submissionList.lastKey;
-    currentOffset += limit;
+    currentOffset += pageSubmissions.length;
     pagesFetched += 1;
+
+    if (hasNext && pageSubmissions.length === 0) {
+      throw new Error('LeetCode returned an empty submissions page before pagination completed.');
+    }
   }
 
-  console.table(
-    acceptedSubmissions.map(submission => ({
-      id: submission.id,
-      title: submission.title,
-      titleSlug: submission.titleSlug,
-      lang: submission.lang,
-      timestamp: submission.timestamp,
-    })),
+  console.info(
+    `[LeetHub-Neo] Fetched ${acceptedSubmissions.length} accepted submissions across ${pagesFetched} pages.`,
   );
-  console.info('[LeetHub-Neo] Accepted submissions fetched:', acceptedSubmissions);
 
   return acceptedSubmissions;
 }
@@ -413,27 +511,49 @@ async function fetchAcceptedSubmissions(options = {}) {
     : await fetchCurrentLeetCodeAccount();
 
   if (account.site !== 'leetcode.cn' && account.username) {
+    let profileAcceptedSubmissions = null;
+
     try {
-      const acceptedSubmissions = await fetchProfileAcceptedSubmissions({
+      profileAcceptedSubmissions = await fetchProfileAcceptedSubmissions({
         ...options,
         username: account.username,
       });
-
-      console.table(
-        acceptedSubmissions.map(submission => ({
-          id: submission.id,
-          title: submission.title,
-          titleSlug: submission.titleSlug,
-          timestamp: submission.timestamp,
-        })),
-      );
-      console.info('[LeetHub-Neo] Profile accepted submissions fetched:', acceptedSubmissions);
-
-      return acceptedSubmissions;
     } catch (error) {
       console.warn(
         `[LeetHub-Neo] Profile accepted submissions failed, falling back to submissionList: ${error.message}`,
       );
+    }
+
+    if (profileAcceptedSubmissions) {
+      const { submissions, expectedSolvedCount } = profileAcceptedSubmissions;
+      const coverage = leetCodeAccountUtils.getAcceptedSubmissionCoverage(
+        submissions,
+        expectedSolvedCount,
+      );
+      console.info(
+        `[LeetHub-Neo] Profile accepted coverage: ${coverage.found}/${coverage.expected ?? 'unknown'} solved problems.`,
+      );
+
+      if (coverage.complete) {
+        return submissions;
+      }
+
+      console.warn(
+        `[LeetHub-Neo] Recent accepted submissions are incomplete (${coverage.found}/${coverage.expected}); falling back to paginated submissionList.`,
+      );
+      const paginatedSubmissions = await fetchSubmissionListAcceptedSubmissions(options);
+      const paginatedCoverage = leetCodeAccountUtils.getAcceptedSubmissionCoverage(
+        paginatedSubmissions,
+        expectedSolvedCount,
+      );
+
+      if (!paginatedCoverage.complete) {
+        throw new Error(
+          `LeetCode returned only ${paginatedCoverage.found} of ${paginatedCoverage.expected} solved problems. Sync stopped to preserve existing stats.`,
+        );
+      }
+
+      return paginatedSubmissions;
     }
   }
 
@@ -672,7 +792,10 @@ async function uploadLeetCodeV2Submission(leetCode, suffix, { updateSummary = tr
       false,
     );
   }
-  const updateMemo = uploadScratchpadMemoIfAny(problemName);
+  const updateMemo = uploadScratchpadMemoIfAny(
+    problemName,
+    getScratchpadProblemSlug(leetCode, problemName),
+  );
 
   const problemContext = {
     time: `${probStats.time} (${probStats.timePercentile}%)`,
@@ -3082,7 +3205,10 @@ const loader = (leetCode, suffix) => {
           false,
         );
       }
-      const updateMemo = uploadScratchpadMemoIfAny(problemName);
+      const updateMemo = uploadScratchpadMemoIfAny(
+        problemName,
+        getScratchpadProblemSlug(leetCode, problemName),
+      );
 
       const problemContext = {
         time: `${probStats.time} (${probStats.timePercentile}%)`,
