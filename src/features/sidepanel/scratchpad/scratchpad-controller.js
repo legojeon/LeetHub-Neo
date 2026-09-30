@@ -152,14 +152,44 @@ export function createScratchpadController({
   let activeElementId = '';
   let saveTimer = null;
   let statusTimer = null;
-  let undoHistory = [];
-  let redoHistory = [];
+  const undoHistoryBySketchId = new Map();
+  const redoHistoryBySketchId = new Map();
   let textPlacement = null;
   let resizeState = null;
   let panState = null;
   let renamingSketchId = '';
   let renderedTabsSignature = '';
   let transitionPromise = Promise.resolve();
+
+  function getSketchUndoHistory(sketchId = draft.activeSketchId) {
+    if (!sketchId) {
+      return [];
+    }
+    if (!undoHistoryBySketchId.has(sketchId)) {
+      undoHistoryBySketchId.set(sketchId, []);
+    }
+    return undoHistoryBySketchId.get(sketchId);
+  }
+
+  function getSketchRedoHistory(sketchId = draft.activeSketchId) {
+    if (!sketchId) {
+      return [];
+    }
+    if (!redoHistoryBySketchId.has(sketchId)) {
+      redoHistoryBySketchId.set(sketchId, []);
+    }
+    return redoHistoryBySketchId.get(sketchId);
+  }
+
+  function clearSketchHistory(sketchId) {
+    if (sketchId) {
+      undoHistoryBySketchId.delete(sketchId);
+      redoHistoryBySketchId.delete(sketchId);
+    } else {
+      undoHistoryBySketchId.clear();
+      redoHistoryBySketchId.clear();
+    }
+  }
 
   function currentSketch() {
     return (
@@ -373,8 +403,6 @@ export function createScratchpadController({
     panState = null;
     sketchCanvas.classList.remove('panning');
     hideTextInput();
-    undoHistory = [];
-    redoHistory = [];
   }
 
   function selectSketch(sketchId) {
@@ -542,6 +570,8 @@ export function createScratchpadController({
     const sketchCount = draft.sketches.length;
     const elementSummary = count ? `${count} element${count === 1 ? '' : 's'}` : 'Empty';
     sketchSummary.textContent = `${sketchCount} sketch${sketchCount === 1 ? '' : 'es'} · ${elementSummary}`;
+    const undoHistory = getSketchUndoHistory(sketch.id);
+    const redoHistory = getSketchRedoHistory(sketch.id);
     undoButton.disabled = !undoHistory.length;
     redoButton.disabled = !redoHistory.length;
     clearButton.disabled = !count;
@@ -567,11 +597,17 @@ export function createScratchpadController({
   }
 
   function pushUndoState() {
-    undoHistory.push(clone(currentSketch()?.elements ?? []));
+    const sketch = currentSketch();
+    if (!sketch) {
+      return;
+    }
+    const undoHistory = getSketchUndoHistory(sketch.id);
+    undoHistory.push(clone(sketch.elements ?? []));
     if (undoHistory.length > MAX_HISTORY_LENGTH) {
       undoHistory.shift();
     }
-    redoHistory = [];
+    const redoHistory = getSketchRedoHistory(sketch.id);
+    redoHistory.length = 0;
   }
 
   function applyHistory(elements) {
@@ -585,20 +621,32 @@ export function createScratchpadController({
   }
 
   function undo() {
+    const sketch = currentSketch();
+    if (!sketch) {
+      return;
+    }
+    const undoHistory = getSketchUndoHistory(sketch.id);
     const previous = undoHistory.pop();
     if (!previous) {
       return;
     }
-    redoHistory.push(clone(currentSketch().elements));
+    const redoHistory = getSketchRedoHistory(sketch.id);
+    redoHistory.push(clone(sketch.elements));
     applyHistory(previous);
   }
 
   function redo() {
+    const sketch = currentSketch();
+    if (!sketch) {
+      return;
+    }
+    const redoHistory = getSketchRedoHistory(sketch.id);
     const next = redoHistory.pop();
     if (!next) {
       return;
     }
-    undoHistory.push(clone(currentSketch().elements));
+    const undoHistory = getSketchUndoHistory(sketch.id);
+    undoHistory.push(clone(sketch.elements));
     applyHistory(next);
   }
 
@@ -792,6 +840,7 @@ export function createScratchpadController({
       Math.hypot(element.x2 - element.x1, element.y2 - element.y1) < 8;
     if (isTinyPath || isTinyShape) {
       sketch.elements = sketch.elements.filter(item => item.id !== activeElementId);
+      const undoHistory = getSketchUndoHistory(sketch.id);
       undoHistory.pop();
     } else {
       scheduleSave();
@@ -851,8 +900,7 @@ export function createScratchpadController({
 
     draft = scratchpadMemo.normalizeScratchpadDraft(values[activeStorageKey]);
     textInput.value = draft.text;
-    undoHistory = [];
-    redoHistory = [];
+    clearSketchHistory();
     renamingSketchId = '';
     renderedTabsSignature = '';
     hideTextInput();
@@ -872,8 +920,7 @@ export function createScratchpadController({
     activeStorageKey = '';
     draft = scratchpadMemo.normalizeScratchpadDraft(null);
     textInput.value = '';
-    undoHistory = [];
-    redoHistory = [];
+    clearSketchHistory();
     renamingSketchId = '';
     renderedTabsSignature = '';
     renderSketch();
@@ -960,7 +1007,9 @@ export function createScratchpadController({
       return;
     }
     const activeIndex = draft.sketches.findIndex(sketch => sketch.id === draft.activeSketchId);
+    const deletedId = draft.activeSketchId;
     draft.sketches = draft.sketches.filter(sketch => sketch.id !== draft.activeSketchId);
+    clearSketchHistory(deletedId);
     draft.activeSketchId =
       draft.sketches[Math.min(activeIndex, draft.sketches.length - 1)]?.id || '';
     renamingSketchId = '';
@@ -1010,14 +1059,29 @@ export function createScratchpadController({
   sketchTextInput.addEventListener('blur', commitTextInput);
 
   sketchEditor.addEventListener('keydown', event => {
-    if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') {
+    if (
+      event.target === sketchTextInput ||
+      event.target.tagName === 'INPUT' ||
+      event.target.tagName === 'TEXTAREA' ||
+      event.target.isContentEditable
+    ) {
       return;
     }
-    event.preventDefault();
-    if (event.shiftKey) {
+    const isCtrlOrMeta = event.ctrlKey || event.metaKey;
+    if (!isCtrlOrMeta) {
+      return;
+    }
+    const key = event.key.toLowerCase();
+    if (key === 'z') {
+      event.preventDefault();
+      if (event.shiftKey) {
+        redo();
+      } else {
+        undo();
+      }
+    } else if (key === 'y' && !event.shiftKey) {
+      event.preventDefault();
       redo();
-    } else {
-      undo();
     }
   });
 
