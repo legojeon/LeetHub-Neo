@@ -156,7 +156,7 @@ body {
 
 .sidepanel-tab:focus-visible,
 .topic-subtab:focus-visible,
-.topic-chip:focus-visible,
+.topic-select:focus-visible,
 .scratchpad-add-sketch-btn:focus-visible,
 .scratchpad-sketch-header-action:focus-visible,
 .scratchpad-sketch-tab:focus-visible,
@@ -819,32 +819,26 @@ body {
   display: none;
 }
 
-.topic-selector {
-  margin-top: 0;
+.topic-selector-toolbar {
+  min-width: 0;
+  flex: 1 1 140px;
   display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding-bottom: 8px;
+  justify-content: flex-end;
 }
 
-.topic-chip {
-  min-height: 26px;
-  padding: 2px 9px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--lh-panel);
+.topic-select {
+  width: min(180px, 100%);
+  min-width: 112px;
+  height: 30px;
+  box-sizing: border-box;
+  padding: 0 28px 0 10px;
+  border: 1px solid var(--lh-border);
+  border-radius: 7px;
+  background: var(--lh-control-bg);
   color: var(--lh-heading);
   cursor: pointer;
   font-size: 12px;
-  font-weight: 400;
-  line-height: 16px;
-  white-space: nowrap;
-}
-
-.topic-chip.active {
-  background: var(--lh-brand);
-  color: #ffffff;
-  font-weight: 500;
+  text-overflow: ellipsis;
 }
 
 .topic-controls-row {
@@ -1221,6 +1215,30 @@ body {
   margin: 0;
 }
 
+.topic-template-title-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topic-template-origin {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border: 1px solid var(--lh-border);
+  border-radius: 999px;
+  color: var(--lh-muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.topic-template-origin.user {
+  border-color: var(--lh-brand-soft);
+  color: var(--lh-brand);
+  background: var(--lh-brand-soft);
+}
+
 .topic-markdown h2,
 .related-problems h3,
 .topic-template-block h3 {
@@ -1363,17 +1381,6 @@ body {
   cursor: pointer;
 }
 
-.topic-template-language-toolbar {
-  min-width: 0;
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-}
-
-.topic-template-language-toolbar[hidden] {
-  display: none !important;
-}
-
 .topic-template-language-select {
   width: 112px;
   min-width: 0;
@@ -1420,7 +1427,8 @@ body {
   min-height: 32px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .topic-template-create-btn,
@@ -1432,7 +1440,8 @@ body {
 }
 
 .topic-template-create-btn {
-  width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
   border-color: var(--lh-brand-soft);
   color: var(--lh-brand);
   background: var(--lh-brand-soft);

@@ -172,6 +172,7 @@ query questionDetail($titleSlug: String!) {
     difficulty
     content
     topicTags {
+      tagId
       name
       slug
     }

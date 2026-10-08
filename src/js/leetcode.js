@@ -285,6 +285,7 @@ query questionDetail($titleSlug: String!) {
     difficulty
     stats
     topicTags {
+      tagId
       name
       slug
       translatedName
@@ -1932,7 +1933,10 @@ async function putGeneratedFileWithRetry(token, hook, path, content, message, sh
 }
 
 async function ensureTopicReadme(token, hook, basePath, topic) {
-  const path = topicIndexUtils.buildTopicReadmePath(topic.slug, basePath);
+  const path = topicIndexUtils.buildTopicReadmePath(
+    topicIndexUtils.resolveTopicStorageSlug(topic),
+    basePath,
+  );
   const existing = await getGitHubContentByPath(token, hook, path);
 
   if (existing) {
@@ -1949,7 +1953,10 @@ async function ensureTopicReadme(token, hook, basePath, topic) {
 }
 
 async function updateTopicProblemsJson(token, hook, basePath, topic, problemEntry, syncedAt) {
-  const path = topicIndexUtils.buildTopicProblemsPath(topic.slug, basePath);
+  const path = topicIndexUtils.buildTopicProblemsPath(
+    topicIndexUtils.resolveTopicStorageSlug(topic),
+    basePath,
+  );
   const existing = await getGitHubContentByPath(token, hook, path);
   let content = topicIndexUtils.mergeProblemIntoTopicProblemsContent(
     existing?.content ? decodeContent(existing.content) : '',
@@ -2143,7 +2150,10 @@ async function collectTopicSummaries(token, hook, basePath, fallbackTopics = [])
 
   for (const topic of topicsToRead) {
     try {
-      const path = topicIndexUtils.buildTopicProblemsPath(topic.slug, basePath);
+      const path = topicIndexUtils.buildTopicProblemsPath(
+        topicIndexUtils.resolveTopicStorageSlug(topic),
+        basePath,
+      );
       const data = await getGitHubContentByPath(token, hook, path);
       const document = data?.content ? JSON.parse(decodeContent(data.content)) : null;
       summaries.push({
@@ -2813,7 +2823,7 @@ query submissionDetails($submissionId: ID!) {
 
   const questionDetailsQuery = {
     query:
-      '\n    query questionDetail($titleSlug: String!) {\n  question(titleSlug: $titleSlug) {\n    title\n    titleSlug\n    questionId\n    questionFrontendId\n    questionTitle\n    translatedTitle\n    content\n    translatedContent\n    categoryTitle\n    difficulty\n    stats\n    topicTags {\n      name\n      slug\n      translatedName\n    }\n  }\n}\n',
+      '\n    query questionDetail($titleSlug: String!) {\n  question(titleSlug: $titleSlug) {\n    title\n    titleSlug\n    questionId\n    questionFrontendId\n    questionTitle\n    translatedTitle\n    content\n    translatedContent\n    categoryTitle\n    difficulty\n    stats\n    topicTags {\n      tagId\n      name\n      slug\n      translatedName\n    }\n  }\n}\n',
     variables: { titleSlug: this.submissionData.question.titleSlug },
     operationName: 'questionDetail',
   };

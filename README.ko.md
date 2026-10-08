@@ -33,6 +33,20 @@ LeetHub-Neo는 [LeetHub-3.0](https://github.com/raphaelheinz/LeetHub-3.0)을
 기반으로 한 fork이며, 이 프로젝트를 위한 추가 기능과 유지보수가 포함되어
 있습니다.
 
+## 1.3.0 업데이트
+
+- LeetCode 토픽과 내장 알고리즘·자료구조 템플릿을 안정적인 ID와 문제 문맥에
+  따라 연결하도록 개선했습니다.
+- 가로로 스크롤되던 토픽 버튼을 간결한 드롭다운으로 교체하고, 언어 선택은
+  Templates 도구 모음으로 이동했습니다.
+- 읽기 전용 기본 템플릿과 사용자 템플릿을 분리했습니다. 기본 템플릿을
+  수정하면 GitHub에 편집 가능한 사용자 복사본을 만들며, 이후 카탈로그
+  업데이트가 이를 덮어쓰지 않습니다.
+- 다중 언어 사용자 템플릿과 기존 저장소의 템플릿 데이터를 새 manifest
+  형식에서도 보존합니다.
+- 문제 동기화와 Topics 패널이 동시에 GitHub 파일을 만들 때 발생할 수 있는
+  충돌 처리를 개선했습니다.
+
 ## 1.2.0 업데이트
 
 - Scratchpad에 선택적으로 여러 개 추가할 수 있는 SVG sketch 탭을
@@ -224,8 +238,9 @@ LeetHub 설정에서 **Translation Language**를 펼쳐 Problem 탭에서 사용
   `sketch-2.svg` 등의 파일로 동기화됩니다.
 - **토픽 작업 공간**: 문제의 토픽 태그를 보고, 토픽 노트를 만들고, 관련 풀이
   문제를 `Topics/` 아래에 모을 수 있습니다.
-- **재사용 가능한 템플릿**: C++, Java, JavaScript, Lua, Python, Ruby용 알고리즘
-  및 자료구조 템플릿으로 토픽 폴더를 시작할 수 있습니다.
+- **재사용 가능한 템플릿**: bundled 알고리즘·자료구조 템플릿을 LeetCode
+  토픽에 맞춰 보여 주고, 새로 만들거나 수정한 템플릿은 사용자 변경을
+  덮어쓰지 않도록 GitHub에 저장합니다.
 - **이전 제출 동기화**: LeetHub-Neo 설치 또는 설정 전에 해결한 Accepted
   제출도 가져올 수 있습니다.
 - **저장소 구성 옵션**: 난이도 폴더, 언어 폴더, 타임스탬프 파일명, 커스텀
@@ -258,10 +273,14 @@ Topics/
     README.md
     problems.json
     templates.json
-    templates/
+    templates/              # 템플릿 추가 또는 수정 시 생성
       python/
-        prefix_sum.py
+        my_prefix_sum.py
 ```
+
+기본 템플릿은 확장 프로그램 내부에서 읽기 전용으로 유지됩니다.
+`templates.json`에는 새로 만들거나 기본값을 복사해 수정한 사용자 템플릿만
+저장되므로, 카탈로그가 업데이트되어도 GitHub의 사용자 편집본을 덮어쓰지 않습니다.
 
 README 동기화를 끄지 않았다면 생성된 루트 `README.md`가 토픽별 solved 문제를
 요약할 수 있습니다.
@@ -333,8 +352,8 @@ LeetHub 프로젝트 계열의 작업을 기반으로 합니다.
 
 토픽 템플릿 카탈로그는
 [leetcode-cheatsheet](https://github.com/jwl-7/leetcode-cheatsheet)를 참고해
-구성했습니다. 템플릿은 LeetHub-Neo가 사용자의 GitHub 저장소에 토픽 학습 파일을
-직접 생성할 수 있도록 함께 제공됩니다.
+구성했습니다. 기본 템플릿은 확장 프로그램에 포함되며 사용자가 수정할 때만
+GitHub 저장소에 사용자 소유 복사본으로 생성됩니다.
 
 Topics 패널의 syntax highlighting은 bundled
 [PrismJS](https://github.com/PrismJS/prism) v2를 사용하며, bundled template

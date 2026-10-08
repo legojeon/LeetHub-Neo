@@ -33,6 +33,20 @@ LeetHub-Neo is a fork of
 [LeetHub-3.0](https://github.com/raphaelheinz/LeetHub-3.0), with additional
 features and maintenance for this project.
 
+## What's New in 1.3.0
+
+- Added stable, context-aware matching between LeetCode topics and bundled
+  algorithm or data-structure templates.
+- Replaced the scrolling topic chips with a compact topic selector and moved
+  language selection into the Templates toolbar.
+- Separated read-only bundled defaults from user-owned templates. Customizing a
+  default now creates an editable copy in GitHub without allowing future catalog
+  updates to overwrite it.
+- Preserved existing topic templates through the new manifest format, including
+  multi-language custom templates and legacy repository data.
+- Improved topic file creation when submission sync and the Topics panel write
+  to GitHub at the same time.
+
 ## What's New in 1.2.0
 
 - Added optional, multi-tab SVG sketches to Scratchpad with rename, erase, pan,
@@ -232,8 +246,9 @@ problem descriptions.
   each problem folder.
 - **Topic workspace**: browse a problem's topic tags, create topic notes, and
   keep related solved problems grouped under `Topics/`.
-- **Reusable templates**: seed topic folders with algorithm and data-structure
-  templates for C++, Java, JavaScript, Lua, Python, and Ruby.
+- **Reusable templates**: match bundled algorithm and data-structure templates
+  to LeetCode topics, then keep new or customized templates in GitHub without
+  overwriting user changes.
 - **Previous submission sync**: import accepted submissions that were solved
   before installing or configuring LeetHub-Neo.
 - **Repository organization options**: choose difficulty folders, language
@@ -269,10 +284,14 @@ Topics/
     README.md
     problems.json
     templates.json
-    templates/
+    templates/              # Created when you add or customize a template
       python/
-        prefix_sum.py
+        my_prefix_sum.py
 ```
+
+Bundled defaults stay read-only inside the extension. `templates.json` stores
+only user-owned templates (including customized copies of defaults), so catalog
+updates cannot overwrite repository edits.
 
 The generated root `README.md` can summarize solved problems by topic unless
 README sync is turned off.
@@ -348,9 +367,9 @@ LeetHub-Neo builds on the work of
 LeetHub project family.
 
 The topic template catalog is adapted from
-[leetcode-cheatsheet](https://github.com/jwl-7/leetcode-cheatsheet). Templates
-are bundled so LeetHub-Neo can create topic study files directly in a user's
-GitHub repository.
+[leetcode-cheatsheet](https://github.com/jwl-7/leetcode-cheatsheet). Defaults
+remain bundled and are copied into a user's GitHub repository only when the
+user customizes them.
 
 Syntax highlighting in the Topics panel uses a local
 [PrismJS](https://github.com/PrismJS/prism) v2 bundle, limited to the languages

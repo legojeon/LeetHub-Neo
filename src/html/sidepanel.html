@@ -277,8 +277,6 @@
         aria-labelledby="topics-tab"
         hidden
       >
-        <div id="topic-selector" class="topic-selector"></div>
-
         <div id="topic-controls-row" class="topic-controls-row">
           <div id="topic-subtabs" class="topic-subtabs" role="tablist" aria-label="Topic content">
             <button
@@ -303,12 +301,8 @@
               Templates
             </button>
           </div>
-          <div id="topic-template-language-toolbar" class="topic-template-language-toolbar" hidden>
-            <select
-              id="topic-template-language-inline"
-              class="topic-template-language-select"
-              aria-label="Template language"
-            ></select>
+          <div class="topic-selector-toolbar">
+            <select id="topic-selector" class="topic-select" aria-label="Topic"></select>
           </div>
         </div>
 
@@ -836,6 +830,7 @@
     <script type="text/javascript" src="../core/config/repository-files.js"></script>
     <script type="text/javascript" src="../core/scratchpad/scratchpad-memo.js"></script>
     <script type="text/javascript" src="../data/topic-template-catalog.generated.js"></script>
+    <script type="text/javascript" src="../data/topic-template-mappings.js"></script>
     <script type="text/javascript" src="../core/templates/topic-readme-template.js"></script>
     <script type="text/javascript" src="../core/templates/topic-template-utils.js"></script>
     <script

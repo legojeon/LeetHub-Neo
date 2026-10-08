@@ -8,6 +8,7 @@ const LEETHUB_CONTENT_SCRIPT_FILES = [
   'src/core/scratchpad/scratchpad-memo.js',
   'src/core/templates/root-readme-template.js',
   'src/core/templates/topic-readme-template.js',
+  'src/data/topic-template-mappings.js',
   'src/js/topic-index-utils.js',
   'src/js/leetcode-account-utils.js',
   'src/js/leetcode.js',

@@ -182,53 +182,9 @@ const appendSuccessLine = message => {
   $('#success').append('<br />', document.createTextNode(message));
 };
 
-const seedCuratedTopicTemplatesAfterHook = async (token, hook) => {
-  const seedCuratedTopicTemplates = globalThis.LeetHubTopicTemplateSeed?.seedCuratedTopicTemplates;
-
-  if (!seedCuratedTopicTemplates) {
-    return null;
-  }
-
-  appendSuccessLine('Seeding topic templates...');
-
-  try {
-    const result = await seedCuratedTopicTemplates({
-      token,
-      hook,
-      basePath: selectedRepositoryBasePath(),
-      onProgress: progress => {
-        if (progress.current === 1 || progress.current % 50 === 0) {
-          $('#success').find('.topic-seed-progress').remove();
-          $('#success').append(
-            $('<span>', {
-              class: 'topic-seed-progress',
-              text: `Topic templates: ${progress.current}/${progress.total}`,
-            }).prepend('<br />'),
-          );
-        }
-      },
-    });
-
-    $('#success').find('.topic-seed-progress').remove();
-    await chrome.storage.local.set({
-      topicTemplatesSeededAt: new Date().toISOString(),
-      topicTemplatesSeededHook: hook,
-    });
-    appendSuccessLine(
-      `Topic templates ready. Created ${result.created}, skipped ${result.skipped}.`,
-    );
-    return result;
-  } catch (error) {
-    console.error(`Failed to seed topic templates: ${error.message}`);
-    $('#success').find('.topic-seed-progress').remove();
-    appendSuccessLine(`Topic template seed failed: ${error.message}`);
-    return null;
-  }
-};
-
 /* Status codes for creating of repo */
 
-const statusCode = (res, status, name, token) => {
+const statusCode = (res, status, name) => {
   switch (status) {
     case 304:
       $('#success').hide();
@@ -285,7 +241,6 @@ const statusCode = (res, status, name, token) => {
           },
           async () => {
             console.log('Successfully set new repo hook');
-            await seedCuratedTopicTemplatesAfterHook(token, res.full_name);
             if (selectedInitialSyncEnabled()) {
               syncPreviousAfterInitialHook();
             } else {
@@ -313,7 +268,7 @@ const createRepo = (token, name) => {
   const xhr = new XMLHttpRequest();
   xhr.addEventListener('readystatechange', function () {
     if (xhr.readyState === 4) {
-      statusCode(JSON.parse(xhr.responseText), xhr.status, name, token);
+      statusCode(JSON.parse(xhr.responseText), xhr.status, name);
     }
   });
 
@@ -429,7 +384,7 @@ function loadRepositories() {
     1. Check if existing repository exists and the user has write access to it.
     2. Link Hook to it (chrome Storage).
 */
-const linkRepo = (token, name, seedTemplates = false) => {
+const linkRepo = (token, name) => {
   const AUTHENTICATION_URL = `https://api.github.com/repos/${name}`;
 
   const xhr = new XMLHttpRequest();
@@ -473,9 +428,6 @@ const linkRepo = (token, name, seedTemplates = false) => {
               })
               .then(async () => {
                 console.log('Successfully set new repo hook');
-                if (seedTemplates) {
-                  await seedCuratedTopicTemplatesAfterHook(token, res.full_name);
-                }
                 if (selectedInitialSyncEnabled()) {
                   syncPreviousAfterInitialHook();
                 } else {
@@ -589,7 +541,7 @@ $('#hook_button').on('click', () => {
               $('#error').show();
               $('#success').hide();
             } else {
-              linkRepo(token, `${username}/${repositoryName()}`, true);
+              linkRepo(token, `${username}/${repositoryName()}`);
             }
           });
         }

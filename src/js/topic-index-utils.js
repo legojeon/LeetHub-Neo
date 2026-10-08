@@ -1,5 +1,6 @@
 (function initializeTopicIndexUtils(globalObject) {
   const repositoryFiles = globalObject.LeetHubRepositoryFiles;
+  const topicTemplateMappings = globalObject.LeetHubTopicTemplateMappings;
   const TOPICS_BASE_PATH = repositoryFiles.TOPICS_BASE_PATH;
   const LEETCODE_BASE_PATH = '';
   const TOPIC_PROBLEMS_FILENAME = repositoryFiles.TOPIC_PROBLEMS_FILENAME;
@@ -21,15 +22,34 @@
       .replace(/^-+|-+$/g, '');
   }
 
+  function resolveTopicStorageSlug(topic) {
+    const tagId = String(topic?.tagId ?? '').trim();
+    const mappings = Object.values(topicTemplateMappings?.topics ?? {});
+    let mapping = tagId ? topicTemplateMappings?.topics?.[tagId] : null;
+
+    if (!mapping) {
+      const slug = normalizeTopicSlug(topic?.slug || topic?.name);
+      mapping = mappings.find(item =>
+        [item.slug, ...(item.aliases ?? [])].map(normalizeTopicSlug).includes(slug),
+      );
+    }
+
+    return (
+      normalizeTopicSlug(mapping?.storageSlug || mapping?.slug) ||
+      normalizeTopicSlug(topic?.slug || topic?.name)
+    );
+  }
+
   function normalizeTopicTag(tag) {
     const name = String(tag?.name ?? tag?.translatedName ?? '').trim();
     const slug = normalizeTopicSlug(tag?.slug || name);
+    const tagId = String(tag?.tagId ?? '').trim();
 
     if (!name || !slug) {
       return null;
     }
 
-    return { slug, name };
+    return { slug, name, ...(tagId ? { tagId } : {}) };
   }
 
   function normalizeTopicTags(...tagGroups) {
@@ -1034,6 +1054,7 @@
     normalizeTopicSlug,
     normalizeTopicTag,
     normalizeTopicTags,
+    resolveTopicStorageSlug,
     rebuildProfileStats,
     recordSolvedProblemInStats,
     renderRootReadmeSummary,

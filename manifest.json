@@ -3,7 +3,7 @@
   "name": "LeetHub-Neo",
   "description": "Sync LeetCode submissions to GitHub with side panel tools and repository templates",
   "homepage_url": "https://github.com/legojeon/LeetHub-Neo",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "author": "legojeon",
   "action": {
     "default_icon": "assets/thumbnail.png",
@@ -42,6 +42,7 @@
         "src/core/scratchpad/scratchpad-memo.js",
         "src/core/templates/root-readme-template.js",
         "src/core/templates/topic-readme-template.js",
+        "src/data/topic-template-mappings.js",
         "src/js/topic-index-utils.js",
         "src/js/leetcode-account-utils.js",
         "src/js/leetcode.js",

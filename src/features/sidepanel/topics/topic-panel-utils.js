@@ -35,8 +35,9 @@
 
       const catalogTopic = catalogBySlug.get(slug);
       topics.push({
+        ...(tag?.tagId !== undefined && tag?.tagId !== null ? { tagId: String(tag.tagId) } : {}),
         slug,
-        name: catalogTopic?.name || tag.name || slug,
+        name: tag.name || catalogTopic?.name || slug,
       });
       seen.add(slug);
     }
@@ -111,7 +112,7 @@
   function getTemplateEntriesForLanguage(templatesDocument, language) {
     const templates = Array.isArray(templatesDocument?.templates)
       ? templatesDocument.templates
-      : [];
+      : Object.values(templatesDocument?.templates ?? {});
 
     return templates
       .map(template => ({

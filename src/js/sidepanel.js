@@ -41,12 +41,14 @@ const INITIAL_SYNC_STATUS_STORAGE_KEY = 'initialSyncStatus';
 const ACTIVITY_CELL_SIZE = 10;
 const ACTIVITY_CELL_GAP = 3;
 const DEFAULT_ACTIVITY_WEEKS = 18;
+const GITHUB_CREATE_CONFLICT_RETRY_DELAYS_MS = [150, 400, 800];
 const LEETHUB_CONTENT_SCRIPT_FILES = [
   'src/core/config/repository-files.js',
   'src/core/config/leetcode-languages.js',
   'src/core/scratchpad/scratchpad-memo.js',
   'src/core/templates/root-readme-template.js',
   'src/core/templates/topic-readme-template.js',
+  'src/data/topic-template-mappings.js',
   'src/js/topic-index-utils.js',
   'src/js/leetcode-account-utils.js',
   'src/js/leetcode.js',
@@ -62,6 +64,7 @@ let topicPanelState = {
   selectedTopicSlug: '',
   selectedSubtab: 'notes',
   templateLanguage: '',
+  userTemplateManifest: null,
 };
 let shouldRefreshTopicOnFocus = false;
 let displayedActivityByDate = {};
@@ -787,33 +790,46 @@ async function createGitHubTextFile(token, hook, { path, content, message }) {
 }
 
 async function putGitHubTextFile(token, hook, { path, content, message, sha, ignoreExisting }) {
-  const response = await fetch(
-    `https://api.github.com/repos/${hook}/contents/${encodeGitHubPath(path)}`,
-    {
-      method: 'PUT',
-      headers: {
-        Authorization: `token ${token}`,
-        Accept: 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message,
-        content: encodeGitHubContent(content),
-        ...(sha ? { sha } : {}),
-      }),
-    },
-  );
+  let response;
 
-  if (ignoreExisting && (response.status === 409 || response.status === 422)) {
-    const existingContent = await getGitHubTextFile(token, hook, path);
-    if (existingContent !== null) {
-      return;
+  for (let attempt = 0; attempt <= GITHUB_CREATE_CONFLICT_RETRY_DELAYS_MS.length; attempt += 1) {
+    response = await fetch(
+      `https://api.github.com/repos/${hook}/contents/${encodeGitHubPath(path)}`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `token ${token}`,
+          Accept: 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          content: encodeGitHubContent(content),
+          ...(sha ? { sha } : {}),
+        }),
+      },
+    );
+
+    if (response.ok) {
+      return { existingContent: null };
+    }
+
+    const isCreateConflict = ignoreExisting && (response.status === 409 || response.status === 422);
+    const retryDelay = GITHUB_CREATE_CONFLICT_RETRY_DELAYS_MS[attempt];
+
+    if (!isCreateConflict || retryDelay === undefined) {
+      break;
+    }
+
+    await new Promise(resolve => setTimeout(resolve, retryDelay));
+    const existingFile = await getGitHubTextFileData(token, hook, path);
+
+    if (existingFile) {
+      return { existingContent: existingFile.content };
     }
   }
 
-  if (!response.ok) {
-    throw new Error(`Could not save ${path}: ${response.status}`);
-  }
+  throw new Error(`Could not save ${path}: ${response?.status ?? 'unknown error'}`);
 }
 
 async function getGitHubDefaultBranch(token, hook) {
@@ -864,25 +880,17 @@ function parseJsonDocument(content) {
   }
 }
 
-function getCatalogTopic(topicSlug) {
-  return topicTemplateCatalog?.topics?.find(topic => topic.slug === topicSlug) ?? null;
-}
-
 function getTopicSeedSource(topic) {
-  return (
-    getCatalogTopic(topic.slug) ?? {
-      slug: topic.slug,
-      name: topic.name || topic.slug,
-      templates: [],
-    }
-  );
+  return {
+    tagId: topic.tagId,
+    slug: getTopicRepositorySlug(topic),
+    name: topic.name || topic.slug,
+    templates: [],
+  };
 }
 
-function getCatalogTemplateFile(topicSlug, templateId, language) {
-  const catalogTopic = getCatalogTopic(topicSlug);
-  const template = catalogTopic?.templates?.find(item => item.id === templateId);
-
-  return template?.files?.[language] ?? null;
+function getTopicRepositorySlug(topic) {
+  return topicTemplateUtils.resolveTopicStorageSlug(topic);
 }
 
 async function resolveSeedEntryContent(entry) {
@@ -906,12 +914,12 @@ async function ensureGitHubTopicEntry(token, hook, entry) {
   }
 
   const content = await resolveSeedEntryContent(entry);
-  await createGitHubTextFile(token, hook, {
+  const createResult = await createGitHubTextFile(token, hook, {
     path: entry.path,
     content,
     message: entry.message,
   });
-  return content;
+  return createResult?.existingContent ?? content;
 }
 
 async function ensureGitHubTopicFiles(token, hook, topic, existingFiles) {
@@ -956,33 +964,62 @@ function renderTopicSelector() {
   selector.empty();
 
   for (const topic of topicPanelState.topics) {
-    const button = $('<button>', {
-      type: 'button',
-      class: `topic-chip${topic.slug === topicPanelState.selectedTopicSlug ? ' active' : ''}`,
-      text: topic.name,
-      'aria-pressed': String(topic.slug === topicPanelState.selectedTopicSlug),
-    });
-    button.on('click', () => {
-      topicPanelState.selectedTopicSlug = topic.slug;
-      renderTopicSelector();
-      loadSelectedTopic();
-    });
-    selector.append(button);
+    selector.append(
+      $('<option>', {
+        value: topic.slug,
+        selected: topic.slug === topicPanelState.selectedTopicSlug,
+        text: topic.name,
+      }),
+    );
   }
+
+  selector.off('change.topic').on('change.topic', function () {
+    const selectedTopicSlug = String($(this).val() ?? '');
+    const selectedTopic = topicPanelState.topics.find(topic => topic.slug === selectedTopicSlug);
+
+    if (!selectedTopic || selectedTopic.slug === topicPanelState.selectedTopicSlug) {
+      return;
+    }
+
+    topicPanelState.selectedTopicSlug = selectedTopic.slug;
+    loadSelectedTopic().catch(error => setTopicPanelStatus(error.message));
+  });
 }
 
-function renderTopicTemplateLanguageSelect(selectedLanguage) {
-  const select = $('#topic-template-language-inline');
-  select.empty();
+function createTopicTemplateLanguageSelect() {
+  const select = $('<select>', {
+    id: 'topic-template-language-inline',
+    class: 'topic-template-language-select',
+    'aria-label': 'Template language',
+  });
 
   for (const language of topicTemplateCatalog?.languages ?? []) {
     select.append(
       $('<option>', {
         value: language.slug,
         text: language.name,
-        selected: language.slug === selectedLanguage,
+        selected: language.slug === topicPanelState.templateLanguage,
       }),
     );
+  }
+
+  select.on('change', function () {
+    topicPanelState.templateLanguage = topicTemplateUtils.normalizeTemplateLanguage(
+      $(this).val(),
+      topicTemplateCatalog,
+    );
+    loadSelectedTopic().catch(error => setTopicPanelStatus(error.message));
+  });
+
+  return select;
+}
+
+function renderTopicTemplateLanguageSelect(selectedLanguage) {
+  topicPanelState.templateLanguage = selectedLanguage;
+  const select = $('#topic-template-language-inline');
+
+  if (select.length) {
+    select.val(selectedLanguage);
   }
 }
 
@@ -1008,7 +1045,7 @@ async function openSelectedTopicReadmeInGitHub() {
 
     const branch = await getGitHubDefaultBranch(token, hook);
     const basePath = await getRepositoryBasePath();
-    const paths = topicPanelUtils.createTopicGithubPaths(topic.slug, basePath);
+    const paths = topicPanelUtils.createTopicGithubPaths(getTopicRepositorySlug(topic), basePath);
     chrome.tabs.create({
       url: createGitHubEditUrl(hook, branch, paths.readme),
     });
@@ -1022,7 +1059,7 @@ async function openTopicTemplateInGitHub(entry) {
     item => item.slug === topicPanelState.selectedTopicSlug,
   );
 
-  if (!topic || !entry?.path) {
+  if (!topic || !entry) {
     return;
   }
 
@@ -1037,9 +1074,29 @@ async function openTopicTemplateInGitHub(entry) {
       return;
     }
 
-    const branch = await getGitHubDefaultBranch(token, hook);
     const basePath = await getRepositoryBasePath();
-    const path = buildTopicRepositoryPath(basePath, topic.slug, entry.path);
+    let editableEntry = entry;
+
+    if (entry.origin === 'builtin') {
+      editableEntry = await forkBuiltinTemplateForEditing({
+        token,
+        hook,
+        basePath,
+        topic,
+        entry,
+      });
+    }
+
+    if (!editableEntry?.path) {
+      throw new Error('Could not create an editable template file.');
+    }
+
+    const branch = await getGitHubDefaultBranch(token, hook);
+    const path = buildTopicRepositoryPath(
+      basePath,
+      getTopicRepositorySlug(topic),
+      editableEntry.path,
+    );
     shouldRefreshTopicOnFocus = true;
     chrome.tabs.create({
       url: createGitHubEditUrl(hook, branch, path),
@@ -1047,6 +1104,98 @@ async function openTopicTemplateInGitHub(entry) {
   } catch (error) {
     setTopicPanelStatus(error.message);
   }
+}
+
+async function forkBuiltinTemplateForEditing({ token, hook, basePath, topic, entry }) {
+  const paths = topicPanelUtils.createTopicGithubPaths(getTopicRepositorySlug(topic), basePath);
+  const templateFile = await getGitHubTextFileData(token, hook, paths.templates);
+  const parsedTemplateDocument = parseJsonDocument(templateFile?.content);
+
+  if (templateFile?.content && !parsedTemplateDocument) {
+    throw new Error('templates.json is invalid JSON. Fix it before customizing a template.');
+  }
+
+  const manifest = topicTemplateUtils.normalizeUserTemplateManifest(
+    parsedTemplateDocument,
+    topic,
+    topicTemplateCatalog,
+  );
+
+  if (manifest.unsupportedSchemaVersion !== undefined) {
+    throw new Error(
+      `Unsupported topic template schema version: ${manifest.unsupportedSchemaVersion}`,
+    );
+  }
+  if (manifest.invalidTemplateCount) {
+    throw new Error('Fix invalid entries in templates.json before customizing a template.');
+  }
+
+  const language = topicTemplateUtils.normalizeTemplateLanguage(
+    topicPanelState.templateLanguage,
+    topicTemplateCatalog,
+  );
+  const existingFork = Object.values(manifest.templates).find(
+    template => template.forkedFrom === entry.id,
+  );
+
+  if (existingFork?.files?.[language]) {
+    return {
+      ...existingFork,
+      origin: 'user',
+      path: existingFork.files[language],
+    };
+  }
+
+  const createdFork = topicTemplateUtils.createForkedTemplateEntry(
+    entry,
+    language,
+    topicTemplateCatalog,
+  );
+
+  if (!createdFork) {
+    throw new Error('Could not create a custom copy of this template.');
+  }
+
+  const fork = existingFork
+    ? {
+        ...existingFork,
+        files: {
+          ...existingFork.files,
+          [language]: createdFork.files[language],
+        },
+      }
+    : createdFork;
+  const templatePath = buildTopicRepositoryPath(
+    basePath,
+    getTopicRepositorySlug(topic),
+    fork.files[language],
+  );
+  const bundledContent = await getBundledTemplateText(entry.sourcePath);
+
+  if (bundledContent === null) {
+    throw new Error(`Bundled template is missing: ${entry.sourcePath}`);
+  }
+
+  await createGitHubTextFile(token, hook, {
+    path: templatePath,
+    content: bundledContent,
+    message: `Customize ${topic.name} template ${entry.title}`,
+  });
+
+  const nextManifest = topicTemplateUtils.upsertUserTemplate(manifest, topic, fork);
+  await putGitHubTextFile(token, hook, {
+    path: paths.templates,
+    content: `${JSON.stringify(nextManifest, null, 2)}\n`,
+    message: `Customize ${topic.name} template ${entry.title}`,
+    sha: templateFile?.sha,
+  });
+
+  topicPanelState.userTemplateManifest = nextManifest;
+  return {
+    ...fork,
+    origin: 'user',
+    path: fork.files[language],
+  };
 }
 
 function renderRelatedProblems(problems, solutionContents) {
@@ -1149,6 +1298,7 @@ function renderCustomTemplateCreateForm(container) {
     text: 'Cancel',
   });
   const actions = $('<div>', { class: 'topic-template-create-actions' });
+  const languageSelect = createTopicTemplateLanguageSelect();
 
   showFormButton.on('click', () => {
     showFormButton.prop('hidden', true);
@@ -1167,61 +1317,9 @@ function renderCustomTemplateCreateForm(container) {
 
   actions.append(createButton, cancelButton);
   form.append(input, actions);
-  toolbar.append(showFormButton);
+  toolbar.append(showFormButton, languageSelect);
   controls.append(toolbar, form);
   container.append(controls);
-}
-
-function createUniqueTemplateEntry(entry, templatesDocument, language) {
-  const templates = Array.isArray(templatesDocument?.templates) ? templatesDocument.templates : [];
-  const usedIds = new Set(templates.map(template => template.id).filter(Boolean));
-  const usedPaths = new Set(templates.map(template => template.files?.[language]).filter(Boolean));
-
-  if (!usedIds.has(entry.id) && !usedPaths.has(entry.path)) {
-    return entry;
-  }
-
-  const pathMatch = entry.path.match(/^(.*?)(\.[^.]+)$/);
-  const pathBase = pathMatch ? pathMatch[1] : entry.path;
-  const extension = pathMatch ? pathMatch[2] : '';
-  let suffix = 2;
-
-  while (
-    usedIds.has(`${entry.id}-${suffix}`) ||
-    usedPaths.has(`${pathBase}_${suffix}${extension}`)
-  ) {
-    suffix += 1;
-  }
-
-  return {
-    ...entry,
-    id: `${entry.id}-${suffix}`,
-    path: `${pathBase}_${suffix}${extension}`,
-  };
-}
-
-function appendTemplateEntryToDocument(document, topic, entry, language) {
-  const templates = Array.isArray(document?.templates) ? document.templates : [];
-
-  return {
-    version: document?.version || 1,
-    topic: {
-      slug: topic.slug,
-      name: topic.name || topic.slug,
-    },
-    source: document?.source || 'custom',
-    updatedAt: new Date().toISOString(),
-    templates: [
-      ...templates,
-      {
-        id: entry.id,
-        title: entry.title,
-        files: {
-          [language]: entry.path,
-        },
-      },
-    ],
-  };
 }
 
 async function createCustomTopicTemplate(templateName) {
@@ -1265,43 +1363,62 @@ async function createCustomTopicTemplate(templateName) {
   try {
     setTopicPanelStatus(`Creating ${baseEntry.title} template...`);
     const basePath = await getRepositoryBasePath();
-    const paths = topicPanelUtils.createTopicGithubPaths(topic.slug, basePath);
+    const paths = topicPanelUtils.createTopicGithubPaths(getTopicRepositorySlug(topic), basePath);
     const templateFile = await getGitHubTextFileData(token, hook, paths.templates);
-    const templatesDocument = parseJsonDocument(templateFile?.content) || {
-      version: 1,
-      topic: {
-        slug: topic.slug,
-        name: topic.name || topic.slug,
-      },
-      source: 'custom',
-      templates: [],
-    };
-    const entry = createUniqueTemplateEntry(baseEntry, templatesDocument, templateLanguage);
-    const templatePath = buildTopicRepositoryPath(basePath, topic.slug, entry.path);
+    const parsedTemplateDocument = parseJsonDocument(templateFile?.content);
+
+    if (templateFile?.content && !parsedTemplateDocument) {
+      throw new Error('templates.json is invalid JSON. Fix it before creating a template.');
+    }
+
+    const manifest = topicTemplateUtils.normalizeUserTemplateManifest(
+      parsedTemplateDocument,
+      topic,
+      topicTemplateCatalog,
+    );
+    if (manifest.unsupportedSchemaVersion !== undefined) {
+      throw new Error(
+        `Unsupported topic template schema version: ${manifest.unsupportedSchemaVersion}`,
+      );
+    }
+    if (manifest.invalidTemplateCount) {
+      throw new Error('Fix invalid entries in templates.json before creating a template.');
+    }
+    const entry = topicTemplateUtils.mergeCustomTemplateEntry(
+      manifest,
+      baseEntry,
+      templateLanguage,
+    );
+    const entryPath = entry.files[templateLanguage];
+    const templatePath = buildTopicRepositoryPath(
+      basePath,
+      getTopicRepositorySlug(topic),
+      entryPath,
+    );
     const templateContent = topicTemplateUtils.createCustomTemplateContent(
       entry.title,
       templateLanguage,
     );
-    const nextTemplatesDocument = appendTemplateEntryToDocument(
-      templatesDocument,
-      topic,
-      entry,
-      templateLanguage,
-    );
+    const nextManifest = topicTemplateUtils.upsertUserTemplate(manifest, topic, entry);
 
     await createGitHubTextFile(token, hook, {
       path: templatePath,
       content: templateContent,
-      message: `Create ${topic.name} template ${entry.path}`,
+      message: `Create ${topic.name} template ${entryPath}`,
     });
     await putGitHubTextFile(token, hook, {
       path: paths.templates,
-      content: `${JSON.stringify(nextTemplatesDocument, null, 2)}\n`,
+      content: `${JSON.stringify(nextManifest, null, 2)}\n`,
       message: `Update ${topic.name} topic templates`,
       sha: templateFile?.sha,
     });
+    topicPanelState.userTemplateManifest = nextManifest;
     await loadSelectedTopic();
-    await openTopicTemplateInGitHub(entry);
+    await openTopicTemplateInGitHub({
+      ...entry,
+      origin: 'user',
+      path: entryPath,
+    });
   } catch (error) {
     setTopicPanelStatus(error.message);
   }
@@ -1313,7 +1430,7 @@ function renderTemplateEntries(entries, templateTexts) {
   renderCustomTemplateCreateForm(container);
 
   if (!entries.length) {
-    container.append($('<p>', { class: 'topic-empty', text: 'No custom templates yet.' }));
+    container.append($('<p>', { class: 'topic-empty', text: 'No templates yet.' }));
     return;
   }
 
@@ -1322,13 +1439,22 @@ function renderTemplateEntries(entries, templateTexts) {
     const language = getTopicCodeLanguageForPath(entry.path);
     const section = $('<section>', { class: 'topic-template-block' });
     const header = $('<div>', { class: 'topic-template-header' });
-    header.append($('<h3>', { text: entry.title }));
+    const heading = $('<div>', { class: 'topic-template-title-row' });
+    heading.append($('<h3>', { text: entry.title }));
+    heading.append(
+      $('<span>', {
+        class: `topic-template-origin ${entry.origin}`,
+        text: entry.origin === 'builtin' ? 'Default' : 'My template',
+      }),
+    );
+    header.append(heading);
     header.append(
       $('<button>', {
         type: 'button',
         class: 'topic-template-edit-btn',
-        'aria-label': `Edit ${entry.title} template on GitHub`,
-        title: 'Edit template on GitHub',
+        'aria-label': `${entry.origin === 'builtin' ? 'Customize' : 'Edit'} ${entry.title} template on GitHub`,
+        title:
+          entry.origin === 'builtin' ? 'Customize template on GitHub' : 'Edit template on GitHub',
       })
         .append($('<i>', { class: 'icon pencil alternate' }))
         .on('click', () => openTopicTemplateInGitHub(entry)),
@@ -1358,7 +1484,6 @@ function setTopicSubtab(subtab) {
     .attr('tabindex', subtab === 'templates' ? '0' : '-1');
   $('#topic-notes-panel').prop('hidden', subtab !== 'notes');
   $('#topic-templates-panel').prop('hidden', subtab !== 'templates');
-  $('#topic-template-language-toolbar').prop('hidden', subtab !== 'templates');
 }
 
 async function loadSelectedTopic() {
@@ -1372,7 +1497,7 @@ async function loadSelectedTopic() {
     item => item.slug === topicPanelState.selectedTopicSlug,
   );
   const basePath = await getRepositoryBasePath();
-  const paths = topicPanelUtils.createTopicGithubPaths(topic.slug, basePath);
+  const paths = topicPanelUtils.createTopicGithubPaths(getTopicRepositorySlug(topic), basePath);
   const { leethub_token: token, leethub_hook: hook } = await chrome.storage.local.get([
     'leethub_token',
     'leethub_hook',
@@ -1420,15 +1545,32 @@ async function loadSelectedTopic() {
         currentSlug: topicPanelState.problem?.slug,
       },
     );
-    const templatesDocument =
-      parseJsonDocument(topicFiles.templates) ||
-      (getCatalogTopic(topic.slug)
-        ? topicTemplateUtils.createTemplatesJson(getCatalogTopic(topic.slug))
-        : null);
-    const templateEntries = topicPanelUtils.getTemplateEntriesForLanguage(
-      templatesDocument,
+    const parsedTemplateDocument = parseJsonDocument(topicFiles.templates);
+    const userTemplateManifest = topicTemplateUtils.normalizeUserTemplateManifest(
+      parsedTemplateDocument,
+      topic,
+      topicTemplateCatalog,
+    );
+    let templateWarning = '';
+
+    if (topicFiles.templates && !parsedTemplateDocument) {
+      templateWarning = 'Custom templates are hidden because templates.json is invalid JSON.';
+    } else if (userTemplateManifest.unsupportedSchemaVersion !== undefined) {
+      templateWarning = `Custom templates use unsupported schema version ${userTemplateManifest.unsupportedSchemaVersion}.`;
+    } else if (userTemplateManifest.invalidTemplateCount) {
+      templateWarning = `${userTemplateManifest.invalidTemplateCount} invalid custom template entries were skipped.`;
+    }
+    const builtinTemplates = topicTemplateUtils.resolveBuiltinTemplates(
+      topic,
+      topicPanelState.problem?.topicTags ?? topicPanelState.topics,
+      topicTemplateCatalog,
+    );
+    const templateEntries = topicTemplateUtils.resolveEffectiveTemplateEntries(
+      builtinTemplates,
+      userTemplateManifest,
       templateLanguage,
     );
+    topicPanelState.userTemplateManifest = userTemplateManifest;
     const solutionContents = new Map();
     const templateTexts = new Map();
 
@@ -1444,25 +1586,18 @@ async function loadSelectedTopic() {
 
     if (settings.showTopicTemplates) {
       for (const entry of templateEntries) {
-        const catalogFile = getCatalogTemplateFile(topic.slug, entry.id, templateLanguage);
-        const githubContent = await getGitHubTextFile(
-          token,
-          hook,
-          buildTopicRepositoryPath(basePath, topic.slug, entry.path),
-        );
-        if (githubContent !== null) {
-          templateTexts.set(entry.id, githubContent);
+        if (entry.origin === 'builtin') {
+          const bundledContent = await getBundledTemplateText(entry.sourcePath);
+          templateTexts.set(entry.id, bundledContent ?? '');
           continue;
         }
 
-        const seedEntry = ensuredTopic.entriesByPath.get(
-          buildTopicRepositoryPath(basePath, topic.slug, entry.path),
-        ) ?? {
-          path: buildTopicRepositoryPath(basePath, topic.slug, entry.path),
-          sourcePath: catalogFile?.sourcePath,
-          message: `Create ${topic.name} template ${entry.path}`,
-        };
-        templateTexts.set(entry.id, await ensureGitHubTopicEntry(token, hook, seedEntry));
+        const githubContent = await getGitHubTextFile(
+          token,
+          hook,
+          buildTopicRepositoryPath(basePath, getTopicRepositorySlug(topic), entry.path),
+        );
+        templateTexts.set(entry.id, githubContent ?? '');
       }
     }
 
@@ -1479,7 +1614,7 @@ async function loadSelectedTopic() {
     }
 
     await highlightTopicCodeBlocks(document.getElementById('topic_mode'));
-    setTopicPanelStatus('');
+    setTopicPanelStatus(templateWarning);
   } catch (error) {
     $('#topic-readme-edit-btn').prop('hidden', true);
     setTopicPanelStatus(error.message);
@@ -1787,14 +1922,6 @@ function initializeTranslationPanel() {
   $('#leethub-tab').on('click', () => setActiveView('leethub'));
   $('#topic-notes-tab').on('click', () => setTopicSubtab('notes'));
   $('#topic-templates-tab').on('click', () => setTopicSubtab('templates'));
-  $('#topic-template-language-inline').on('change', function () {
-    const templateLanguage = topicTemplateUtils.normalizeTemplateLanguage(
-      $(this).val(),
-      topicTemplateCatalog,
-    );
-    topicPanelState.templateLanguage = templateLanguage;
-    loadSelectedTopic().catch(error => setTopicPanelStatus(error.message));
-  });
   initializeTabKeyboardNavigation('#sidepanel_tabs', '.sidepanel-tab');
   initializeTabKeyboardNavigation('#topic-subtabs', '.topic-subtab');
   $('#topic-readme-edit-btn').on('click', openSelectedTopicReadmeInGitHub);
