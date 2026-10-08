@@ -47,31 +47,6 @@ LeetHub-Neo는 [LeetHub-3.0](https://github.com/raphaelheinz/LeetHub-3.0)을
 - 문제 동기화와 Topics 패널이 동시에 GitHub 파일을 만들 때 발생할 수 있는
   충돌 처리를 개선했습니다.
 
-## 1.2.0 업데이트
-
-- Scratchpad에 선택적으로 여러 개 추가할 수 있는 SVG sketch 탭을
-  추가했습니다. 이름 변경, 지우개, 이동, 확대·축소, 접기, 높이 조절을
-  지원하며 노트와 그림은 로컬에 저장된 후 문제 폴더로 동기화됩니다.
-- 사이드 패널 탐색과 Topics 작업 공간을 정리하고 Notes와 Templates 화면,
-  문제 언어 자동 선택 및 수동 언어 선택 기능을 추가했습니다.
-- LeetHub 대시보드의 빠른 동기화, 계정 확인, 전체 제출 기록 페이지네이션,
-  불완전한 LeetCode 응답이 정상 통계를 덮어쓰지 못하게 하는 보호 로직으로
-  최초 및 수동 동기화를 개선했습니다.
-- 사이드 패널을 넓힐수록 더 오래된 기록을 표시하는 반응형 정사각형 잔디
-  그래프를 추가했습니다.
-
-## 1.1.0 업데이트
-
-- LeetHub-Neo가 생성하는 파일을 선택한 저장소 폴더 아래에 모을 수 있도록
-  동기화 폴더 설정을 추가했습니다.
-- 문제와 토픽 동기화는 유지하면서 루트 `README.md` 자동 업데이트만 끌 수
-  있는 옵션을 추가했습니다.
-- LeetTranslate 조회, Chrome Translator fallback, 대상 언어 선택, 로딩 표시,
-  번역 검토 요청을 포함한 개선된 문제 설명 번역 흐름을 추가했습니다.
-- 문제 다이어그램이 Problem 탭에서 원래 순서와 비율을 유지하도록 이미지
-  렌더링을 개선했습니다.
-- 영어/한국어 README 문서를 업데이트했습니다.
-
 ## 설치
 
 Chrome Web Store에서 LeetHub-Neo를 설치하세요:
@@ -125,12 +100,6 @@ LeetHub-Neo가 저장소 루트가 아닌 특정 경로에 파일을 쓰도록 �
 동기화 폴더를 사용하세요. 예를 들어 폴더를 `LeetCode`로 설정하면 생성 파일은
 `LeetCode/` 아래에 저장됩니다.
 
-<p align="center">
-  <img src="assets/extension/set_sync.png" alt="LeetHub-Neo 동기화 폴더 설정" width="640">
-  <br>
-  <sub>LeetHub 설정의 동기화 폴더 설정</sub>
-</p>
-
 예시 구조:
 
 ```text
@@ -179,16 +148,15 @@ LeetHub 설정에서 **Translation Language**를 펼쳐 Problem 탭에서 사용
 클릭하세요. 요청은 LeetTranslate 검토 큐로 전송되어 나중에 확인할 수 있습니다.
 
 <p align="center">
-  <img src="assets/extension/req_review.png" alt="LeetHub-Neo 번역 검토 요청" width="640">
+  <img src="assets/extension/translate_kr.png" alt="LeetHub-Neo Problem 탭의 번역된 문제" width="640">
   <br>
-  <sub>Problem 탭에서 번역 검토 요청 보내기</sub>
+  <sub>Problem 탭에서 확인하는 번역된 문제 설명</sub>
 </p>
 
 ## 스크린샷
 
-사이드 패널은 LeetCode 문제 페이지 안에서 주요 학습 흐름을 제공합니다:
-진행 상황 대시보드, 풀이 노트, 토픽 작업 공간, 동기화 설정, 번역된 문제
-설명을 확인할 수 있습니다.
+사이드 패널은 LeetCode 문제 페이지 안에서 번역된 문제 설명, Scratchpad
+메모와 스케치, 토픽 노트, 재사용 템플릿, 풀이 통계를 제공합니다.
 
 <table>
   <tr>
@@ -198,21 +166,28 @@ LeetHub 설정에서 **Translation Language**를 펼쳐 Problem 탭에서 사용
       <sub>대시보드와 최근 진행 상황</sub>
     </td>
     <td align="center">
-      <img src="assets/extension/notes.png" alt="LeetHub-Neo 사용자 노트" width="420">
+      <img src="assets/extension/translate_kr.png" alt="LeetHub-Neo Problem 탭의 번역된 문제" width="420">
       <br>
-      <sub>사용자 노트</sub>
+      <sub>문제 설명과 번역</sub>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img src="assets/extension/topics.png" alt="LeetHub-Neo 토픽 작업 공간" width="420">
+      <img src="assets/extension/scratchpad.png" alt="LeetHub-Neo Scratchpad 메모와 스케치" width="420">
       <br>
-      <sub>토픽 작업 공간과 템플릿</sub>
+      <sub>Scratchpad 메모와 스케치</sub>
     </td>
     <td align="center">
-      <img src="assets/extension/settings.png" alt="LeetHub-Neo 저장소 설정" width="420">
+      <img src="assets/extension/notes.png" alt="LeetHub-Neo 사용자 노트" width="420">
       <br>
-      <sub>저장소 설정</sub>
+      <sub>토픽 노트와 관련 문제</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2">
+      <img src="assets/extension/topics.png" alt="LeetHub-Neo 재사용 토픽 템플릿" width="420">
+      <br>
+      <sub>토픽과 언어별 재사용 템플릿</sub>
     </td>
   </tr>
 </table>

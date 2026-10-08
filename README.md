@@ -47,33 +47,6 @@ features and maintenance for this project.
 - Improved topic file creation when submission sync and the Topics panel write
   to GitHub at the same time.
 
-## What's New in 1.2.0
-
-- Added optional, multi-tab SVG sketches to Scratchpad with rename, erase, pan,
-  zoom, collapse, and resize controls. Notes and drawings save locally and sync
-  into each problem folder.
-- Refined the side panel navigation and Topics workspace, including separate
-  Notes and Templates views with automatic problem-language selection and a
-  manual language selector.
-- Improved initial and manual synchronization with quick access from the LeetHub
-  dashboard, account checks, complete-history pagination, and safeguards against
-  replacing valid stats with incomplete LeetCode responses.
-- Added a responsive, square-cell activity graph that shows more history as the
-  side panel grows wider.
-
-## What's New in 1.1.0
-
-- Added a sync folder setting so LeetHub-Neo can write all generated files under
-  a selected repository folder.
-- Added an option to turn off automatic root `README.md` updates while keeping
-  problem and topic syncing enabled.
-- Added improved problem statement translation with LeetTranslate lookup,
-  Chrome Translator fallback, selectable target languages, loading feedback, and
-  translation review requests.
-- Added image-safe description rendering so problem diagrams keep their order and
-  aspect ratio in the Problem tab.
-- Updated the release documentation with English and Korean README files.
-
 ## Installation
 
 Install LeetHub-Neo from the Chrome Web Store:
@@ -130,12 +103,6 @@ Use the sync folder setting when you want LeetHub-Neo to write inside a dedicate
 repository path instead of the repository root. For example, setting the folder
 to `LeetCode` keeps generated files under `LeetCode/`.
 
-<p align="center">
-  <img src="assets/extension/set_sync.png" alt="LeetHub-Neo sync folder setting" width="640">
-  <br>
-  <sub>Sync folder setup in LeetHub settings</sub>
-</p>
-
 Example layout:
 
 ```text
@@ -187,16 +154,16 @@ the Problem tab. The request is sent to the LeetTranslate review queue so the
 translation can be inspected later.
 
 <p align="center">
-  <img src="assets/extension/req_review.png" alt="LeetHub-Neo translation review request" width="640">
+  <img src="assets/extension/translate_kr.png" alt="Translated problem in the LeetHub-Neo Problem tab" width="640">
   <br>
-  <sub>Request translation review from the Problem tab</sub>
+  <sub>Translated problem description in the Problem tab</sub>
 </p>
 
 ## Screenshots
 
 The side panel brings the main study workflow into the LeetCode problem page:
-dashboard progress, solve notes, topic workspaces, sync settings, and translated
-problem descriptions.
+translated descriptions, scratchpad notes and sketches, topic notes, reusable
+templates, and progress statistics.
 
 <table>
   <tr>
@@ -206,21 +173,28 @@ problem descriptions.
       <sub>Dashboard and recent progress</sub>
     </td>
     <td align="center">
-      <img src="assets/extension/notes.png" alt="LeetHub-Neo user notes" width="420">
+      <img src="assets/extension/translate_kr.png" alt="Translated problem in the LeetHub-Neo Problem tab" width="420">
       <br>
-      <sub>User notes</sub>
+      <sub>Problem description and translation</sub>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img src="assets/extension/topics.png" alt="LeetHub-Neo topic workspace" width="420">
+      <img src="assets/extension/scratchpad.png" alt="LeetHub-Neo scratchpad notes and sketches" width="420">
       <br>
-      <sub>Topic workspace and templates</sub>
+      <sub>Scratchpad notes and sketches</sub>
     </td>
     <td align="center">
-      <img src="assets/extension/settings.png" alt="LeetHub-Neo repository settings" width="420">
+      <img src="assets/extension/notes.png" alt="LeetHub-Neo user notes" width="420">
       <br>
-      <sub>Repository settings</sub>
+      <sub>Topic notes and related problems</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2">
+      <img src="assets/extension/topics.png" alt="LeetHub-Neo reusable topic templates" width="420">
+      <br>
+      <sub>Reusable templates by topic and language</sub>
     </td>
   </tr>
 </table>
