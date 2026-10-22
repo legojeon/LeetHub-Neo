@@ -104,6 +104,66 @@ function createElementId() {
   return `sketch-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+export function createSketchHistoryStore() {
+  const undoHistoryBySketchId = new Map();
+  const redoHistoryBySketchId = new Map();
+
+  function getHistory(historyBySketchId, sketchId) {
+    if (!sketchId) {
+      return [];
+    }
+    if (!historyBySketchId.has(sketchId)) {
+      historyBySketchId.set(sketchId, []);
+    }
+    return historyBySketchId.get(sketchId);
+  }
+
+  return {
+    getUndoHistory: sketchId => getHistory(undoHistoryBySketchId, sketchId),
+    getRedoHistory: sketchId => getHistory(redoHistoryBySketchId, sketchId),
+    clear(sketchId) {
+      if (sketchId) {
+        undoHistoryBySketchId.delete(sketchId);
+        redoHistoryBySketchId.delete(sketchId);
+        return;
+      }
+      undoHistoryBySketchId.clear();
+      redoHistoryBySketchId.clear();
+    },
+  };
+}
+
+export function getSketchHistoryAction(event) {
+  const target = event.target;
+  if (
+    target?.tagName === 'INPUT' ||
+    target?.tagName === 'TEXTAREA' ||
+    target?.tagName === 'SELECT' ||
+    target?.isContentEditable
+  ) {
+    return '';
+  }
+  if (!event.ctrlKey && !event.metaKey) {
+    return '';
+  }
+
+  const key = String(event.key ?? '').toLowerCase();
+  if (key === 'z') {
+    return event.shiftKey ? 'redo' : 'undo';
+  }
+  if (key === 'y' && !event.shiftKey) {
+    return 'redo';
+  }
+  return '';
+}
+
+export function getSketchHistoryShortcutLabels(platform = '') {
+  if (/mac|iphone|ipad|ipod/i.test(String(platform))) {
+    return { undo: '⌘Z', redo: '⇧⌘Z' };
+  }
+  return { undo: 'Ctrl+Z', redo: 'Ctrl+Y / Ctrl+Shift+Z' };
+}
+
 export function createScratchpadController({
   chromeApi = globalThis.chrome,
   documentObject = globalThis.document,
@@ -144,6 +204,20 @@ export function createScratchpadController({
     };
   }
 
+  const platform =
+    windowObject.navigator?.userAgentData?.platform ?? windowObject.navigator?.platform ?? '';
+  const historyShortcuts = getSketchHistoryShortcutLabels(platform);
+  undoButton.title = t(
+    'undoWithShortcut',
+    [historyShortcuts.undo],
+    `Undo (${historyShortcuts.undo})`,
+  );
+  redoButton.title = t(
+    'redoWithShortcut',
+    [historyShortcuts.redo],
+    `Redo (${historyShortcuts.redo})`,
+  );
+
   let activeProblemSlug = '';
   let activeProblemSite = '';
   let activeStorageKey = '';
@@ -154,14 +228,25 @@ export function createScratchpadController({
   let activeElementId = '';
   let saveTimer = null;
   let statusTimer = null;
-  let undoHistory = [];
-  let redoHistory = [];
+  const historyStore = createSketchHistoryStore();
   let textPlacement = null;
   let resizeState = null;
   let panState = null;
   let renamingSketchId = '';
   let renderedTabsSignature = '';
   let transitionPromise = Promise.resolve();
+
+  function getSketchUndoHistory(sketchId = draft.activeSketchId) {
+    return historyStore.getUndoHistory(sketchId);
+  }
+
+  function getSketchRedoHistory(sketchId = draft.activeSketchId) {
+    return historyStore.getRedoHistory(sketchId);
+  }
+
+  function clearSketchHistory(sketchId) {
+    historyStore.clear(sketchId);
+  }
 
   function currentSketch() {
     return (
@@ -380,8 +465,6 @@ export function createScratchpadController({
     panState = null;
     sketchCanvas.classList.remove('panning');
     hideTextInput();
-    undoHistory = [];
-    redoHistory = [];
   }
 
   function selectSketch(sketchId) {
@@ -564,6 +647,8 @@ export function createScratchpadController({
       [sketchCountText, elementSummary],
       `${sketchCountText} · ${elementSummary}`,
     );
+    const undoHistory = getSketchUndoHistory(sketch.id);
+    const redoHistory = getSketchRedoHistory(sketch.id);
     undoButton.disabled = !undoHistory.length;
     redoButton.disabled = !redoHistory.length;
     clearButton.disabled = !count;
@@ -589,11 +674,17 @@ export function createScratchpadController({
   }
 
   function pushUndoState() {
-    undoHistory.push(clone(currentSketch()?.elements ?? []));
+    const sketch = currentSketch();
+    if (!sketch) {
+      return;
+    }
+    const undoHistory = getSketchUndoHistory(sketch.id);
+    undoHistory.push(clone(sketch.elements ?? []));
     if (undoHistory.length > MAX_HISTORY_LENGTH) {
       undoHistory.shift();
     }
-    redoHistory = [];
+    const redoHistory = getSketchRedoHistory(sketch.id);
+    redoHistory.length = 0;
   }
 
   function applyHistory(elements) {
@@ -607,20 +698,32 @@ export function createScratchpadController({
   }
 
   function undo() {
+    const sketch = currentSketch();
+    if (!sketch) {
+      return;
+    }
+    const undoHistory = getSketchUndoHistory(sketch.id);
     const previous = undoHistory.pop();
     if (!previous) {
       return;
     }
-    redoHistory.push(clone(currentSketch().elements));
+    const redoHistory = getSketchRedoHistory(sketch.id);
+    redoHistory.push(clone(sketch.elements));
     applyHistory(previous);
   }
 
   function redo() {
+    const sketch = currentSketch();
+    if (!sketch) {
+      return;
+    }
+    const redoHistory = getSketchRedoHistory(sketch.id);
     const next = redoHistory.pop();
     if (!next) {
       return;
     }
-    undoHistory.push(clone(currentSketch().elements));
+    const undoHistory = getSketchUndoHistory(sketch.id);
+    undoHistory.push(clone(sketch.elements));
     applyHistory(next);
   }
 
@@ -814,6 +917,7 @@ export function createScratchpadController({
       Math.hypot(element.x2 - element.x1, element.y2 - element.y1) < 8;
     if (isTinyPath || isTinyShape) {
       sketch.elements = sketch.elements.filter(item => item.id !== activeElementId);
+      const undoHistory = getSketchUndoHistory(sketch.id);
       undoHistory.pop();
     } else {
       scheduleSave();
@@ -873,8 +977,7 @@ export function createScratchpadController({
 
     draft = scratchpadMemo.normalizeScratchpadDraft(values[activeStorageKey]);
     textInput.value = draft.text;
-    undoHistory = [];
-    redoHistory = [];
+    clearSketchHistory();
     renamingSketchId = '';
     renderedTabsSignature = '';
     hideTextInput();
@@ -894,8 +997,7 @@ export function createScratchpadController({
     activeStorageKey = '';
     draft = scratchpadMemo.normalizeScratchpadDraft(null);
     textInput.value = '';
-    undoHistory = [];
-    redoHistory = [];
+    clearSketchHistory();
     renamingSketchId = '';
     renderedTabsSignature = '';
     renderSketch();
@@ -988,7 +1090,9 @@ export function createScratchpadController({
       return;
     }
     const activeIndex = draft.sketches.findIndex(sketch => sketch.id === draft.activeSketchId);
+    const deletedId = draft.activeSketchId;
     draft.sketches = draft.sketches.filter(sketch => sketch.id !== draft.activeSketchId);
+    clearSketchHistory(deletedId);
     draft.activeSketchId =
       draft.sketches[Math.min(activeIndex, draft.sketches.length - 1)]?.id || '';
     renamingSketchId = '';
@@ -1041,11 +1145,12 @@ export function createScratchpadController({
   sketchTextInput.addEventListener('blur', commitTextInput);
 
   sketchEditor.addEventListener('keydown', event => {
-    if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') {
+    const action = getSketchHistoryAction(event);
+    if (!action) {
       return;
     }
     event.preventDefault();
-    if (event.shiftKey) {
+    if (action === 'redo') {
       redo();
     } else {
       undo();

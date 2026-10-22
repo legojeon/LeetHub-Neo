@@ -13,6 +13,7 @@ DESIGN.md
 docs/superpowers/
 tests/*
 !tests/i18n.test.mjs
+!tests/scratchpad-controller.test.mjs
 .worktrees/
 .vscode/
 **/.DS_Store

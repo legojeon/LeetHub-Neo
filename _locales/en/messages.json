@@ -123,6 +123,14 @@
   "eraser": { "message": "Eraser" },
   "undo": { "message": "Undo" },
   "redo": { "message": "Redo" },
+  "undoWithShortcut": {
+    "message": "Undo ($SHORTCUT$)",
+    "placeholders": { "shortcut": { "content": "$1" } }
+  },
+  "redoWithShortcut": {
+    "message": "Redo ($SHORTCUT$)",
+    "placeholders": { "shortcut": { "content": "$1" } }
+  },
   "clearSketch": { "message": "Clear sketch" },
   "sketchCanvas": { "message": "Sketch canvas" },
   "sketchText": { "message": "Sketch text" },

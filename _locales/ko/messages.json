@@ -113,6 +113,14 @@
   "eraser": { "message": "지우개" },
   "undo": { "message": "실행 취소" },
   "redo": { "message": "다시 실행" },
+  "undoWithShortcut": {
+    "message": "실행 취소 ($SHORTCUT$)",
+    "placeholders": { "shortcut": { "content": "$1" } }
+  },
+  "redoWithShortcut": {
+    "message": "다시 실행 ($SHORTCUT$)",
+    "placeholders": { "shortcut": { "content": "$1" } }
+  },
   "clearSketch": { "message": "스케치 전체 지우기" },
   "sketchCanvas": { "message": "스케치 캔버스" },
   "sketchText": { "message": "스케치 텍스트" },
