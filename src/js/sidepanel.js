@@ -34,6 +34,9 @@ const topicTemplateUtils = globalThis.LeetHubTopicTemplateUtils;
 const topicTemplateCatalog = globalThis.LeetHubTopicTemplateCatalog;
 const translationLanguageUtils = globalThis.LeetHubTranslationLanguageUtils;
 const repositoryFiles = globalThis.LeetHubRepositoryFiles;
+const i18n = globalThis.LeetHubI18n;
+const t = (key, substitutions, fallback = '') =>
+  i18n?.getMessage(key, substitutions, fallback) || fallback || key;
 const scratchpadController = createScratchpadController();
 const THEME_STORAGE_KEY = 'useDarkTheme';
 const AUTO_UPDATE_ROOT_README_STORAGE_KEY = 'autoUpdateRootReadme';
@@ -80,7 +83,10 @@ function normalizeTranslationLanguage(language) {
 }
 
 function getTranslationLanguageName(language) {
-  return translationLanguageUtils?.getTranslationLanguageName(language) ?? 'Korean';
+  const normalizedLanguage = normalizeTranslationLanguage(language);
+  const fallback =
+    translationLanguageUtils?.getTranslationLanguageName(normalizedLanguage) ?? 'Korean';
+  return i18n?.localizeLanguageName(normalizedLanguage, fallback) ?? fallback;
 }
 
 async function getSelectedTranslationLanguage() {
@@ -132,7 +138,11 @@ function renderActivityGrid({ force = false } = {}) {
       $('<span>', {
         class: `leethub-activity-cell level-${item.level}`,
         title: `${item.date}: ${item.count}`,
-        'aria-label': `${item.date}: ${item.count} solved`,
+        'aria-label': t(
+          'activitySolvedCount',
+          [item.date, String(item.count)],
+          `${item.date}: ${item.count} solved`,
+        ),
       }),
     );
   }
@@ -251,12 +261,22 @@ function renderInitialSyncStatus(syncStatus) {
   }
 
   const messages = {
-    pending: 'Sync pending. Open a signed-in LeetCode tab to continue.',
-    running: 'Syncing your accepted submissions…',
-    failed: `Sync failed. ${syncStatus.error || 'Please retry.'}`,
+    pending: t(
+      'syncPending',
+      undefined,
+      'Sync pending. Open a signed-in LeetCode tab to continue.',
+    ),
+    running: t('syncingAccepted', undefined, 'Syncing accepted LeetCode submissions...'),
+    failed: t(
+      'syncFailedWithError',
+      [syncStatus.error || t('pleaseRetry')],
+      `Sync failed. ${syncStatus.error || 'Please retry.'}`,
+    ),
   };
 
-  message.text(messages[status] || 'Initial sync status unavailable.');
+  message.text(
+    messages[status] || t('initialSyncUnavailable', undefined, 'Initial sync status unavailable.'),
+  );
   retryButton.prop('hidden', status !== 'failed');
   retryButton.prop('disabled', status === 'running');
   banner.prop('hidden', false);
@@ -271,7 +291,7 @@ function requestPreviousSync() {
   const syncStatus = $('#sync-previous-status');
   setPreviousSyncControls(true);
   renderInitialSyncStatus({ status: 'running' });
-  syncStatus.text('Syncing accepted LeetCode submissions...');
+  syncStatus.text(t('syncingAccepted', undefined, 'Syncing accepted LeetCode submissions...'));
 
   chrome.runtime.sendMessage({ action: 'runPreviousAcceptedSubmissionsSync' }, response => {
     setPreviousSyncControls(false);
@@ -286,7 +306,9 @@ function requestPreviousSync() {
     if (response?.synced) {
       const { counts, totalProblems } = response.result ?? {};
       const solved = counts?.solved ?? totalProblems ?? 0;
-      syncStatus.text(`Full sync complete. Solved problems: ${solved}.`);
+      syncStatus.text(
+        t('fullSyncComplete', [String(solved)], `Full sync complete. Solved problems: ${solved}.`),
+      );
       if (counts) {
         updateDisplayedStats(counts);
       }
@@ -295,12 +317,16 @@ function requestPreviousSync() {
 
     if (response?.reason === 'NO_LEETCODE_TAB') {
       syncStatus.text(
-        'Open a signed-in LeetCode tab. Sync will continue when it finishes loading.',
+        t(
+          'openSignedInLeetCode',
+          undefined,
+          'Open a signed-in LeetCode tab. Sync will continue when it finishes loading.',
+        ),
       );
       return;
     }
 
-    const error = response?.error || 'Sync failed.';
+    const error = response?.error || t('syncFailed', undefined, 'Sync failed.');
     syncStatus.text(error);
     renderInitialSyncStatus({ status: 'failed', error });
   });
@@ -311,19 +337,31 @@ function sendMigrateRepositoryStructureMessage(tabId, migrateButton, migrateStat
     migrateButton.prop('disabled', false);
 
     if (chrome.runtime.lastError) {
-      migrateStatus.text('Could not connect to the LeetCode page. Refresh it, then try again.');
+      migrateStatus.text(
+        t(
+          'connectLeetCodeRefresh',
+          undefined,
+          'Could not connect to the LeetCode page. Refresh it, then try again.',
+        ),
+      );
       return;
     }
 
     if (!response?.ok) {
-      migrateStatus.text(response?.error || 'Migration failed.');
+      migrateStatus.text(response?.error || t('migrationFailed', undefined, 'Migration failed.'));
       return;
     }
 
     const { moved, updatedTopicIndexes, conflicts } = response.result;
-    const conflictText = conflicts?.length ? ` ${conflicts.length} conflicts skipped.` : '';
+    const conflictText = conflicts?.length
+      ? t('conflictsSkipped', [String(conflicts.length)], ` ${conflicts.length} conflicts skipped.`)
+      : '';
     migrateStatus.text(
-      `Migration complete. Moved ${moved} files and updated ${updatedTopicIndexes} topic indexes.${conflictText}`,
+      t(
+        'migrationComplete',
+        [String(moved), String(updatedTopicIndexes), conflictText],
+        `Migration complete. Moved ${moved} files and updated ${updatedTopicIndexes} topic indexes.${conflictText}`,
+      ),
     );
   });
 }
@@ -468,7 +506,11 @@ function initializeLeetHubControls() {
     const migrateButton = $('#migrate-repository-structure-btn');
     const migrateStatus = $('#migrate-repository-structure-status');
     const shouldContinue = window.confirm(
-      'Move existing synced files in GitHub to match the current folder settings?',
+      t(
+        'confirmMigration',
+        undefined,
+        'Move existing synced files in GitHub to match the current folder settings?',
+      ),
     );
 
     if (!shouldContinue) {
@@ -476,14 +518,24 @@ function initializeLeetHubControls() {
     }
 
     migrateButton.prop('disabled', true);
-    migrateStatus.text('Open https://leetcode.com/ and keep it active while migrating...');
+    migrateStatus.text(
+      t(
+        'openLeetCodeMigrating',
+        undefined,
+        'Open https://leetcode.com/ and keep it active while migrating...',
+      ),
+    );
 
     chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
       const activeTab = tabs?.[0];
 
       if (!activeTab?.id || !isLeetCodeUrl(activeTab.url)) {
         migrateStatus.text(
-          'Open https://leetcode.com/ or https://leetcode.cn/, sign in, then try again.',
+          t(
+            'openLeetCodeSignedIn',
+            undefined,
+            'Open https://leetcode.com/ or https://leetcode.cn/, sign in, then try again.',
+          ),
         );
         migrateButton.prop('disabled', false);
         return;
@@ -495,7 +547,9 @@ function initializeLeetHubControls() {
           return;
         }
 
-        migrateStatus.text('Preparing LeetHub-Neo on this LeetCode tab...');
+        migrateStatus.text(
+          t('preparingLeetHubTab', undefined, 'Preparing LeetHub-Neo on this LeetCode tab...'),
+        );
         chrome.scripting.executeScript(
           {
             target: { tabId: activeTab.id },
@@ -503,7 +557,13 @@ function initializeLeetHubControls() {
           },
           () => {
             if (chrome.runtime.lastError) {
-              migrateStatus.text('Refresh the LeetCode page, then try again.');
+              migrateStatus.text(
+                t(
+                  'refreshLeetCodeTryAgain',
+                  undefined,
+                  'Refresh the LeetCode page, then try again.',
+                ),
+              );
               migrateButton.prop('disabled', false);
               return;
             }
@@ -605,21 +665,29 @@ function setTranslationStatus(message, { loading = false } = {}) {
 }
 
 function refreshProblemTab(tab) {
-  setTranslationStatus('Refreshing the LeetCode page...', { loading: true });
+  setTranslationStatus(t('refreshingLeetCodePage', undefined, 'Refreshing the LeetCode page...'), {
+    loading: true,
+  });
   chrome.tabs.reload(tab.id, () => {
     if (!chrome.runtime.lastError) {
       return;
     }
 
-    setTranslationStatus('Could not refresh the LeetCode page. Try again.');
+    setTranslationStatus(
+      t('refreshLeetCodeFailed', undefined, 'Could not refresh the LeetCode page. Try again.'),
+    );
   });
 }
 
 function setProblemRefreshButtonMode(mode) {
   const refreshPage = mode === 'page';
   $('#translate-refresh-btn').attr({
-    'aria-label': refreshPage ? 'Refresh LeetCode page' : 'Refresh translation',
-    title: refreshPage ? 'Refresh LeetCode page' : 'Refresh translation',
+    'aria-label': refreshPage
+      ? t('refreshLeetCodePage', undefined, 'Refresh LeetCode page')
+      : t('refreshTranslation', undefined, 'Refresh translation'),
+    title: refreshPage
+      ? t('refreshLeetCodePage', undefined, 'Refresh LeetCode page')
+      : t('refreshTranslation', undefined, 'Refresh translation'),
   });
 }
 
@@ -990,7 +1058,7 @@ function createTopicTemplateLanguageSelect() {
   const select = $('<select>', {
     id: 'topic-template-language-inline',
     class: 'topic-template-language-select',
-    'aria-label': 'Template language',
+    'aria-label': t('templateLanguage', undefined, 'Template language'),
   });
 
   for (const language of topicTemplateCatalog?.languages ?? []) {
@@ -1039,7 +1107,9 @@ async function openSelectedTopicReadmeInGitHub() {
     ]);
 
     if (!token || !hook) {
-      setTopicPanelStatus('Connect GitHub before editing topic notes.');
+      setTopicPanelStatus(
+        t('connectGitHubEditNotes', undefined, 'Connect GitHub before editing topic notes.'),
+      );
       return;
     }
 
@@ -1070,7 +1140,13 @@ async function openTopicTemplateInGitHub(entry) {
     ]);
 
     if (!token || !hook) {
-      setTopicPanelStatus('Connect GitHub before editing topic templates.');
+      setTopicPanelStatus(
+        t(
+          'connectGitHubEditTemplates',
+          undefined,
+          'Connect GitHub before editing topic templates.',
+        ),
+      );
       return;
     }
 
@@ -1088,7 +1164,9 @@ async function openTopicTemplateInGitHub(entry) {
     }
 
     if (!editableEntry?.path) {
-      throw new Error('Could not create an editable template file.');
+      throw new Error(
+        t('createEditableTemplateFailed', undefined, 'Could not create an editable template file.'),
+      );
     }
 
     const branch = await getGitHubDefaultBranch(token, hook);
@@ -1112,7 +1190,13 @@ async function forkBuiltinTemplateForEditing({ token, hook, basePath, topic, ent
   const parsedTemplateDocument = parseJsonDocument(templateFile?.content);
 
   if (templateFile?.content && !parsedTemplateDocument) {
-    throw new Error('templates.json is invalid JSON. Fix it before customizing a template.');
+    throw new Error(
+      t(
+        'invalidTemplatesBeforeCustomize',
+        undefined,
+        'templates.json is invalid JSON. Fix it before customizing a template.',
+      ),
+    );
   }
 
   const manifest = topicTemplateUtils.normalizeUserTemplateManifest(
@@ -1123,11 +1207,21 @@ async function forkBuiltinTemplateForEditing({ token, hook, basePath, topic, ent
 
   if (manifest.unsupportedSchemaVersion !== undefined) {
     throw new Error(
-      `Unsupported topic template schema version: ${manifest.unsupportedSchemaVersion}`,
+      t(
+        'unsupportedTemplateSchemaError',
+        [String(manifest.unsupportedSchemaVersion)],
+        `Unsupported topic template schema version: ${manifest.unsupportedSchemaVersion}`,
+      ),
     );
   }
   if (manifest.invalidTemplateCount) {
-    throw new Error('Fix invalid entries in templates.json before customizing a template.');
+    throw new Error(
+      t(
+        'fixInvalidTemplatesBeforeCustomize',
+        undefined,
+        'Fix invalid entries in templates.json before customizing a template.',
+      ),
+    );
   }
 
   const language = topicTemplateUtils.normalizeTemplateLanguage(
@@ -1153,7 +1247,13 @@ async function forkBuiltinTemplateForEditing({ token, hook, basePath, topic, ent
   );
 
   if (!createdFork) {
-    throw new Error('Could not create a custom copy of this template.');
+    throw new Error(
+      t(
+        'createCustomTemplateCopyFailed',
+        undefined,
+        'Could not create a custom copy of this template.',
+      ),
+    );
   }
 
   const fork = existingFork
@@ -1202,11 +1302,14 @@ function renderRelatedProblems(problems, solutionContents) {
   const container = $('#topic-related-problems');
   container.empty();
 
-  container.append($('<h3>', { text: 'Related Problems' }));
+  container.append($('<h3>', { text: t('relatedProblems', undefined, 'Related Problems') }));
 
   if (!problems.length) {
     container.append(
-      $('<p>', { class: 'topic-empty', text: 'No synced problems for this topic.' }),
+      $('<p>', {
+        class: 'topic-empty',
+        text: t('noSyncedProblems', undefined, 'No synced problems for this topic.'),
+      }),
     );
     return;
   }
@@ -1233,12 +1336,14 @@ function renderRelatedProblems(problems, solutionContents) {
       const language = getTopicCodeLanguageForPath(solution.path, solution.language);
       const block = $('<section>', { class: 'related-solution-block' });
       const solutionHeader = $('<div>', { class: 'related-solution-header' });
-      solutionHeader.append($('<h4>', { text: solution.language || 'Solution' }));
+      solutionHeader.append(
+        $('<h4>', { text: solution.language || t('solution', undefined, 'Solution') }),
+      );
       solutionHeader.append(
         $('<a>', {
           href: problem.leetcodeUrl,
           target: '_blank',
-          text: 'Open on LeetCode',
+          text: t('openOnLeetCode', undefined, 'Open on LeetCode'),
         }),
       );
       block.append(solutionHeader);
@@ -1246,7 +1351,13 @@ function renderRelatedProblems(problems, solutionContents) {
         $('<pre>').append(
           $('<code>', {
             class: language ? `language-${language}` : '',
-            text: content || `Solution file not found: ${solution.path}`,
+            text:
+              content ||
+              t(
+                'solutionFileNotFound',
+                [solution.path],
+                `Solution file not found: ${solution.path}`,
+              ),
           }),
         ),
       );
@@ -1256,11 +1367,14 @@ function renderRelatedProblems(problems, solutionContents) {
     if (!problem.solutions.length) {
       details.append(
         $('<div>', { class: 'related-solution-header related-solution-header-empty' }).append(
-          $('<span>', { class: 'topic-empty', text: 'No synced solution path yet.' }),
+          $('<span>', {
+            class: 'topic-empty',
+            text: t('noSyncedSolutionPath', undefined, 'No synced solution path yet.'),
+          }),
           $('<a>', {
             href: problem.leetcodeUrl,
             target: '_blank',
-            text: 'Open on LeetCode',
+            text: t('openOnLeetCode', undefined, 'Open on LeetCode'),
           }),
         ),
       );
@@ -1278,24 +1392,24 @@ function renderCustomTemplateCreateForm(container) {
   const showFormButton = $('<button>', {
     type: 'button',
     class: 'topic-template-create-btn',
-    text: 'New template',
+    text: t('newTemplate', undefined, 'New template'),
   });
   const form = $('<form>', { class: 'topic-template-create-form', hidden: true });
   const input = $('<input>', {
     type: 'text',
     class: 'topic-template-name-input',
-    placeholder: 'Template name',
-    'aria-label': 'Template name',
+    placeholder: t('templateName', undefined, 'Template name'),
+    'aria-label': t('templateName', undefined, 'Template name'),
   });
   const createButton = $('<button>', {
     type: 'submit',
     class: 'topic-template-create-submit',
-    text: 'Create',
+    text: t('create', undefined, 'Create'),
   });
   const cancelButton = $('<button>', {
     type: 'button',
     class: 'topic-template-create-cancel',
-    text: 'Cancel',
+    text: t('cancel', undefined, 'Cancel'),
   });
   const actions = $('<div>', { class: 'topic-template-create-actions' });
   const languageSelect = createTopicTemplateLanguageSelect();
@@ -1351,17 +1465,25 @@ async function createCustomTopicTemplate(templateName) {
   );
 
   if (!baseEntry) {
-    setTopicPanelStatus('Enter a template name.');
+    setTopicPanelStatus(t('enterTemplateName', undefined, 'Enter a template name.'));
     return;
   }
 
   if (!token || !hook) {
-    setTopicPanelStatus('Connect GitHub before creating topic templates.');
+    setTopicPanelStatus(
+      t(
+        'connectGitHubCreateTemplates',
+        undefined,
+        'Connect GitHub before creating topic templates.',
+      ),
+    );
     return;
   }
 
   try {
-    setTopicPanelStatus(`Creating ${baseEntry.title} template...`);
+    setTopicPanelStatus(
+      t('creatingTemplate', [baseEntry.title], `Creating ${baseEntry.title} template...`),
+    );
     const basePath = await getRepositoryBasePath();
     const paths = topicPanelUtils.createTopicGithubPaths(getTopicRepositorySlug(topic), basePath);
     const templateFile = await getGitHubTextFileData(token, hook, paths.templates);
@@ -1378,11 +1500,21 @@ async function createCustomTopicTemplate(templateName) {
     );
     if (manifest.unsupportedSchemaVersion !== undefined) {
       throw new Error(
-        `Unsupported topic template schema version: ${manifest.unsupportedSchemaVersion}`,
+        t(
+          'unsupportedTemplateSchemaError',
+          [String(manifest.unsupportedSchemaVersion)],
+          `Unsupported topic template schema version: ${manifest.unsupportedSchemaVersion}`,
+        ),
       );
     }
     if (manifest.invalidTemplateCount) {
-      throw new Error('Fix invalid entries in templates.json before creating a template.');
+      throw new Error(
+        t(
+          'fixInvalidTemplatesBeforeCreate',
+          undefined,
+          'Fix invalid entries in templates.json before creating a template.',
+        ),
+      );
     }
     const entry = topicTemplateUtils.mergeCustomTemplateEntry(
       manifest,
@@ -1430,7 +1562,9 @@ function renderTemplateEntries(entries, templateTexts) {
   renderCustomTemplateCreateForm(container);
 
   if (!entries.length) {
-    container.append($('<p>', { class: 'topic-empty', text: 'No templates yet.' }));
+    container.append(
+      $('<p>', { class: 'topic-empty', text: t('noTemplates', undefined, 'No templates yet.') }),
+    );
     return;
   }
 
@@ -1444,7 +1578,10 @@ function renderTemplateEntries(entries, templateTexts) {
     heading.append(
       $('<span>', {
         class: `topic-template-origin ${entry.origin}`,
-        text: entry.origin === 'builtin' ? 'Default' : 'My template',
+        text:
+          entry.origin === 'builtin'
+            ? t('defaultTemplate', undefined, 'Default')
+            : t('myTemplate', undefined, 'My template'),
       }),
     );
     header.append(heading);
@@ -1452,9 +1589,15 @@ function renderTemplateEntries(entries, templateTexts) {
       $('<button>', {
         type: 'button',
         class: 'topic-template-edit-btn',
-        'aria-label': `${entry.origin === 'builtin' ? 'Customize' : 'Edit'} ${entry.title} template on GitHub`,
+        'aria-label': t(
+          entry.origin === 'builtin' ? 'customizeNamedTemplateGitHub' : 'editNamedTemplateGitHub',
+          [entry.title],
+          `${entry.origin === 'builtin' ? 'Customize' : 'Edit'} ${entry.title} template on GitHub`,
+        ),
         title:
-          entry.origin === 'builtin' ? 'Customize template on GitHub' : 'Edit template on GitHub',
+          entry.origin === 'builtin'
+            ? t('customizeTemplateGitHub', undefined, 'Customize template on GitHub')
+            : t('editTemplateGitHub', undefined, 'Edit template on GitHub'),
       })
         .append($('<i>', { class: 'icon pencil alternate' }))
         .on('click', () => openTopicTemplateInGitHub(entry)),
@@ -1464,7 +1607,9 @@ function renderTemplateEntries(entries, templateTexts) {
       $('<pre>').append(
         $('<code>', {
           class: language ? `language-${language}` : '',
-          text: content || `Template file not found: ${entry.path}`,
+          text:
+            content ||
+            t('templateFileNotFound', [entry.path], `Template file not found: ${entry.path}`),
         }),
       ),
     );
@@ -1504,11 +1649,13 @@ async function loadSelectedTopic() {
   ]);
 
   if (!token || !hook) {
-    setTopicPanelStatus('Connect GitHub to load topic notes and templates.');
+    setTopicPanelStatus(
+      t('connectGitHubLoadTopics', undefined, 'Connect GitHub to load topic notes and templates.'),
+    );
     return;
   }
 
-  setTopicPanelStatus(`Loading ${topic.name}...`);
+  setTopicPanelStatus(t('loadingTopic', [topic.name], `Loading ${topic.name}...`));
 
   try {
     const [readmeContent, problemsContent, templatesContent, settingsValues] = await Promise.all([
@@ -1554,11 +1701,23 @@ async function loadSelectedTopic() {
     let templateWarning = '';
 
     if (topicFiles.templates && !parsedTemplateDocument) {
-      templateWarning = 'Custom templates are hidden because templates.json is invalid JSON.';
+      templateWarning = t(
+        'invalidTemplatesJson',
+        undefined,
+        'Custom templates are hidden because templates.json is invalid JSON.',
+      );
     } else if (userTemplateManifest.unsupportedSchemaVersion !== undefined) {
-      templateWarning = `Custom templates use unsupported schema version ${userTemplateManifest.unsupportedSchemaVersion}.`;
+      templateWarning = t(
+        'unsupportedTemplateSchema',
+        [String(userTemplateManifest.unsupportedSchemaVersion)],
+        `Custom templates use unsupported schema version ${userTemplateManifest.unsupportedSchemaVersion}.`,
+      );
     } else if (userTemplateManifest.invalidTemplateCount) {
-      templateWarning = `${userTemplateManifest.invalidTemplateCount} invalid custom template entries were skipped.`;
+      templateWarning = t(
+        'invalidTemplateEntriesSkipped',
+        [String(userTemplateManifest.invalidTemplateCount)],
+        `${userTemplateManifest.invalidTemplateCount} invalid custom template entries were skipped.`,
+      );
     }
     const builtinTemplates = topicTemplateUtils.resolveBuiltinTemplates(
       topic,
@@ -1608,7 +1767,12 @@ async function loadSelectedTopic() {
     if (!settings.showTopicTemplates) {
       $('#topic-templates-content')
         .empty()
-        .append($('<p>', { class: 'topic-empty', text: 'Templates are hidden in settings.' }));
+        .append(
+          $('<p>', {
+            class: 'topic-empty',
+            text: t('templatesHiddenInSettings', undefined, 'Templates are hidden in settings.'),
+          }),
+        );
     } else {
       renderTemplateEntries(templateEntries, templateTexts);
     }
@@ -1660,7 +1824,7 @@ function renderTopicPanel(problem) {
     $('#topic-readme-edit-btn').prop('hidden', true);
     $('#topic-related-problems').empty();
     $('#topic-templates-content').empty();
-    setTopicPanelStatus('No topics found for this problem.');
+    setTopicPanelStatus(t('noTopicsForProblem', undefined, 'No topics found for this problem.'));
     return;
   }
 
@@ -1710,7 +1874,13 @@ function rememberActiveTranslation(problem, targetLanguage, translatedHtml) {
 
 async function createEnglishTranslator(targetLanguage) {
   if (!('Translator' in globalThis)) {
-    throw new Error('Chrome Translator API is not available. Use Chrome 138+ desktop.');
+    throw new Error(
+      t(
+        'translatorUnavailable',
+        undefined,
+        'Chrome Translator API is not available. Use Chrome 138+ desktop.',
+      ),
+    );
   }
 
   const availability = await globalThis.Translator.availability({
@@ -1720,9 +1890,11 @@ async function createEnglishTranslator(targetLanguage) {
 
   if (availability === 'unavailable') {
     throw new Error(
-      `English to ${getTranslationLanguageName(
-        targetLanguage,
-      )} translation is unavailable in this Chrome profile.`,
+      t(
+        'translationPairUnavailable',
+        [getTranslationLanguageName(targetLanguage)],
+        `English to ${getTranslationLanguageName(targetLanguage)} translation is unavailable in this Chrome profile.`,
+      ),
     );
   }
 
@@ -1732,19 +1904,36 @@ async function createEnglishTranslator(targetLanguage) {
     monitor(monitor) {
       monitor.addEventListener('downloadprogress', event => {
         const percent = Math.round(event.loaded * 100);
-        setTranslationStatus(`Downloading translation model... ${percent}%`, { loading: true });
+        setTranslationStatus(
+          t(
+            'downloadingTranslationModel',
+            [String(percent)],
+            `Downloading translation model... ${percent}%`,
+          ),
+          { loading: true },
+        );
       });
     },
   });
 }
 
 async function translateProblemDescriptionWithChrome(problem, targetLanguage, targetLanguageName) {
-  setTranslationStatus(`Preparing ${targetLanguageName} translation fallback...`, {
-    loading: true,
-  });
+  setTranslationStatus(
+    t(
+      'preparingTranslationFallback',
+      [targetLanguageName],
+      `Preparing ${targetLanguageName} translation fallback...`,
+    ),
+    {
+      loading: true,
+    },
+  );
   const translator = await createEnglishTranslator(targetLanguage);
 
-  setTranslationStatus('Translating description with Chrome fallback...', { loading: true });
+  setTranslationStatus(
+    t('translatingWithChrome', undefined, 'Translating description with Chrome fallback...'),
+    { loading: true },
+  );
   return translateDescriptionHtml(problem.descriptionHtml, text => translator.translate(text), {
     targetLanguage,
   });
@@ -1781,7 +1970,13 @@ async function translateProblemDescription(problem, { forceRefresh = false } = {
   }
 
   if (!problem.descriptionHtml) {
-    throw new Error('This problem does not have a description to translate.');
+    throw new Error(
+      t(
+        'noDescriptionToTranslate',
+        undefined,
+        'This problem does not have a description to translate.',
+      ),
+    );
   }
 
   if (targetLanguage === 'en') {
@@ -1794,7 +1989,14 @@ async function translateProblemDescription(problem, { forceRefresh = false } = {
 
   let translatedHtml;
   try {
-    setTranslationStatus(`Requesting ${targetLanguageName} translation...`, { loading: true });
+    setTranslationStatus(
+      t(
+        'requestingTranslation',
+        [targetLanguageName],
+        `Requesting ${targetLanguageName} translation...`,
+      ),
+      { loading: true },
+    );
     const serverTranslation = await requestProblemTranslation(withDescriptionPayload(problem), {
       targetLanguage,
     });
@@ -1817,11 +2019,13 @@ async function translateProblemDescription(problem, { forceRefresh = false } = {
 
 async function requestActiveTranslationReview() {
   if (!activeTranslation) {
-    throw new Error('No translated description is available to review.');
+    throw new Error(
+      t('noTranslationToReview', undefined, 'No translated description is available to review.'),
+    );
   }
 
   $('#translation-review-request-btn').prop('disabled', true);
-  setTranslationReviewStatus('Sending review request...');
+  setTranslationReviewStatus(t('sendingReviewRequest', undefined, 'Sending review request...'));
 
   try {
     await requestProblemTranslationReview(activeTranslation.problem, {
@@ -1830,7 +2034,7 @@ async function requestActiveTranslationReview() {
       translatedDescription: activeTranslation.translatedDescription,
       reason: 'bad_translation',
     });
-    setTranslationReviewStatus('Review request sent.');
+    setTranslationReviewStatus(t('reviewRequestSent', undefined, 'Review request sent.'));
   } finally {
     $('#translation-review-request-btn').prop('disabled', false);
   }
@@ -1855,19 +2059,34 @@ function requestProblemFromTab(tab) {
   setActiveView('description');
   setTranslationActionsVisible(true);
   setProblemRefreshButtonMode('page');
-  setTranslationStatus('Loading LeetCode problem description...', { loading: true });
+  setTranslationStatus(
+    t('loadingLeetCodeDescription', undefined, 'Loading LeetCode problem description...'),
+    { loading: true },
+  );
 
   chrome.tabs.sendMessage(tab.id, { action: 'getCurrentLeetCodeProblem' }, response => {
     if (chrome.runtime.lastError) {
       setTranslationStatus(
-        'LeetHub-Neo needs to reload this problem page. Use the refresh icon above.',
+        t(
+          'reloadProblemPageRequired',
+          undefined,
+          'LeetHub-Neo needs to reload this problem page. Use the refresh icon above.',
+        ),
       );
       return;
     }
 
     if (!response?.ok) {
-      const errorMessage = response?.error || 'Could not load the LeetCode problem.';
-      setTranslationStatus(`${errorMessage} Use the refresh icon above.`);
+      const errorMessage =
+        response?.error ||
+        t('loadLeetCodeProblemFailed', undefined, 'Could not load the LeetCode problem.');
+      setTranslationStatus(
+        t(
+          'problemLoadFailedUseRefresh',
+          [errorMessage],
+          `${errorMessage} Use the refresh icon above.`,
+        ),
+      );
       return;
     }
 

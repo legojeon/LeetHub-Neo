@@ -1,0 +1,408 @@
+{
+  "extensionName": { "message": "LeetHub-Neo" },
+  "extensionDescription": {
+    "message": "LeetCode 풀이를 GitHub에 동기화하고 사이드 패널에서 노트, 스케치, 템플릿을 관리합니다"
+  },
+  "actionTitle": { "message": "LeetHub-Neo 열기" },
+  "tagline": { "message": "LeetCode 풀이 코드를 GitHub에 동기화합니다" },
+  "taglineAutomatic": { "message": "LeetCode 풀이 코드를 GitHub에 자동으로 동기화합니다" },
+  "authenticatePrompt": { "message": "사용을 위해 GitHub 인증이 필요합니다." },
+  "authenticate": { "message": "GitHub 인증" },
+  "setupRepositoryPrompt": { "message": "사용을 위해 GitHub 저장소를 연결하세요." },
+  "setupRepository": { "message": "저장소 연결" },
+  "retry": { "message": "다시 시도" },
+  "problemTab": { "message": "Problem" },
+  "scratchpadTab": { "message": "Scratchpad" },
+  "topicsTab": { "message": "Topics" },
+  "leethubTab": { "message": "LeetHub" },
+  "notesTab": { "message": "Notes" },
+  "templatesTab": { "message": "Templates" },
+  "requestTranslationReview": { "message": "번역 검토 요청" },
+  "sketch": { "message": "Sketch" },
+  "sketches": { "message": "Sketches" },
+  "empty": { "message": "비어 있음" },
+  "clear": { "message": "전체 지우기" },
+  "problemsSolved": { "message": "해결한 문제" },
+  "problemsSolvedColon": { "message": "해결한 문제:" },
+  "solved": { "message": "풀이 완료" },
+  "current": { "message": "현재 연속" },
+  "best": { "message": "최장 연속" },
+  "requestFeature": { "message": "기능 요청" },
+  "settings": { "message": "설정" },
+  "syncPrevious": { "message": "이전 풀이 동기화" },
+  "syncPreviousDescription": { "message": "기존 Accepted 제출을 GitHub에 동기화합니다." },
+  "sync": { "message": "동기화" },
+  "migrateRepositoryStructure": { "message": "저장소 구조 마이그레이션" },
+  "migrateDescription": { "message": "기존 동기화 파일을 현재 폴더 설정에 맞게 이동합니다." },
+  "migrate": { "message": "마이그레이션" },
+  "theme": { "message": "테마" },
+  "themeDescription": { "message": "사이드 패널의 밝은 테마와 어두운 테마를 전환합니다." },
+  "darkMode": { "message": "다크 모드" },
+  "commitMessage": { "message": "커밋 메시지" },
+  "customizeCommitMessage": { "message": "커밋 메시지 설정" },
+  "commitMessageDescription": { "message": "커밋 메시지 템플릿과 변수를 설정합니다." },
+  "availableVariables": { "message": "사용 가능한 변수" },
+  "timeVariable": { "message": "실행 시간 (백분위)" },
+  "spaceVariable": { "message": "메모리 사용량 (백분위)" },
+  "dateVariable": { "message": "오늘 날짜" },
+  "problemNameVariable": { "message": "문제 이름" },
+  "difficultyVariable": { "message": "난이도" },
+  "solvedLanguageVariable": { "message": "풀이 언어" },
+  "problemTopicVariable": { "message": "문제 Topic" },
+  "reset": { "message": "초기화" },
+  "save": { "message": "저장" },
+  "commitMessageSaved": { "message": "커밋 메시지를 저장했습니다." },
+  "useDifficultySubfolder": { "message": "난이도별 하위 폴더" },
+  "difficultySubfolderDescription": {
+    "message": "제출 파일을 Easy, Medium, Hard 폴더로 분류합니다."
+  },
+  "organizeFilesLike": { "message": "다음과 같은 폴더 구조로 정리합니다" },
+  "useLanguageSubfolder": { "message": "언어별 하위 폴더" },
+  "languageSubfolderDescription": { "message": "각 문제의 파일을 풀이 언어별로 분류합니다." },
+  "timestampedFilenames": { "message": "타임스탬프 파일명" },
+  "enableTimestampedFilenames": { "message": "타임스탬프 파일명 사용" },
+  "timestampedFilenamesDescription": {
+    "message": "파일명에 타임스탬프를 추가해 Accepted 제출을 여러 버전으로 보관합니다."
+  },
+  "saveSubmissionsLike": { "message": "파일명에 타임스탬프를 추가합니다:" },
+  "preserveVersions": { "message": "이전 제출도 함께 보관할 수 있습니다." },
+  "addVersionedFilenames": { "message": "버전별 파일명 추가" },
+  "autoCommitSolutionPosts": { "message": "Solution 게시물 자동 커밋" },
+  "solutionPostDescription": { "message": "게시한 LeetCode Solution을 Solution.md로 커밋합니다." },
+  "automaticallyCommitSolutionPosts": { "message": "LeetCode에 게시한 Solution을 GitHub에" },
+  "whenPublishedOnLeetCode": { "message": "파일로 자동 커밋합니다." },
+  "autoUpdateRepositoryReadme": { "message": "저장소 README 자동 업데이트" },
+  "readmeUpdateDescription": { "message": "동기화된 README의 진행 상황 요약을 업데이트합니다." },
+  "readmeUpdateWarning": {
+    "message": "동기화된 저장소 README를 직접 편집하려면 이 기능을 끄세요. 문제 파일, Topics와 통계는 계속 동기화됩니다."
+  },
+  "topicTemplates": { "message": "Topic Templates" },
+  "topicTemplatesDescription": { "message": "템플릿 언어와 Topics 탭 표시 여부를 설정합니다." },
+  "defaultTemplateLanguage": { "message": "기본 템플릿 언어" },
+  "showTemplatesInSidePanel": { "message": "사이드 패널에 Templates 표시" },
+  "translationLanguage": { "message": "번역 언어" },
+  "translationLanguageDescription": { "message": "LeetCode 문제 설명을 번역할 언어를 선택합니다." },
+  "problemTranslationLanguage": { "message": "문제 설명 번역 언어" },
+  "linkedWrongRepository": { "message": "잘못된 저장소를 연결했나요?" },
+  "unlink": { "message": "연결 해제" },
+  "getStartedWithLeetHub": { "message": "LeetHub-Neo 시작하기" },
+  "pickOption": { "message": "방식 선택" },
+  "createPrivateRepository": { "message": "새 비공개 저장소 만들기" },
+  "linkExistingRepository": { "message": "기존 저장소 연결하기" },
+  "selectRepository": { "message": "저장소 선택" },
+  "syncFolderInsideRepository": { "message": "저장소 내 동기화 폴더" },
+  "syncAfterLinkingGitHub": { "message": "GitHub 연결 후 기존 Accepted 제출 동기화" },
+  "getStarted": { "message": "시작하기" },
+  "syncProblemCounts": { "message": "문제 통계 동기화" },
+  "wantMoreFeatures": { "message": "필요한 기능이 있나요?" },
+  "scratchpadPlaceholder": { "message": "풀이 메모, 예외 상황, 아이디어를 자유롭게 기록하세요…" },
+  "problemTools": { "message": "Problem 도구" },
+  "refreshTranslation": { "message": "번역 새로고침" },
+  "addSketch": { "message": "스케치 추가" },
+  "resizeSketch": { "message": "스케치 크기 조절" },
+  "renameSketch": { "message": "스케치 이름 변경" },
+  "deleteSketch": { "message": "스케치 삭제" },
+  "addAnotherSketch": { "message": "스케치 추가" },
+  "sketchTools": { "message": "스케치 도구" },
+  "pan": { "message": "이동" },
+  "pen": { "message": "펜" },
+  "rectangle": { "message": "사각형" },
+  "ellipse": { "message": "타원" },
+  "arrow": { "message": "화살표" },
+  "textTool": { "message": "텍스트" },
+  "eraser": { "message": "지우개" },
+  "undo": { "message": "실행 취소" },
+  "redo": { "message": "다시 실행" },
+  "clearSketch": { "message": "스케치 전체 지우기" },
+  "sketchCanvas": { "message": "스케치 캔버스" },
+  "sketchText": { "message": "스케치 텍스트" },
+  "topicContent": { "message": "Topic 내용" },
+  "topic": { "message": "Topic" },
+  "editTopicReadmeGitHub": { "message": "GitHub에서 Topic README 편집" },
+  "editReadmeGitHub": { "message": "GitHub에서 README 편집" },
+  "solvedProblemStats": { "message": "해결한 문제 통계" },
+  "difficultyDistribution": { "message": "난이도 분포" },
+  "leethubProfileSummary": { "message": "LeetHub 프로필 요약" },
+  "recentSolveActivity": { "message": "최근 풀이 활동" },
+  "leethubLinksAndSettings": { "message": "LeetHub 링크 및 설정" },
+  "syncAcceptedSubmissions": { "message": "Accepted 제출 동기화" },
+  "openLeetHubSettings": { "message": "LeetHub 설정 열기" },
+  "backToLeetHubPanel": { "message": "LeetHub 패널로 돌아가기" },
+  "toggleThemeSettings": { "message": "테마 설정 펼치기 또는 접기" },
+  "toggleCommitMessageSettings": { "message": "커밋 메시지 설정 펼치기 또는 접기" },
+  "toggleDifficultyFolderSettings": { "message": "난이도 폴더 설정 펼치기 또는 접기" },
+  "toggleLanguageFolderSettings": { "message": "언어 폴더 설정 펼치기 또는 접기" },
+  "toggleTimestampFilenameSettings": { "message": "타임스탬프 파일명 설정 펼치기 또는 접기" },
+  "toggleSolutionPostSettings": { "message": "Solution 게시물 설정 펼치기 또는 접기" },
+  "toggleRepositoryReadmeSettings": { "message": "저장소 README 설정 펼치기 또는 접기" },
+  "toggleTopicTemplateSettings": { "message": "템플릿 설정 펼치기 또는 접기" },
+  "toggleTranslationLanguageSettings": { "message": "번역 언어 설정 펼치기 또는 접기" },
+  "repositoryName": { "message": "저장소 이름" },
+  "syncPending": { "message": "동기화가 대기 중입니다. LeetCode에 로그인한 탭을 열어 계속하세요." },
+  "syncingAccepted": { "message": "Accepted 제출을 동기화하는 중…" },
+  "syncFailed": { "message": "동기화에 실패했습니다." },
+  "syncFailedWithError": {
+    "message": "동기화에 실패했습니다. $ERROR$",
+    "placeholders": { "error": { "content": "$1" } }
+  },
+  "pleaseRetry": { "message": "다시 시도하세요." },
+  "initialSyncUnavailable": { "message": "초기 동기화 상태를 확인할 수 없습니다." },
+  "fullSyncComplete": {
+    "message": "전체 동기화가 완료되었습니다. 해결한 문제: $COUNT$개.",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "openSignedInLeetCode": {
+    "message": "LeetCode에 로그인한 탭을 여세요. 페이지 로딩이 끝나면 동기화를 계속합니다."
+  },
+  "connectLeetCodeRefresh": {
+    "message": "LeetCode 페이지에 연결하지 못했습니다. 페이지를 새로고침한 후 다시 시도하세요."
+  },
+  "migrationFailed": { "message": "마이그레이션에 실패했습니다." },
+  "migrationComplete": {
+    "message": "마이그레이션을 완료했습니다. 파일 $MOVED$개를 이동하고 Topics 인덱스 $INDEXES$개를 업데이트했습니다.$CONFLICTS$",
+    "placeholders": {
+      "moved": { "content": "$1" },
+      "indexes": { "content": "$2" },
+      "conflicts": { "content": "$3" }
+    }
+  },
+  "conflictsSkipped": {
+    "message": " 충돌 $COUNT$개는 건너뛰었습니다.",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "confirmMigration": {
+    "message": "GitHub의 기존 동기화 파일을 현재 폴더 설정에 맞게 이동할까요?"
+  },
+  "openLeetCodeMigrating": {
+    "message": "https://leetcode.com/ 페이지를 열고 마이그레이션이 끝날 때까지 해당 탭을 활성 상태로 유지하세요…"
+  },
+  "openLeetCodeSignedIn": {
+    "message": "https://leetcode.com/ 또는 https://leetcode.cn/을 열고 로그인한 후 다시 시도하세요."
+  },
+  "preparingLeetHubTab": { "message": "이 LeetCode 탭에서 LeetHub-Neo를 준비하는 중…" },
+  "refreshLeetCodeTryAgain": { "message": "LeetCode 페이지를 새로고침한 후 다시 시도하세요." },
+  "connectGitHubEditNotes": { "message": "Notes를 편집하려면 GitHub를 연결하세요." },
+  "connectGitHubEditTemplates": { "message": "Templates를 편집하려면 GitHub를 연결하세요." },
+  "relatedProblems": { "message": "관련 문제" },
+  "noSyncedProblems": { "message": "이 Topic에 동기화된 문제가 없습니다." },
+  "solution": { "message": "풀이" },
+  "openOnLeetCode": { "message": "LeetCode에서 열기" },
+  "solutionFileNotFound": {
+    "message": "풀이 파일을 찾을 수 없습니다: $PATH$",
+    "placeholders": { "path": { "content": "$1" } }
+  },
+  "noSyncedSolutionPath": { "message": "아직 동기화된 풀이 경로가 없습니다." },
+  "newTemplate": { "message": "새 템플릿" },
+  "templateName": { "message": "템플릿 이름" },
+  "create": { "message": "생성" },
+  "cancel": { "message": "취소" },
+  "enterTemplateName": { "message": "템플릿 이름을 입력하세요." },
+  "connectGitHubCreateTemplates": { "message": "템플릿을 만들려면 GitHub를 연결하세요." },
+  "creatingTemplate": {
+    "message": "$NAME$ 템플릿을 만드는 중…",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "noTemplates": { "message": "아직 템플릿이 없습니다." },
+  "defaultTemplate": { "message": "기본 제공" },
+  "myTemplate": { "message": "내 템플릿" },
+  "customizeTemplateGitHub": { "message": "GitHub에서 템플릿 사용자 지정" },
+  "editTemplateGitHub": { "message": "GitHub에서 템플릿 편집" },
+  "templateFileNotFound": {
+    "message": "템플릿 파일을 찾을 수 없습니다: $PATH$",
+    "placeholders": { "path": { "content": "$1" } }
+  },
+  "connectGitHubLoadTopics": {
+    "message": "Notes와 Templates를 불러오려면 GitHub를 연결하세요."
+  },
+  "loadingTopic": {
+    "message": "$TOPIC$ 콘텐츠를 불러오는 중…",
+    "placeholders": { "topic": { "content": "$1" } }
+  },
+  "translatorUnavailable": {
+    "message": "Chrome Translator API를 사용할 수 없습니다. Chrome 138 이상 데스크톱 버전을 사용하세요."
+  },
+  "translationPairUnavailable": {
+    "message": "현재 Chrome 프로필에서는 영어 → $LANGUAGE$ 번역을 사용할 수 없습니다.",
+    "placeholders": { "language": { "content": "$1" } }
+  },
+  "downloadingTranslationModel": {
+    "message": "번역 모델을 다운로드하는 중… $PERCENT$%",
+    "placeholders": { "percent": { "content": "$1" } }
+  },
+  "preparingTranslationFallback": {
+    "message": "$LANGUAGE$ 번역 대체 수단을 준비하는 중…",
+    "placeholders": { "language": { "content": "$1" } }
+  },
+  "translatingWithChrome": { "message": "Chrome 내장 번역으로 문제 설명을 번역하는 중…" },
+  "noDescriptionToTranslate": { "message": "번역할 문제 설명이 없습니다." },
+  "requestingTranslation": {
+    "message": "$LANGUAGE$ 번역을 요청하는 중…",
+    "placeholders": { "language": { "content": "$1" } }
+  },
+  "noTranslationToReview": { "message": "검토를 요청할 번역문이 없습니다." },
+  "sendingReviewRequest": { "message": "번역 검토를 요청하는 중…" },
+  "reviewRequestSent": { "message": "번역 검토 요청을 보냈습니다." },
+  "deleteSketchConfirm": { "message": "이 스케치를 삭제할까요? 삭제하면 되돌릴 수 없습니다." },
+  "clearSketchConfirm": { "message": "스케치의 모든 요소를 지울까요?" },
+  "sketchSummary": {
+    "message": "$SKETCHES$ · $ELEMENTS$",
+    "placeholders": { "sketches": { "content": "$1" }, "elements": { "content": "$2" } }
+  },
+  "sketchCountOne": {
+    "message": "스케치 $COUNT$개",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "sketchCountMany": {
+    "message": "스케치 $COUNT$개",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "elementCountOne": {
+    "message": "요소 $COUNT$개",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "elementCountMany": {
+    "message": "요소 $COUNT$개",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "savingTemplateLanguage": { "message": "템플릿 언어를 저장하는 중…" },
+  "saveTemplateLanguageFailed": { "message": "템플릿 언어를 저장하지 못했습니다." },
+  "templateLanguageSaved": {
+    "message": "템플릿 언어를 저장했습니다. Topics에 자동으로 반영됩니다."
+  },
+  "savingTemplateVisibility": { "message": "템플릿 표시 설정을 저장하는 중…" },
+  "saveTemplateVisibilityFailed": { "message": "템플릿 표시 설정을 저장하지 못했습니다." },
+  "templateVisibilitySaved": {
+    "message": "템플릿 표시 설정을 저장했습니다. Topics에 자동으로 반영됩니다."
+  },
+  "templateSettingsReset": { "message": "템플릿 설정을 초기화했습니다." },
+  "translationLanguageSaved": { "message": "번역 언어를 저장했습니다." },
+  "translationLanguageReset": { "message": "번역 언어를 초기화했습니다." },
+  "initialSyncQueued": { "message": "초기 제출 동기화를 요청했습니다…" },
+  "initialSyncPendingOpen": {
+    "message": "초기 동기화가 대기 중입니다. LeetCode를 열어 계속하세요."
+  },
+  "initialSyncComplete": {
+    "message": "초기 동기화를 완료했습니다. 해결한 문제 $COUNT$개를 확인했습니다.",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "initialSyncPendingLater": {
+    "message": "초기 동기화가 대기 중입니다. LeetCode를 열면 시작합니다."
+  },
+  "initialSyncFailed": {
+    "message": "초기 동기화에 실패했습니다: $ERROR$",
+    "placeholders": { "error": { "content": "$1" } }
+  },
+  "retryLater": { "message": "잠시 후 다시 시도하세요." },
+  "loadRepositoriesFailed": { "message": "저장소 목록을 불러오지 못했습니다. 다시 시도하세요." },
+  "noOptionSelected": { "message": "새 저장소를 만들지 기존 저장소를 연결할지 선택하세요." },
+  "noRepositoryName": { "message": "저장소 이름을 입력하세요." },
+  "attemptingRepositorySetup": { "message": "저장소를 설정하는 중입니다… 잠시 기다려 주세요." },
+  "authorizationRequired": {
+    "message": "계속하려면 LeetHub-Neo가 GitHub 계정에 접근할 수 있도록 허용하세요."
+  },
+  "authorizationInvalid": {
+    "message": "GitHub 인증이 완료되지 않았습니다. LeetHub-Neo를 다시 인증하세요."
+  },
+  "repositoryUnlinked": {
+    "message": "저장소 연결을 해제했습니다. 다른 저장소를 만들거나 연결하세요."
+  },
+  "noRepositoryLinked": { "message": "문제 통계를 동기화하려면 저장소를 연결하세요." },
+  "noTokenFound": { "message": "LeetHub-Neo가 GitHub 계정에 접근할 수 있도록 허용하세요." },
+  "fetchRepositoryFailed": { "message": "저장소 데이터를 불러오지 못했습니다. 다시 시도하세요." },
+  "templatesHiddenInSettings": { "message": "설정에서 Templates 표시를 꺼 두었습니다." },
+  "templateLanguage": { "message": "템플릿 언어" },
+  "activitySolvedCount": {
+    "message": "$DATE$: $COUNT$개 풀이 완료",
+    "placeholders": { "date": { "content": "$1" }, "count": { "content": "$2" } }
+  },
+  "saved": { "message": "저장됨" },
+  "saving": { "message": "저장 중…" },
+  "saveFailed": { "message": "저장 실패" },
+  "sketchName": { "message": "스케치 이름" },
+  "refreshingLeetCodePage": { "message": "LeetCode 페이지를 새로고침하는 중…" },
+  "refreshLeetCodeFailed": {
+    "message": "LeetCode 페이지를 새로고침하지 못했습니다. 다시 시도하세요."
+  },
+  "refreshLeetCodePage": { "message": "LeetCode 페이지 새로고침" },
+  "createEditableTemplateFailed": { "message": "편집 가능한 템플릿 파일을 만들지 못했습니다." },
+  "invalidTemplatesBeforeCustomize": {
+    "message": "templates.json이 올바른 JSON 형식이 아닙니다. 수정한 후 템플릿을 사용자 지정하세요."
+  },
+  "unsupportedTemplateSchemaError": {
+    "message": "지원하지 않는 템플릿 스키마 버전: $VERSION$",
+    "placeholders": { "version": { "content": "$1" } }
+  },
+  "fixInvalidTemplatesBeforeCustomize": {
+    "message": "templates.json의 잘못된 항목을 수정한 후 템플릿을 사용자 지정하세요."
+  },
+  "createCustomTemplateCopyFailed": {
+    "message": "템플릿의 편집용 복사본을 만들지 못했습니다."
+  },
+  "fixInvalidTemplatesBeforeCreate": {
+    "message": "templates.json의 잘못된 항목을 수정한 후 템플릿을 생성하세요."
+  },
+  "customizeNamedTemplateGitHub": {
+    "message": "GitHub에서 $NAME$ 템플릿 사용자 지정",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "editNamedTemplateGitHub": {
+    "message": "GitHub에서 $NAME$ 템플릿 편집",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "invalidTemplatesJson": {
+    "message": "templates.json이 올바른 JSON 형식이 아니어서 사용자 템플릿을 숨겼습니다."
+  },
+  "unsupportedTemplateSchema": {
+    "message": "사용자 템플릿의 스키마 버전 $VERSION$은 지원하지 않습니다.",
+    "placeholders": { "version": { "content": "$1" } }
+  },
+  "invalidTemplateEntriesSkipped": {
+    "message": "잘못된 사용자 템플릿 항목 $COUNT$개를 건너뛰었습니다.",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "noTopicsForProblem": { "message": "이 문제에는 Topic 정보가 없습니다." },
+  "loadingLeetCodeDescription": { "message": "LeetCode 문제 설명을 불러오는 중…" },
+  "reloadProblemPageRequired": {
+    "message": "LeetHub-Neo가 이 문제 페이지를 다시 불러와야 합니다. 위의 새로고침 아이콘을 누르세요."
+  },
+  "loadLeetCodeProblemFailed": { "message": "LeetCode 문제를 불러오지 못했습니다." },
+  "problemLoadFailedUseRefresh": {
+    "message": "$ERROR$ 위의 새로고침 아이콘을 누르세요.",
+    "placeholders": { "error": { "content": "$1" } }
+  },
+  "repositoryCreated": { "message": "저장소를 생성하고 연결했습니다:" },
+  "repositoryLinked": { "message": "저장소를 연결했습니다:" },
+  "startSolving": { "message": "문제를 풀어보세요:" },
+  "createRepositoryUnmodified": {
+    "message": "$NAME$ 저장소를 만들지 못했습니다. GitHub가 요청을 처리하지 않았습니다. 잠시 후 다시 시도하세요.",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "createRepositoryBadRequest": {
+    "message": "$NAME$ 저장소를 만들지 못했습니다. GitHub가 요청을 거부했습니다.",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "createRepositoryUnauthorized": {
+    "message": "$NAME$ 저장소를 만들지 못했습니다. GitHub를 다시 인증한 후 시도하세요.",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "createRepositoryForbidden": {
+    "message": "$NAME$ 저장소를 만들지 못했습니다. GitHub에서 저장소 접근 권한을 확인하세요.",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "createRepositoryExists": {
+    "message": "$NAME$ 저장소를 만들지 못했습니다. 같은 이름의 저장소가 이미 있을 수 있으므로 기존 저장소 연결을 시도하세요.",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "linkRepositoryMoved": {
+    "message": "$NAME$ 저장소를 연결하지 못했습니다. 저장소 주소가 변경되었으므로 다시 선택하거나 새로 만드세요.",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "linkRepositoryForbidden": {
+    "message": "$NAME$ 저장소를 연결하지 못했습니다. GitHub 계정에 쓰기 권한이 있는지 확인하세요.",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "linkRepositoryNotFound": {
+    "message": "$NAME$ 저장소를 찾지 못했습니다. 올바른 저장소를 선택하고 다시 시도하세요.",
+    "placeholders": { "name": { "content": "$1" } }
+  }
+}

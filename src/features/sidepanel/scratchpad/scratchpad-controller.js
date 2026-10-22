@@ -110,6 +110,8 @@ export function createScratchpadController({
   windowObject = globalThis.window,
   scratchpadMemo = globalThis.LeetHubScratchpadMemo,
 } = {}) {
+  const t = (key, substitutions, fallback = '') =>
+    globalThis.LeetHubI18n?.getMessage(key, substitutions, fallback) || fallback || key;
   const textInput = documentObject.querySelector('#scratchpad-input');
   const addSketchButton = documentObject.querySelector('#scratchpad-add-sketch-btn');
   const saveStatus = documentObject.querySelector('#scratchpad-save-status');
@@ -172,7 +174,12 @@ export function createScratchpadController({
       return;
     }
     windowObject.clearTimeout(statusTimer);
-    saveStatus.textContent = message;
+    const localizedMessages = {
+      Saved: t('saved', undefined, 'Saved'),
+      'Saving…': t('saving', undefined, 'Saving…'),
+      'Save failed': t('saveFailed', undefined, 'Save failed'),
+    };
+    saveStatus.textContent = localizedMessages[message] ?? message;
     saveStatus.classList.toggle('visible', Boolean(message));
     if (message === 'Saved') {
       statusTimer = windowObject.setTimeout(() => {
@@ -456,7 +463,7 @@ export function createScratchpadController({
         input.className = 'scratchpad-sketch-tab-rename-input';
         input.value = sketch.title;
         input.maxLength = 60;
-        input.setAttribute('aria-label', 'Sketch name');
+        input.setAttribute('aria-label', t('sketchName', undefined, 'Sketch name'));
         input.dataset.sketchRenameId = sketch.id;
         input.addEventListener('keydown', event => {
           if (event.key === 'Enter') {
@@ -525,7 +532,7 @@ export function createScratchpadController({
     draft.activeSketchId = sketch.id;
     sketchCard.style.flexBasis = `${sketch.panelHeight}px`;
     if (sketchTitle) {
-      sketchTitle.textContent = 'Sketches';
+      sketchTitle.textContent = t('sketches', undefined, 'Sketches');
     }
     renderSketchTabs();
     const previewBounds = scratchpadMemo.getSketchContentBounds(sketch);
@@ -540,8 +547,23 @@ export function createScratchpadController({
 
     const count = sketch.elements.length;
     const sketchCount = draft.sketches.length;
-    const elementSummary = count ? `${count} element${count === 1 ? '' : 's'}` : 'Empty';
-    sketchSummary.textContent = `${sketchCount} sketch${sketchCount === 1 ? '' : 'es'} · ${elementSummary}`;
+    const sketchCountText = t(
+      sketchCount === 1 ? 'sketchCountOne' : 'sketchCountMany',
+      [String(sketchCount)],
+      `${sketchCount} sketch${sketchCount === 1 ? '' : 'es'}`,
+    );
+    const elementSummary = count
+      ? t(
+          count === 1 ? 'elementCountOne' : 'elementCountMany',
+          [String(count)],
+          `${count} element${count === 1 ? '' : 's'}`,
+        )
+      : t('empty', undefined, 'Empty');
+    sketchSummary.textContent = t(
+      'sketchSummary',
+      [sketchCountText, elementSummary],
+      `${sketchCountText} · ${elementSummary}`,
+    );
     undoButton.disabled = !undoHistory.length;
     redoButton.disabled = !redoHistory.length;
     clearButton.disabled = !count;
@@ -955,7 +977,13 @@ export function createScratchpadController({
   sketchDeleteButton.addEventListener('click', () => {
     if (
       currentSketch()?.elements.length &&
-      !windowObject.confirm('Delete this sketch? This cannot be undone after it is saved.')
+      !windowObject.confirm(
+        t(
+          'deleteSketchConfirm',
+          undefined,
+          'Delete this sketch? This cannot be undone after it is saved.',
+        ),
+      )
     ) {
       return;
     }
@@ -982,7 +1010,10 @@ export function createScratchpadController({
   undoButton.addEventListener('click', undo);
   redoButton.addEventListener('click', redo);
   clearButton.addEventListener('click', () => {
-    if (!currentSketch()?.elements.length || !windowObject.confirm('Clear every sketch element?')) {
+    if (
+      !currentSketch()?.elements.length ||
+      !windowObject.confirm(t('clearSketchConfirm', undefined, 'Clear every sketch element?'))
+    ) {
       return;
     }
     pushUndoState();

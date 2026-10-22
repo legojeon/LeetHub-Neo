@@ -1,4 +1,7 @@
 (function initializeTopicTemplateSettings(globalObject) {
+  const t = (key, fallback) =>
+    globalObject.LeetHubI18n?.getMessage(key, undefined, fallback) || fallback;
+
   function renderLanguageOptions(select, catalog, selectedLanguage) {
     select.empty();
 
@@ -56,21 +59,21 @@
 
     languageSelect.change(function () {
       const topicTemplateLanguage = utils.normalizeTemplateLanguage($(this).val(), catalog);
-      status.text('Saving template language...');
+      status.text(t('savingTemplateLanguage', 'Saving template language...'));
       chrome.storage.local.set(
         { [utils.TEMPLATE_LANGUAGE_STORAGE_KEY]: topicTemplateLanguage },
         () => {
           status.text(
             chrome.runtime.lastError
-              ? 'Could not save template language.'
-              : 'Template language saved. Topics update automatically.',
+              ? t('saveTemplateLanguageFailed', 'Could not save template language.')
+              : t('templateLanguageSaved', 'Template language saved. Topics update automatically.'),
           );
         },
       );
     });
 
     showTemplatesToggle.change(function () {
-      status.text('Saving template visibility...');
+      status.text(t('savingTemplateVisibility', 'Saving template visibility...'));
       chrome.storage.local.set(
         {
           [utils.SHOW_TEMPLATES_STORAGE_KEY]: $(this).is(':checked'),
@@ -78,8 +81,11 @@
         () => {
           status.text(
             chrome.runtime.lastError
-              ? 'Could not save template visibility.'
-              : 'Template visibility saved. Topics update automatically.',
+              ? t('saveTemplateVisibilityFailed', 'Could not save template visibility.')
+              : t(
+                  'templateVisibilitySaved',
+                  'Template visibility saved. Topics update automatically.',
+                ),
           );
         },
       );
@@ -93,7 +99,7 @@
         },
         () => {
           loadSettings();
-          status.text('Template settings reset.');
+          status.text(t('templateSettingsReset', 'Template settings reset.'));
         },
       );
     });

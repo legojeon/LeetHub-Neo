@@ -11,6 +11,9 @@ const templateUtils = globalThis.LeetHubTopicTemplateUtils;
 const templateCatalog = globalThis.LeetHubTopicTemplateCatalog;
 const translationLanguageUtils = globalThis.LeetHubTranslationLanguageUtils;
 const repositoryFiles = globalThis.LeetHubRepositoryFiles;
+const i18n = globalThis.LeetHubI18n;
+const t = (key, substitutions, fallback = '') =>
+  i18n?.getMessage(key, substitutions, fallback) || fallback || key;
 const INITIAL_SYNC_AFTER_HOOK_STORAGE_KEY = 'syncAcceptedSubmissionsAfterHook';
 const INITIAL_SYNC_STATUS_STORAGE_KEY = 'initialSyncStatus';
 const LEETHUB_BASE_PATH_STORAGE_KEY =
@@ -78,7 +81,7 @@ const renderWelcomeTranslationLanguageOptions = selectedLanguage => {
     select.append(
       $('<option>', {
         value: language.code,
-        text: language.name,
+        text: i18n?.localizeLanguageName(language.code, language.name) ?? language.name,
         selected: language.code === selectedLanguage,
       }),
     );
@@ -160,20 +163,39 @@ initializeInitialSyncOption();
 initializeRepositoryBasePath();
 
 const syncPreviousAfterInitialHook = () => {
-  appendSuccessLine('Initial submission sync queued...');
+  appendSuccessLine(t('initialSyncQueued', undefined, 'Initial submission sync queued...'));
   chrome.runtime.sendMessage({ action: 'syncPreviousAfterInitialHook' }, response => {
     if (chrome.runtime.lastError) {
-      appendSuccessLine('Initial sync is pending. Open LeetCode to continue.');
+      appendSuccessLine(
+        t(
+          'initialSyncPendingOpen',
+          undefined,
+          'Initial sync is pending. Open LeetCode to continue.',
+        ),
+      );
       return;
     }
 
     if (response?.synced) {
       const solved = response.result?.counts?.solved ?? response.result?.totalProblems ?? 0;
-      appendSuccessLine(`Initial sync complete. ${solved} solved problems found.`);
+      appendSuccessLine(
+        t(
+          'initialSyncComplete',
+          [String(solved)],
+          `Initial sync complete. ${solved} solved problems found.`,
+        ),
+      );
     } else if (response?.reason === 'NO_LEETCODE_TAB') {
-      appendSuccessLine('Initial sync is pending. It will start when you open LeetCode.');
+      appendSuccessLine(
+        t(
+          'initialSyncPendingLater',
+          undefined,
+          'Initial sync is pending. It will start when you open LeetCode.',
+        ),
+      );
     } else if (!response?.ok) {
-      appendSuccessLine(`Initial sync failed: ${response?.error || 'Please retry later.'}`);
+      const error = response?.error || t('retryLater', undefined, 'Please retry later.');
+      appendSuccessLine(t('initialSyncFailed', [error], `Initial sync failed: ${error}`));
     }
   });
 };
@@ -182,40 +204,87 @@ const appendSuccessLine = message => {
   $('#success').append('<br />', document.createTextNode(message));
 };
 
+const showRepositoryConnected = ({ created, url, label }) => {
+  $('#success')
+    .empty()
+    .append(
+      document.createTextNode(
+        `${t(
+          created ? 'repositoryCreated' : 'repositoryLinked',
+          undefined,
+          created ? 'Repository created and connected:' : 'Repository connected:',
+        )} `,
+      ),
+      $('<a>', { target: 'blank', href: url, text: label }),
+      document.createTextNode(`. ${t('startSolving', undefined, 'Start solving on')} `),
+      $('<a>', { href: 'https://leetcode.com', text: 'LeetCode' }),
+      document.createTextNode(' / '),
+      $('<a>', { href: 'https://leetcode.cn', text: '力扣' }),
+      document.createTextNode('.'),
+    )
+    .show();
+};
+
 /* Status codes for creating of repo */
 
 const statusCode = (res, status, name) => {
   switch (status) {
     case 304:
       $('#success').hide();
-      $('#error').text(`Error creating ${name} - Unable to modify repository. Try again later!`);
+      $('#error').text(
+        t(
+          'createRepositoryUnmodified',
+          [name],
+          `Could not create ${name}. GitHub did not modify the repository. Try again later.`,
+        ),
+      );
       $('#error').show();
       break;
 
     case 400:
       $('#success').hide();
       $('#error').text(
-        `Error creating ${name} - Bad POST request, make sure you're not overriding any existing scripts`,
+        t(
+          'createRepositoryBadRequest',
+          [name],
+          `Could not create ${name}. GitHub rejected the request.`,
+        ),
       );
       $('#error').show();
       break;
 
     case 401:
       $('#success').hide();
-      $('#error').text(`Error creating ${name} - Unauthorized access to repo. Try again later!`);
+      $('#error').text(
+        t(
+          'createRepositoryUnauthorized',
+          [name],
+          `Could not create ${name}. Authorize GitHub again and retry.`,
+        ),
+      );
       $('#error').show();
       break;
 
     case 403:
       $('#success').hide();
-      $('#error').text(`Error creating ${name} - Forbidden access to repository. Try again later!`);
+      $('#error').text(
+        t(
+          'createRepositoryForbidden',
+          [name],
+          `Could not create ${name}. GitHub denied access to the repository.`,
+        ),
+      );
       $('#error').show();
       break;
 
     case 422:
       $('#success').hide();
       $('#error').text(
-        `Error creating ${name} - Unprocessable Entity. Repository may have already been created. Try Linking instead (select 2nd option).`,
+        t(
+          'createRepositoryExists',
+          [name],
+          `Could not create ${name}. It may already exist; try linking it instead.`,
+        ),
       );
       $('#error').show();
       break;
@@ -224,10 +293,7 @@ const statusCode = (res, status, name) => {
       /* Change mode type to commit */
       chrome.storage.local.set({ mode_type: 'commit' }, () => {
         $('#error').hide();
-        $('#success').html(
-          `Successfully created <a target="blank" href="${res.html_url}">${name}</a>. Start <a href="https://leetcode.com">LeetCoding</a> or <a href="https://leetcode.cn">力扣</a>!`,
-        );
-        $('#success').show();
+        showRepositoryConnected({ created: true, url: res.html_url, label: name });
         $('#unlink').show();
         /* Show new layout */
         document.getElementById('hook_mode').style.display = 'none';
@@ -284,24 +350,36 @@ const linkStatusCode = (status, name) => {
   switch (status) {
     case 301:
       $('#success').hide();
-      $('#error').html(
-        `Error linking <a target="blank" href="${`https://github.com/${name}`}">${name}</a> to LeetHub-Neo. <br> This repository has been moved permenantly. Try creating a new one.`,
+      $('#error').text(
+        t(
+          'linkRepositoryMoved',
+          [name],
+          `Could not connect ${name}. The repository has moved; select it again or create a new one.`,
+        ),
       );
       $('#error').show();
       break;
 
     case 403:
       $('#success').hide();
-      $('#error').html(
-        `Error linking <a target="blank" href="${`https://github.com/${name}`}">${name}</a> to LeetHub-Neo. <br> Forbidden action. Please make sure you have the right access to this repository.`,
+      $('#error').text(
+        t(
+          'linkRepositoryForbidden',
+          [name],
+          `Could not connect ${name}. Check that your GitHub account has write access.`,
+        ),
       );
       $('#error').show();
       break;
 
     case 404:
       $('#success').hide();
-      $('#error').html(
-        `Error linking <a target="blank" href="${`https://github.com/${name}`}">${name}</a> to LeetHub-Neo. <br> Resource not found. Make sure you enter the right repository name.`,
+      $('#error').text(
+        t(
+          'linkRepositoryNotFound',
+          [name],
+          `Could not find ${name}. Select the correct repository and try again.`,
+        ),
       );
       $('#error').show();
       break;
@@ -361,7 +439,14 @@ function loadRepositories() {
             fetchRepos(); // Recursively fetch the next page
           } else {
             // All repos have been fetched, populate the dropdown
-            $('#existing_repo').empty().append('<option value="">Select a Repository</option>');
+            $('#existing_repo')
+              .empty()
+              .append(
+                $('<option>', {
+                  value: '',
+                  text: t('selectRepository', undefined, 'Select a Repository'),
+                }),
+              );
             repos.forEach(repo => {
               $('#existing_repo').append(`<option value="${repo.name}">${repo.name}</option>`);
             });
@@ -369,7 +454,15 @@ function loadRepositories() {
         },
         error: function (xhr, status, error) {
           console.error('Failed to load repositories:', error);
-          $('#error').text('Failed to load repositories. Please try again.').show();
+          $('#error')
+            .text(
+              t(
+                'loadRepositoriesFailed',
+                undefined,
+                'Failed to load repositories. Please try again.',
+              ),
+            )
+            .show();
         },
       });
     }
@@ -414,10 +507,11 @@ const linkRepo = (token, name) => {
           /* Save repo url to chrome storage */
           chrome.storage.local.set({ mode_type: 'commit', repo: res.html_url }, () => {
             $('#error').hide();
-            $('#success').html(
-              `Successfully linked <a target="blank" href="${res.html_url}">${formatRepositoryTarget(res.full_name)}</a> to LeetHub-Neo. Start <a href="http://leetcode.com">LeetCoding</a> now!`,
-            );
-            $('#success').show();
+            showRepositoryConnected({
+              created: false,
+              url: res.html_url,
+              label: formatRepositoryTarget(res.full_name),
+            });
             $('#unlink').show();
 
             /* Set Repo Hook */
@@ -494,16 +588,22 @@ $('#hook_button').on('click', () => {
   /* on click should generate: 1) option 2) repository name */
   if (!option()) {
     $('#error').text(
-      'No option selected - Pick an option from dropdown menu below that best suits you!',
+      t(
+        'noOptionSelected',
+        undefined,
+        'Choose whether to create a new repository or link an existing one.',
+      ),
     );
     $('#error').show();
   } else if (!repositoryName()) {
-    $('#error').text('No repository name added - Enter the name of your repository!');
+    $('#error').text(t('noRepositoryName', undefined, 'Enter a repository name.'));
     $('#name').focus();
     $('#error').show();
   } else {
     $('#error').hide();
-    $('#success').text('Attempting to create Hook... Please wait.');
+    $('#success').text(
+      t('attemptingRepositorySetup', undefined, 'Setting up the repository... Please wait.'),
+    );
     $('#success').show();
 
     /*
@@ -518,7 +618,11 @@ $('#hook_button').on('click', () => {
       if (token === null || token === undefined) {
         /* Not authorized yet. */
         $('#error').text(
-          'Authorization error - Grant LeetHub-Neo access to your GitHub account to continue (launch extension to proceed)',
+          t(
+            'authorizationRequired',
+            undefined,
+            'Authorize LeetHub-Neo to access your GitHub account before continuing.',
+          ),
         );
         $('#error').show();
         $('#success').hide();
@@ -536,7 +640,11 @@ $('#hook_button').on('click', () => {
             if (!username) {
               /* Improper authorization. */
               $('#error').text(
-                'Improper Authorization error - Grant LeetHub-Neo access to your GitHub account to continue (launch extension to proceed)',
+                t(
+                  'authorizationInvalid',
+                  undefined,
+                  'GitHub authorization is incomplete. Authorize LeetHub-Neo again.',
+                ),
               );
               $('#error').show();
               $('#success').hide();
@@ -553,7 +661,13 @@ $('#hook_button').on('click', () => {
 $('#unlink a').on('click', () => {
   unlinkRepo();
   $('#unlink').hide();
-  $('#success').text('Successfully unlinked your current git repo. Please create/link a new hook.');
+  $('#success').text(
+    t(
+      'repositoryUnlinked',
+      undefined,
+      'Repository disconnected. Create or link another repository.',
+    ),
+  );
 });
 
 /* Add sync count behavior */
@@ -562,7 +676,13 @@ $('#sync_counts').on('click', async () => {
   chrome.storage.local.get('leethub_hook', data => {
     const hook = data.leethub_hook;
     if (!hook) {
-      $('#error').text('No repository linked - Please link a repository to sync counts!');
+      $('#error').text(
+        t(
+          'noRepositoryLinked',
+          undefined,
+          'Link a repository before synchronizing problem counts.',
+        ),
+      );
       $('#error').show();
       return;
     } else {
@@ -581,7 +701,13 @@ $('#sync_counts').on('click', async () => {
   //Get problems solved count from linked repo
   const repo = await chrome.storage.local.get('leethub_hook').then(({ leethub_hook }) => {
     if (leethub_hook == null) {
-      $('#error').text('No repository linked - Please link a repository to sync counts!');
+      $('#error').text(
+        t(
+          'noRepositoryLinked',
+          undefined,
+          'Link a repository before synchronizing problem counts.',
+        ),
+      );
       $('#error').show();
       return;
     } else {
@@ -594,7 +720,7 @@ $('#sync_counts').on('click', async () => {
   const token = await chrome.storage.local.get('leethub_token').then(({ leethub_token }) => {
     if (leethub_token == null) {
       $('#error').text(
-        'No token found - Please authorize LeetHub-Neo to access your GitHub account!',
+        t('noTokenFound', undefined, 'Authorize LeetHub-Neo to access your GitHub account.'),
       );
       $('#error').show();
       return;
@@ -675,7 +801,15 @@ $('#sync_counts').on('click', async () => {
       });
     } catch (error) {
       console.error(error.message);
-      $('#error').text('Failed to fetch repository data. Please try again.').show();
+      $('#error')
+        .text(
+          t(
+            'fetchRepositoryFailed',
+            undefined,
+            'Failed to fetch repository data. Please try again.',
+          ),
+        )
+        .show();
     }
   };
 
@@ -716,7 +850,11 @@ chrome.storage.local.get('mode_type', data => {
       if (token === null || token === undefined) {
         /* Not authorized yet. */
         $('#error').text(
-          'Authorization error - Grant LeetHub-Neo access to your GitHub account to continue (click the LeetHub-Neo extension on the top right to proceed)',
+          t(
+            'authorizationRequired',
+            undefined,
+            'Authorize LeetHub-Neo to access your GitHub account before continuing.',
+          ),
         );
         $('#error').show();
         $('#success').hide();
@@ -730,7 +868,11 @@ chrome.storage.local.get('mode_type', data => {
           if (!hook) {
             /* Not authorized yet. */
             $('#error').text(
-              'Improper Authorization error - Grant LeetHub-Neo access to your GitHub account to continue (click the LeetHub-Neo extension on the top right to proceed)',
+              t(
+                'authorizationInvalid',
+                undefined,
+                'GitHub authorization is incomplete. Authorize LeetHub-Neo again.',
+              ),
             );
             $('#error').show();
             $('#success').hide();

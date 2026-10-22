@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "LeetHub-Neo",
-  "description": "Sync LeetCode submissions to GitHub with side panel tools and repository templates",
+  "name": "__MSG_extensionName__",
+  "description": "__MSG_extensionDescription__",
+  "default_locale": "en",
   "homepage_url": "https://github.com/legojeon/LeetHub-Neo",
   "version": "1.3.0",
   "author": "legojeon",
   "action": {
     "default_icon": "assets/thumbnail.png",
-    "default_title": "Open LeetHub-Neo"
+    "default_title": "__MSG_actionTitle__"
   },
   "side_panel": {
     "default_path": "src/html/sidepanel.html"

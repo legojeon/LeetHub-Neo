@@ -21,8 +21,8 @@
         <div id="auth_mode" hidden>
           <p class="onboarding">
             <br />
-            Authenticate with GitHub to use
             <strong>Leet<span style="color: #ff6c0a">Hub</span>-Neo</strong>
+            <span data-i18n="authenticatePrompt">requires GitHub authentication.</span>
           </p>
           <button id="authenticate" class="ui secondary button">
             <i class="icon github"></i>
@@ -34,8 +34,8 @@
         <div id="hook_mode" hidden>
           <p class="onboarding">
             <br />
-            Set up repository hook to use
             <strong>Leet<span style="color: #ff6c0a">Hub</span>-Neo</strong>
+            <span data-i18n="setupRepositoryPrompt">requires a connected GitHub repository.</span>
           </p>
           <a id="hook_URL" href="" target="blank" class="ui secondary button">
             <i class="icon github"></i>
@@ -237,6 +237,7 @@
     </div>
 
     <script src="../js/oauth2.js"></script>
+    <script src="../js/i18n.js"></script>
     <script type="text/javascript" src="../core/config/repository-files.js"></script>
     <script type="text/javascript" src="../data/topic-template-catalog.generated.js"></script>
     <script type="text/javascript" src="../data/topic-template-mappings.js"></script>

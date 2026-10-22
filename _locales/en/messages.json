@@ -1,0 +1,416 @@
+{
+  "extensionName": { "message": "LeetHub-Neo" },
+  "extensionDescription": {
+    "message": "Sync LeetCode submissions to GitHub with side panel tools and repository templates"
+  },
+  "actionTitle": { "message": "Open LeetHub-Neo" },
+  "tagline": { "message": "Sync your code from LeetCode to GitHub" },
+  "taglineAutomatic": { "message": "Automatically sync your code from LeetCode to GitHub" },
+  "authenticatePrompt": { "message": "requires GitHub authentication." },
+  "authenticate": { "message": "Authenticate" },
+  "setupRepositoryPrompt": { "message": "requires a connected GitHub repository." },
+  "setupRepository": { "message": "Set up Repository" },
+  "retry": { "message": "Retry" },
+  "problemTab": { "message": "Problem" },
+  "scratchpadTab": { "message": "Scratchpad" },
+  "topicsTab": { "message": "Topics" },
+  "leethubTab": { "message": "LeetHub" },
+  "notesTab": { "message": "Notes" },
+  "templatesTab": { "message": "Templates" },
+  "requestTranslationReview": { "message": "Request translation review" },
+  "sketch": { "message": "Sketch" },
+  "sketches": { "message": "Sketches" },
+  "empty": { "message": "Empty" },
+  "clear": { "message": "Clear" },
+  "problemsSolved": { "message": "Problems Solved" },
+  "problemsSolvedColon": { "message": "Problems Solved:" },
+  "solved": { "message": "Solved" },
+  "current": { "message": "Current" },
+  "best": { "message": "Best" },
+  "requestFeature": { "message": "Request a feature!" },
+  "settings": { "message": "Settings" },
+  "syncPrevious": { "message": "Sync Previous" },
+  "syncPreviousDescription": { "message": "Sync accepted LeetCode submissions into GitHub." },
+  "sync": { "message": "Sync" },
+  "migrateRepositoryStructure": { "message": "Migrate Repository Structure" },
+  "migrateDescription": {
+    "message": "Move existing synced files to match current folder settings."
+  },
+  "migrate": { "message": "Migrate" },
+  "theme": { "message": "Theme" },
+  "themeDescription": { "message": "Switch the side panel between light and dark mode." },
+  "darkMode": { "message": "Dark Mode" },
+  "commitMessage": { "message": "Commit Message" },
+  "customizeCommitMessage": { "message": "Customize Commit Message" },
+  "commitMessageDescription": { "message": "Customize the commit template and insert variables." },
+  "availableVariables": { "message": "Available Variables" },
+  "timeVariable": { "message": "Time (Time Percentile)" },
+  "spaceVariable": { "message": "Space (Space Percentile)" },
+  "dateVariable": { "message": "Today's Date" },
+  "problemNameVariable": { "message": "Problem Name" },
+  "difficultyVariable": { "message": "Difficulty" },
+  "solvedLanguageVariable": { "message": "Solved Language" },
+  "problemTopicVariable": { "message": "Problem Topic" },
+  "reset": { "message": "Reset" },
+  "save": { "message": "Save" },
+  "commitMessageSaved": { "message": "Commit message saved!" },
+  "useDifficultySubfolder": { "message": "Use Difficulty Subfolder" },
+  "difficultySubfolderDescription": {
+    "message": "Organize submissions under Easy, Medium, and Hard folders."
+  },
+  "organizeFilesLike": { "message": "Organize files into folders like" },
+  "useLanguageSubfolder": { "message": "Use Language Subfolder" },
+  "languageSubfolderDescription": { "message": "Group each problem's files by solved language." },
+  "timestampedFilenames": { "message": "Timestamped Filenames" },
+  "enableTimestampedFilenames": { "message": "Enable Timestamped Filenames" },
+  "timestampedFilenamesDescription": {
+    "message": "Keep multiple accepted versions by adding timestamps to filenames."
+  },
+  "saveSubmissionsLike": { "message": "Save submissions like" },
+  "preserveVersions": { "message": "to preserve versions." },
+  "addVersionedFilenames": { "message": "Add versioned filenames" },
+  "autoCommitSolutionPosts": { "message": "Auto-Commit Solution Posts" },
+  "solutionPostDescription": {
+    "message": "Commit published LeetCode solution posts as Solution.md."
+  },
+  "automaticallyCommitSolutionPosts": {
+    "message": "Automatically commit your solution posts to GitHub as"
+  },
+  "whenPublishedOnLeetCode": { "message": "files when you publish them on LeetCode." },
+  "autoUpdateRepositoryReadme": { "message": "Auto-Update Repository README" },
+  "readmeUpdateDescription": {
+    "message": "Update the generated progress summary in the synced README."
+  },
+  "readmeUpdateWarning": {
+    "message": "Turn this off before editing the synced repository README by hand. Problem files, topics, and stats still sync."
+  },
+  "topicTemplates": { "message": "Topic Templates" },
+  "topicTemplatesDescription": { "message": "Choose template language and Topics tab visibility." },
+  "defaultTemplateLanguage": { "message": "Default template language" },
+  "showTemplatesInSidePanel": { "message": "Show templates in side panel" },
+  "translationLanguage": { "message": "Translation Language" },
+  "translationLanguageDescription": {
+    "message": "Choose the target language for LeetCode problem descriptions."
+  },
+  "problemTranslationLanguage": { "message": "Problem translation language" },
+  "linkedWrongRepository": { "message": "Linked the wrong repo?" },
+  "unlink": { "message": "Unlink" },
+  "getStartedWithLeetHub": { "message": "To get started with LeetHub-Neo" },
+  "pickOption": { "message": "Pick an Option" },
+  "createPrivateRepository": { "message": "Create a new Private Repository" },
+  "linkExistingRepository": { "message": "Link an Existing Repository" },
+  "selectRepository": { "message": "Select a Repository" },
+  "syncFolderInsideRepository": { "message": "Sync folder inside repository" },
+  "syncAfterLinkingGitHub": { "message": "Sync accepted submissions after linking GitHub" },
+  "getStarted": { "message": "Get Started" },
+  "syncProblemCounts": { "message": "Sync Problem Counts" },
+  "wantMoreFeatures": { "message": "Want more features?" },
+  "scratchpadPlaceholder": { "message": "Freely sketch notes, edge cases, or ideas..." },
+  "problemTools": { "message": "Problem tools" },
+  "refreshTranslation": { "message": "Refresh translation" },
+  "addSketch": { "message": "Add a sketch" },
+  "resizeSketch": { "message": "Resize sketch" },
+  "renameSketch": { "message": "Rename sketch" },
+  "deleteSketch": { "message": "Delete sketch" },
+  "addAnotherSketch": { "message": "Add another sketch" },
+  "sketchTools": { "message": "Sketch tools" },
+  "pan": { "message": "Pan" },
+  "pen": { "message": "Pen" },
+  "rectangle": { "message": "Rectangle" },
+  "ellipse": { "message": "Ellipse" },
+  "arrow": { "message": "Arrow" },
+  "textTool": { "message": "Text" },
+  "eraser": { "message": "Eraser" },
+  "undo": { "message": "Undo" },
+  "redo": { "message": "Redo" },
+  "clearSketch": { "message": "Clear sketch" },
+  "sketchCanvas": { "message": "Sketch canvas" },
+  "sketchText": { "message": "Sketch text" },
+  "topicContent": { "message": "Topic content" },
+  "topic": { "message": "Topic" },
+  "editTopicReadmeGitHub": { "message": "Edit topic README on GitHub" },
+  "editReadmeGitHub": { "message": "Edit README on GitHub" },
+  "solvedProblemStats": { "message": "Solved problem stats" },
+  "difficultyDistribution": { "message": "Difficulty distribution" },
+  "leethubProfileSummary": { "message": "LeetHub profile summary" },
+  "recentSolveActivity": { "message": "Recent solve activity" },
+  "leethubLinksAndSettings": { "message": "LeetHub links and settings" },
+  "syncAcceptedSubmissions": { "message": "Sync accepted submissions" },
+  "openLeetHubSettings": { "message": "Open LeetHub settings" },
+  "backToLeetHubPanel": { "message": "Back to LeetHub panel" },
+  "toggleThemeSettings": { "message": "Toggle theme settings" },
+  "toggleCommitMessageSettings": { "message": "Toggle commit message settings" },
+  "toggleDifficultyFolderSettings": { "message": "Toggle difficulty folder settings" },
+  "toggleLanguageFolderSettings": { "message": "Toggle language folder settings" },
+  "toggleTimestampFilenameSettings": { "message": "Toggle timestamp filename settings" },
+  "toggleSolutionPostSettings": { "message": "Toggle solution post settings" },
+  "toggleRepositoryReadmeSettings": { "message": "Toggle repository README settings" },
+  "toggleTopicTemplateSettings": { "message": "Toggle topic template settings" },
+  "toggleTranslationLanguageSettings": { "message": "Toggle translation language settings" },
+  "repositoryName": { "message": "Repository Name" },
+  "syncPending": { "message": "Sync pending. Open a signed-in LeetCode tab to continue." },
+  "syncingAccepted": { "message": "Syncing accepted LeetCode submissions..." },
+  "syncFailed": { "message": "Sync failed." },
+  "syncFailedWithError": {
+    "message": "Sync failed. $ERROR$",
+    "placeholders": { "error": { "content": "$1" } }
+  },
+  "pleaseRetry": { "message": "Please retry." },
+  "initialSyncUnavailable": { "message": "Initial sync status unavailable." },
+  "fullSyncComplete": {
+    "message": "Full sync complete. Solved problems: $COUNT$.",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "openSignedInLeetCode": {
+    "message": "Open a signed-in LeetCode tab. Sync will continue when it finishes loading."
+  },
+  "connectLeetCodeRefresh": {
+    "message": "Could not connect to the LeetCode page. Refresh it, then try again."
+  },
+  "migrationFailed": { "message": "Migration failed." },
+  "migrationComplete": {
+    "message": "Migration complete. Moved $MOVED$ files and updated $INDEXES$ topic indexes.$CONFLICTS$",
+    "placeholders": {
+      "moved": { "content": "$1" },
+      "indexes": { "content": "$2" },
+      "conflicts": { "content": "$3" }
+    }
+  },
+  "conflictsSkipped": {
+    "message": " $COUNT$ conflicts skipped.",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "confirmMigration": {
+    "message": "Move existing synced files in GitHub to match the current folder settings?"
+  },
+  "openLeetCodeMigrating": {
+    "message": "Open https://leetcode.com/ and keep it active while migrating..."
+  },
+  "openLeetCodeSignedIn": {
+    "message": "Open https://leetcode.com/ or https://leetcode.cn/, sign in, then try again."
+  },
+  "preparingLeetHubTab": { "message": "Preparing LeetHub-Neo on this LeetCode tab..." },
+  "refreshLeetCodeTryAgain": { "message": "Refresh the LeetCode page, then try again." },
+  "connectGitHubEditNotes": { "message": "Connect GitHub before editing topic notes." },
+  "connectGitHubEditTemplates": { "message": "Connect GitHub before editing topic templates." },
+  "relatedProblems": { "message": "Related Problems" },
+  "noSyncedProblems": { "message": "No synced problems for this topic." },
+  "solution": { "message": "Solution" },
+  "openOnLeetCode": { "message": "Open on LeetCode" },
+  "solutionFileNotFound": {
+    "message": "Solution file not found: $PATH$",
+    "placeholders": { "path": { "content": "$1" } }
+  },
+  "noSyncedSolutionPath": { "message": "No synced solution path yet." },
+  "newTemplate": { "message": "New template" },
+  "templateName": { "message": "Template name" },
+  "create": { "message": "Create" },
+  "cancel": { "message": "Cancel" },
+  "enterTemplateName": { "message": "Enter a template name." },
+  "connectGitHubCreateTemplates": { "message": "Connect GitHub before creating topic templates." },
+  "creatingTemplate": {
+    "message": "Creating $NAME$ template...",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "noTemplates": { "message": "No templates yet." },
+  "defaultTemplate": { "message": "Default" },
+  "myTemplate": { "message": "My template" },
+  "customizeTemplateGitHub": { "message": "Customize template on GitHub" },
+  "editTemplateGitHub": { "message": "Edit template on GitHub" },
+  "templateFileNotFound": {
+    "message": "Template file not found: $PATH$",
+    "placeholders": { "path": { "content": "$1" } }
+  },
+  "connectGitHubLoadTopics": { "message": "Connect GitHub to load topic notes and templates." },
+  "loadingTopic": {
+    "message": "Loading $TOPIC$...",
+    "placeholders": { "topic": { "content": "$1" } }
+  },
+  "translatorUnavailable": {
+    "message": "Chrome Translator API is not available. Use Chrome 138+ desktop."
+  },
+  "translationPairUnavailable": {
+    "message": "English to $LANGUAGE$ translation is unavailable in this Chrome profile.",
+    "placeholders": { "language": { "content": "$1" } }
+  },
+  "downloadingTranslationModel": {
+    "message": "Downloading translation model... $PERCENT$%",
+    "placeholders": { "percent": { "content": "$1" } }
+  },
+  "preparingTranslationFallback": {
+    "message": "Preparing $LANGUAGE$ translation fallback...",
+    "placeholders": { "language": { "content": "$1" } }
+  },
+  "translatingWithChrome": { "message": "Translating description with Chrome fallback..." },
+  "noDescriptionToTranslate": {
+    "message": "This problem does not have a description to translate."
+  },
+  "requestingTranslation": {
+    "message": "Requesting $LANGUAGE$ translation...",
+    "placeholders": { "language": { "content": "$1" } }
+  },
+  "noTranslationToReview": { "message": "No translated description is available to review." },
+  "sendingReviewRequest": { "message": "Sending review request..." },
+  "reviewRequestSent": { "message": "Review request sent." },
+  "deleteSketchConfirm": {
+    "message": "Delete this sketch? This cannot be undone after it is saved."
+  },
+  "clearSketchConfirm": { "message": "Clear every sketch element?" },
+  "sketchSummary": {
+    "message": "$SKETCHES$ · $ELEMENTS$",
+    "placeholders": { "sketches": { "content": "$1" }, "elements": { "content": "$2" } }
+  },
+  "sketchCountOne": {
+    "message": "$COUNT$ sketch",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "sketchCountMany": {
+    "message": "$COUNT$ sketches",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "elementCountOne": {
+    "message": "$COUNT$ element",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "elementCountMany": {
+    "message": "$COUNT$ elements",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "savingTemplateLanguage": { "message": "Saving template language..." },
+  "saveTemplateLanguageFailed": { "message": "Could not save template language." },
+  "templateLanguageSaved": { "message": "Template language saved. Topics update automatically." },
+  "savingTemplateVisibility": { "message": "Saving template visibility..." },
+  "saveTemplateVisibilityFailed": { "message": "Could not save template visibility." },
+  "templateVisibilitySaved": {
+    "message": "Template visibility saved. Topics update automatically."
+  },
+  "templateSettingsReset": { "message": "Template settings reset." },
+  "translationLanguageSaved": { "message": "Translation language saved." },
+  "translationLanguageReset": { "message": "Translation language reset." },
+  "initialSyncQueued": { "message": "Initial submission sync queued..." },
+  "initialSyncPendingOpen": { "message": "Initial sync is pending. Open LeetCode to continue." },
+  "initialSyncComplete": {
+    "message": "Initial sync complete. $COUNT$ solved problems found.",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "initialSyncPendingLater": {
+    "message": "Initial sync is pending. It will start when you open LeetCode."
+  },
+  "initialSyncFailed": {
+    "message": "Initial sync failed: $ERROR$",
+    "placeholders": { "error": { "content": "$1" } }
+  },
+  "retryLater": { "message": "Please retry later." },
+  "loadRepositoriesFailed": { "message": "Failed to load repositories. Please try again." },
+  "noOptionSelected": {
+    "message": "Choose whether to create a new repository or link an existing one."
+  },
+  "noRepositoryName": { "message": "Enter a repository name." },
+  "attemptingRepositorySetup": { "message": "Setting up the repository... Please wait." },
+  "authorizationRequired": {
+    "message": "Authorize LeetHub-Neo to access your GitHub account before continuing."
+  },
+  "authorizationInvalid": {
+    "message": "GitHub authorization is incomplete. Authorize LeetHub-Neo again."
+  },
+  "repositoryUnlinked": {
+    "message": "Repository disconnected. Create or link another repository."
+  },
+  "noRepositoryLinked": { "message": "Link a repository before synchronizing problem counts." },
+  "noTokenFound": { "message": "Authorize LeetHub-Neo to access your GitHub account." },
+  "fetchRepositoryFailed": { "message": "Failed to fetch repository data. Please try again." },
+  "templatesHiddenInSettings": { "message": "Templates are hidden in settings." },
+  "templateLanguage": { "message": "Template language" },
+  "activitySolvedCount": {
+    "message": "$DATE$: $COUNT$ solved",
+    "placeholders": { "date": { "content": "$1" }, "count": { "content": "$2" } }
+  },
+  "saved": { "message": "Saved" },
+  "saving": { "message": "Saving…" },
+  "saveFailed": { "message": "Save failed" },
+  "sketchName": { "message": "Sketch name" },
+  "refreshingLeetCodePage": { "message": "Refreshing the LeetCode page..." },
+  "refreshLeetCodeFailed": { "message": "Could not refresh the LeetCode page. Try again." },
+  "refreshLeetCodePage": { "message": "Refresh LeetCode page" },
+  "createEditableTemplateFailed": { "message": "Could not create an editable template file." },
+  "invalidTemplatesBeforeCustomize": {
+    "message": "templates.json is invalid JSON. Fix it before customizing a template."
+  },
+  "unsupportedTemplateSchemaError": {
+    "message": "Unsupported topic template schema version: $VERSION$",
+    "placeholders": { "version": { "content": "$1" } }
+  },
+  "fixInvalidTemplatesBeforeCustomize": {
+    "message": "Fix invalid entries in templates.json before customizing a template."
+  },
+  "createCustomTemplateCopyFailed": {
+    "message": "Could not create a custom copy of this template."
+  },
+  "fixInvalidTemplatesBeforeCreate": {
+    "message": "Fix invalid entries in templates.json before creating a template."
+  },
+  "customizeNamedTemplateGitHub": {
+    "message": "Customize $NAME$ template on GitHub",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "editNamedTemplateGitHub": {
+    "message": "Edit $NAME$ template on GitHub",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "invalidTemplatesJson": {
+    "message": "Custom templates are hidden because templates.json is invalid JSON."
+  },
+  "unsupportedTemplateSchema": {
+    "message": "Custom templates use unsupported schema version $VERSION$.",
+    "placeholders": { "version": { "content": "$1" } }
+  },
+  "invalidTemplateEntriesSkipped": {
+    "message": "$COUNT$ invalid custom template entries were skipped.",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "noTopicsForProblem": { "message": "No topics found for this problem." },
+  "loadingLeetCodeDescription": { "message": "Loading LeetCode problem description..." },
+  "reloadProblemPageRequired": {
+    "message": "LeetHub-Neo needs to reload this problem page. Use the refresh icon above."
+  },
+  "loadLeetCodeProblemFailed": { "message": "Could not load the LeetCode problem." },
+  "problemLoadFailedUseRefresh": {
+    "message": "$ERROR$ Use the refresh icon above.",
+    "placeholders": { "error": { "content": "$1" } }
+  },
+  "repositoryCreated": { "message": "Repository created and connected:" },
+  "repositoryLinked": { "message": "Repository connected:" },
+  "startSolving": { "message": "Start solving on" },
+  "createRepositoryUnmodified": {
+    "message": "Could not create $NAME$. GitHub did not modify the repository. Try again later.",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "createRepositoryBadRequest": {
+    "message": "Could not create $NAME$. GitHub rejected the request.",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "createRepositoryUnauthorized": {
+    "message": "Could not create $NAME$. Authorize GitHub again and retry.",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "createRepositoryForbidden": {
+    "message": "Could not create $NAME$. GitHub denied access to the repository.",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "createRepositoryExists": {
+    "message": "Could not create $NAME$. It may already exist; try linking it instead.",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "linkRepositoryMoved": {
+    "message": "Could not connect $NAME$. The repository has moved; select it again or create a new one.",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "linkRepositoryForbidden": {
+    "message": "Could not connect $NAME$. Check that your GitHub account has write access.",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "linkRepositoryNotFound": {
+    "message": "Could not find $NAME$. Select the correct repository and try again.",
+    "placeholders": { "name": { "content": "$1" } }
+  }
+}

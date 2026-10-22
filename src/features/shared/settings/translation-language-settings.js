@@ -1,4 +1,7 @@
 (function initializeTranslationLanguageSettings(globalObject) {
+  const t = (key, fallback) =>
+    globalObject.LeetHubI18n?.getMessage(key, undefined, fallback) || fallback;
+
   function renderTranslationLanguageOptions(select, selectedLanguage) {
     const utils = globalObject.LeetHubTranslationLanguageUtils;
 
@@ -12,7 +15,9 @@
       select.append(
         $('<option>', {
           value: language.code,
-          text: language.name,
+          text:
+            globalObject.LeetHubI18n?.localizeLanguageName(language.code, language.name) ??
+            language.name,
           selected: language.code === selectedLanguage,
         }),
       );
@@ -54,7 +59,7 @@
     languageSelect.change(function () {
       const translationLanguage = utils.normalizeTranslationLanguage($(this).val());
       chrome.storage.local.set({ [utils.TRANSLATION_LANGUAGE_STORAGE_KEY]: translationLanguage });
-      status.text('Translation language saved.');
+      status.text(t('translationLanguageSaved', 'Translation language saved.'));
     });
 
     resetButton.click(() => {
@@ -62,7 +67,7 @@
         { [utils.TRANSLATION_LANGUAGE_STORAGE_KEY]: utils.DEFAULT_TRANSLATION_LANGUAGE },
         () => {
           loadSettings();
-          status.text('Translation language reset.');
+          status.text(t('translationLanguageReset', 'Translation language reset.'));
         },
       );
     });

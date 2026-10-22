@@ -11,7 +11,8 @@ coverage/
 DESIGN.md
 .superpowers/
 docs/superpowers/
-tests/
+tests/*
+!tests/i18n.test.mjs
 .worktrees/
 .vscode/
 **/.DS_Store
