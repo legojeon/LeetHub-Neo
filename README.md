@@ -33,19 +33,15 @@ LeetHub-Neo is a fork of
 [LeetHub-3.0](https://github.com/raphaelheinz/LeetHub-3.0), with additional
 features and maintenance for this project.
 
-## What's New in 1.3.0
+## What's New in 1.3.1
 
-- Added stable, context-aware matching between LeetCode topics and bundled
-  algorithm or data-structure templates.
-- Replaced the scrolling topic chips with a compact topic selector and moved
-  language selection into the Templates toolbar.
-- Separated read-only bundled defaults from user-owned templates. Customizing a
-  default now creates an editable copy in GitHub without allowing future catalog
-  updates to overwrite it.
-- Preserved existing topic templates through the new manifest format, including
-  multi-language custom templates and legacy repository data.
-- Improved topic file creation when submission sync and the Topics panel write
-  to GitHub at the same time.
+- Added English and Korean interface localization across the extension popup,
+  welcome flow, side panel, settings, and dynamic status messages.
+- Kept undo and redo history independently for each Scratchpad sketch tab.
+- Added Ctrl/Cmd undo and redo shortcuts without intercepting native editing
+  shortcuts in text fields.
+- Added localized, platform-appropriate shortcut labels and regression tests for
+  sketch history behavior.
 
 ## Installation
 
